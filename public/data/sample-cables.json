@@ -1,0 +1,293 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [106.82665, -6.17540],
+          [106.82680, -6.17520],
+          [106.82695, -6.17500],
+          [106.82710, -6.17480],
+          [106.82725, -6.17460],
+          [106.82740, -6.17440],
+          [106.82755, -6.17420],
+          [106.82770, -6.17400],
+          [106.82785, -6.17380],
+          [106.82800, -6.17360],
+          [106.82815, -6.17340],
+          [106.82830, -6.17320],
+          [106.82845, -6.17300],
+          [106.82860, -6.17280],
+          [106.82875, -6.17260],
+          [106.82890, -6.17240],
+          [106.82905, -6.17220],
+          [106.82920, -6.17200],
+          [106.82935, -6.17180],
+          [106.82950, -6.17160]
+        ]
+      },
+      "properties": {
+        "id": "cable-001",
+        "soilType": "Tanah Liat",
+        "depth": 1.8,
+        "name": "Kabel Utama - Jl. MH Thamrin (Monas - Bundaran HI) Segmen 1",
+        "installDate": "2023-01-15",
+        "description": "Area Monas dengan tanah liat padat, kedalaman standar untuk area perkotaan"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [106.82950, -6.17160],
+          [106.82965, -6.17140],
+          [106.82980, -6.17120],
+          [106.82995, -6.17100],
+          [106.83010, -6.17080],
+          [106.83025, -6.17060],
+          [106.83040, -6.17040],
+          [106.83055, -6.17020],
+          [106.83070, -6.17000],
+          [106.83085, -6.16980],
+          [106.83100, -6.16960],
+          [106.83115, -6.16940],
+          [106.83130, -6.16920],
+          [106.83145, -6.16900],
+          [106.83160, -6.16880]
+        ]
+      },
+      "properties": {
+        "id": "cable-002",
+        "soilType": "Pasir Berlempung",
+        "depth": 1.5,
+        "name": "Kabel Utama - Jl. MH Thamrin (Monas - Bundaran HI) Segmen 2",
+        "installDate": "2023-01-20",
+        "description": "Area tengah Thamrin dengan campuran pasir dan lempung, drainase lebih baik"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [106.83160, -6.16880],
+          [106.83175, -6.16860],
+          [106.83190, -6.16840],
+          [106.83205, -6.16820],
+          [106.83220, -6.16800],
+          [106.83235, -6.16780],
+          [106.83250, -6.16760],
+          [106.83265, -6.16740],
+          [106.83280, -6.16720],
+          [106.83295, -6.16700],
+          [106.83310, -6.16680],
+          [106.83325, -6.16660],
+          [106.83340, -6.16640]
+        ]
+      },
+      "properties": {
+        "id": "cable-003",
+        "soilType": "Batuan Sedimen",
+        "depth": 2.2,
+        "name": "Kabel Utama - Jl. MH Thamrin (Bundaran HI) Segmen 3",
+        "installDate": "2023-02-05",
+        "description": "Area Bundaran HI dengan lapisan batuan sedimen, memerlukan kedalaman lebih untuk stabilitas"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [106.83340, -6.16640],
+          [106.83360, -6.16620],
+          [106.83380, -6.16600],
+          [106.83400, -6.16580],
+          [106.83420, -6.16560],
+          [106.83440, -6.16540],
+          [106.83460, -6.16520],
+          [106.83480, -6.16500],
+          [106.83500, -6.16480],
+          [106.83520, -6.16460],
+          [106.83540, -6.16440],
+          [106.83560, -6.16420],
+          [106.83580, -6.16400],
+          [106.83600, -6.16380]
+        ]
+      },
+      "properties": {
+        "id": "cable-004",
+        "soilType": "Tanah Liat Berpasir",
+        "depth": 1.6,
+        "name": "Kabel Cabang - Jl. Imam Bonjol Segmen 1",
+        "installDate": "2023-02-15",
+        "description": "Awal Jl. Imam Bonjol dengan tanah liat berpasir, area transisi menuju Menteng"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [106.83600, -6.16380],
+          [106.83620, -6.16360],
+          [106.83640, -6.16340],
+          [106.83660, -6.16320],
+          [106.83680, -6.16300],
+          [106.83700, -6.16280],
+          [106.83720, -6.16260],
+          [106.83740, -6.16240],
+          [106.83760, -6.16220],
+          [106.83780, -6.16200],
+          [106.83800, -6.16180],
+          [106.83820, -6.16160]
+        ]
+      },
+      "properties": {
+        "id": "cable-005",
+        "soilType": "Pasir Kasar",
+        "depth": 1.4,
+        "name": "Kabel Cabang - Jl. Imam Bonjol Segmen 2",
+        "installDate": "2023-03-01",
+        "description": "Area Menteng dengan pasir kasar, drainase sangat baik, kedalaman lebih dangkal"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [106.83820, -6.16160],
+          [106.83840, -6.16140],
+          [106.83860, -6.16120],
+          [106.83880, -6.16100],
+          [106.83900, -6.16080],
+          [106.83920, -6.16060],
+          [106.83940, -6.16040],
+          [106.83960, -6.16020],
+          [106.83980, -6.16000],
+          [106.84000, -6.15980],
+          [106.84020, -6.15960],
+          [106.84040, -6.15940],
+          [106.84060, -6.15920],
+          [106.84080, -6.15900]
+        ]
+      },
+      "properties": {
+        "id": "cable-006",
+        "soilType": "Tanah Liat Keras",
+        "depth": 2.0,
+        "name": "Kabel Cabang - Jl. Cikini Raya Segmen 1",
+        "installDate": "2023-03-15",
+        "description": "Awal Jl. Cikini dengan tanah liat keras, area padat pemukiman"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [106.84080, -6.15900],
+          [106.84100, -6.15880],
+          [106.84120, -6.15860],
+          [106.84140, -6.15840],
+          [106.84160, -6.15820],
+          [106.84180, -6.15800],
+          [106.84200, -6.15780],
+          [106.84220, -6.15760],
+          [106.84240, -6.15740],
+          [106.84260, -6.15720],
+          [106.84280, -6.15700],
+          [106.84300, -6.15680]
+        ]
+      },
+      "properties": {
+        "id": "cable-007",
+        "soilType": "Batuan Keras",
+        "depth": 2.5,
+        "name": "Kabel Cabang - Jl. Cikini Raya Segmen 2",
+        "installDate": "2023-04-01",
+        "description": "Area Cikini dengan batuan keras, memerlukan kedalaman maksimal untuk perlindungan"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [106.84300, -6.15680],
+          [106.84320, -6.15660],
+          [106.84340, -6.15640],
+          [106.84360, -6.15620],
+          [106.84380, -6.15600],
+          [106.84400, -6.15580],
+          [106.84420, -6.15560],
+          [106.84440, -6.15540],
+          [106.84460, -6.15520],
+          [106.84480, -6.15500]
+        ]
+      },
+      "properties": {
+        "id": "cable-008",
+        "soilType": "Pasir Halus",
+        "depth": 1.3,
+        "name": "Kabel Cabang - Jl. Cikini Raya Segmen 3 (Terminal)",
+        "installDate": "2023-04-10",
+        "description": "Ujung rute di area Cikini dengan pasir halus, area akhir instalasi"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [106.82700, -6.17500],
+          [106.82720, -6.17520],
+          [106.82740, -6.17540],
+          [106.82760, -6.17560],
+          [106.82780, -6.17580],
+          [106.82800, -6.17600],
+          [106.82820, -6.17620],
+          [106.82840, -6.17640],
+          [106.82860, -6.17660],
+          [106.82880, -6.17680]
+        ]
+      },
+      "properties": {
+        "id": "cable-009",
+        "soilType": "Tanah Lempung",
+        "depth": 1.7,
+        "name": "Kabel Sekunder - Jl. Kebon Sirih (Paralel Thamrin)",
+        "installDate": "2023-05-01",
+        "description": "Jalur alternatif di Jl. Kebon Sirih dengan tanah lempung, backup route"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [106.83300, -6.16700],
+          [106.83320, -6.16720],
+          [106.83340, -6.16740],
+          [106.83360, -6.16760],
+          [106.83380, -6.16780],
+          [106.83400, -6.16800],
+          [106.83420, -6.16820],
+          [106.83440, -6.16840]
+        ]
+      },
+      "properties": {
+        "id": "cable-010",
+        "soilType": "Batuan Lunak",
+        "depth": 1.9,
+        "name": "Kabel Koneksi - Jl. Wahid Hasyim",
+        "installDate": "2023-05-15",
+        "description": "Koneksi silang di Jl. Wahid Hasyim dengan batuan lunak, menghubungkan jalur utama"
+      }
+    }
+  ]
+}

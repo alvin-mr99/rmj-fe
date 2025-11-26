@@ -1,0 +1,113 @@
+import type { Feature, FeatureCollection, LineString, Point } from 'geojson';
+
+/**
+ * Soil type classification for underground cables
+ */
+export type SoilType = 'Pasir' | 'Tanah Liat' | 'Batuan';
+
+/**
+ * Properties associated with a cable route
+ */
+export interface CableProperties {
+  id: string;
+  soilType: SoilType;
+  depth: number; // in meters
+  name?: string;
+  installDate?: string;
+}
+
+/**
+ * Properties associated with a marker point
+ */
+export interface MarkerProperties {
+  cableId: string;
+  soilType: SoilType;
+  depth: number;
+  distanceFromStart: number; // in meters
+  coordinates: [number, number];
+}
+
+/**
+ * GeoJSON Feature representing a cable route
+ */
+export type CableFeature = Feature<LineString, CableProperties>;
+
+/**
+ * GeoJSON FeatureCollection of cable routes
+ */
+export type CableFeatureCollection = FeatureCollection<LineString, CableProperties>;
+
+/**
+ * GeoJSON Feature representing a marker point
+ */
+export type MarkerFeature = Feature<Point, MarkerProperties>;
+
+/**
+ * GeoJSON FeatureCollection of marker points
+ */
+export type MarkerFeatureCollection = FeatureCollection<Point, MarkerProperties>;
+
+// ============================================================================
+// Component Props and State Interfaces
+// ============================================================================
+
+/**
+ * Props for the App root component
+ */
+export interface AppProps {}
+
+/**
+ * State for the App root component
+ */
+export interface AppState {
+  cableData: CableFeatureCollection;
+  selectedFeature: Feature<LineString | Point, CableProperties | MarkerProperties> | null;
+  isDrawingMode: boolean;
+}
+
+/**
+ * Props for the MapView component
+ */
+export interface MapViewProps {
+  cableData: CableFeatureCollection;
+  onFeatureClick: (feature: Feature<LineString | Point, CableProperties | MarkerProperties>, coordinates: [number, number], screenPosition: { x: number; y: number }) => void;
+  onMapLoad: (map: any) => void; // maplibregl.Map type
+  onMapClick?: () => void; // Optional handler for clicking on empty map area
+  ref?: (methods: MapViewMethods) => void; // Optional ref for programmatic control
+}
+
+/**
+ * Methods exposed by MapView component for programmatic control
+ */
+export interface MapViewMethods {
+  panTo: (coordinates: [number, number], options?: { duration?: number }) => void;
+  zoomTo: (zoomLevel: number, options?: { duration?: number }) => void;
+  panBy: (offset: [number, number]) => void;
+  getCenter: () => [number, number] | null;
+  getZoom: () => number | null;
+}
+
+/**
+ * Props for the PopupComponent
+ */
+export interface PopupProps {
+  feature: Feature<LineString | Point, CableProperties | MarkerProperties>;
+  coordinates: [number, number];
+  onClose: () => void;
+}
+
+/**
+ * Props for the SearchControl component
+ */
+export interface SearchControlProps {
+  onLocationSelect: (coordinates: [number, number]) => void;
+}
+
+/**
+ * Props for the DrawingTools component (optional feature)
+ */
+export interface DrawingToolsProps {
+  isActive: boolean;
+  onDrawComplete: (feature: Feature<LineString>) => void;
+  onCancel: () => void;
+}
