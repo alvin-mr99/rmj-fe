@@ -227,8 +227,14 @@ export function MapView(props: MapViewProps) {
       if (map.getLayer('cable-routes')) {
         map.removeLayer('cable-routes');
       }
+      if (map.getLayer('segment-labels')) {
+        map.removeLayer('segment-labels');
+      }
       if (map.getSource('cables')) {
         map.removeSource('cables');
+      }
+      if (map.getSource('segment-midpoints')) {
+        map.removeSource('segment-midpoints');
       }
 
       // Add GeoJSON source for cable routes
@@ -240,6 +246,9 @@ export function MapView(props: MapViewProps) {
       // Add line layer with data-driven styling from StyleEngine
       const lineStyle = StyleEngine.getCableLineStyle();
       map.addLayer(lineStyle);
+      
+      // Add segment distance labels
+      renderSegmentLabels();
 
       // Add click event handler for cable routes - Requirements 4.1, 4.2
       map.on('click', 'cable-routes', (e) => {
@@ -267,6 +276,92 @@ export function MapView(props: MapViewProps) {
     } catch (error) {
       console.error('Error rendering cable routes:', error);
       // Continue execution - don't break the app
+    }
+  }
+
+  /**
+   * Render segment distance labels on the map
+   */
+  function renderSegmentLabels() {
+    if (!map) return;
+
+    try {
+      // Create point features at the midpoint of each segment with distance labels
+      const labelFeatures: Feature<Point, any>[] = [];
+      
+      props.cableData.features.forEach((cableFeature) => {
+        const segments = cableFeature.properties.segments;
+        if (!segments || segments.length === 0) return;
+        
+        segments.forEach((segment, index) => {
+          // Calculate midpoint
+          const [lon1, lat1] = segment.startPoint;
+          const [lon2, lat2] = segment.endPoint;
+          const midLon = (lon1 + lon2) / 2;
+          const midLat = (lat1 + lat2) / 2;
+          
+          // Format distance
+          let distanceText = '';
+          if (segment.distance < 1) {
+            distanceText = `${(segment.distance * 100).toFixed(0)}cm`;
+          } else if (segment.distance < 1000) {
+            distanceText = `${segment.distance.toFixed(1)}m`;
+          } else {
+            distanceText = `${(segment.distance / 1000).toFixed(2)}km`;
+          }
+          
+          const labelFeature: Feature<Point, any> = {
+            type: 'Feature',
+            geometry: {
+              type: 'Point',
+              coordinates: [midLon, midLat]
+            },
+            properties: {
+              distance: distanceText,
+              cableId: cableFeature.properties.id,
+              segmentIndex: index
+            }
+          };
+          
+          labelFeatures.push(labelFeature);
+        });
+      });
+      
+      // Add source for segment labels
+      map.addSource('segment-midpoints', {
+        type: 'geojson',
+        data: {
+          type: 'FeatureCollection',
+          features: labelFeatures
+        }
+      });
+      
+      // Add symbol layer for distance labels
+      map.addLayer({
+        id: 'segment-labels',
+        type: 'symbol',
+        source: 'segment-midpoints',
+        minzoom: 16, // Only show labels at high zoom levels
+        layout: {
+          'text-field': ['get', 'distance'],
+          'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+          'text-size': 11,
+          'text-offset': [0, 0],
+          'text-anchor': 'center',
+          'text-allow-overlap': false,
+          'text-ignore-placement': false
+        },
+        paint: {
+          'text-color': '#ffffff',
+          'text-halo-color': '#000000',
+          'text-halo-width': 2,
+          'text-halo-blur': 1
+        }
+      });
+      
+      console.log(`✓ Rendered ${labelFeatures.length} segment distance labels`);
+    } catch (error) {
+      console.error('Error rendering segment labels:', error);
     }
   }
 

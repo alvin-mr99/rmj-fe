@@ -6,6 +6,45 @@ import type { Feature, FeatureCollection, LineString, Point } from 'geojson';
 export type SoilType = 'Pasir' | 'Tanah Liat' | 'Batuan';
 
 /**
+ * Style properties from KML
+ */
+export interface KMLStyle {
+  lineColor?: string; // ABGR or RGBA format
+  lineWidth?: number;
+  lineOpacity?: number;
+  polygonColor?: string;
+  polygonOpacity?: number;
+  iconHref?: string;
+  iconScale?: number;
+  iconColor?: string;
+  labelColor?: string;
+  labelScale?: number;
+}
+
+/**
+ * Segment information for polylines
+ */
+export interface SegmentInfo {
+  startPoint: [number, number];
+  endPoint: [number, number];
+  distance: number; // in meters
+  bearing?: number; // in degrees
+}
+
+/**
+ * Extended metadata from KML
+ */
+export interface KMLMetadata {
+  description?: string;
+  timestamp?: string;
+  author?: string;
+  visibility?: boolean;
+  open?: boolean;
+  snippet?: string;
+  [key: string]: any; // Allow additional custom metadata
+}
+
+/**
  * Properties associated with a cable route
  */
 export interface CableProperties {
@@ -14,6 +53,11 @@ export interface CableProperties {
   depth: number; // in meters
   name?: string;
   installDate?: string;
+  // Enhanced properties
+  style?: KMLStyle;
+  segments?: SegmentInfo[];
+  totalDistance?: number;
+  metadata?: KMLMetadata;
 }
 
 /**
@@ -25,6 +69,9 @@ export interface MarkerProperties {
   depth: number;
   distanceFromStart: number; // in meters
   coordinates: [number, number];
+  // Enhanced properties
+  style?: KMLStyle;
+  metadata?: KMLMetadata;
 }
 
 /**

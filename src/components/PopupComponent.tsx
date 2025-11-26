@@ -1,4 +1,4 @@
-import { Show } from 'solid-js';
+import { Show, For } from 'solid-js';
 import type { PopupProps } from '../types';
 import type { CableProperties, MarkerProperties } from '../types';
 
@@ -27,6 +27,19 @@ export function PopupComponent(props: PopupProps) {
    */
   const formatDepth = (depth: number): string => {
     return `${depth.toFixed(2)} m`;
+  };
+
+  /**
+   * Format distance
+   */
+  const formatDistance = (distance: number): string => {
+    if (distance < 1) {
+      return `${(distance * 100).toFixed(0)} cm`;
+    } else if (distance < 1000) {
+      return `${distance.toFixed(2)} m`;
+    } else {
+      return `${(distance / 1000).toFixed(2)} km`;
+    }
   };
 
   /**
@@ -101,6 +114,62 @@ export function PopupComponent(props: PopupProps) {
                 <span class="text-[13px] font-bold text-gray-500 uppercase tracking-wide">Route Name:</span>
               </div>
               <span class="text-[17px] font-medium text-gray-900">{(properties as CableProperties).name}</span>
+            </div>
+          </Show>
+
+          {/* Total Distance (for cable routes with segments) */}
+          <Show when={'totalDistance' in properties && (properties as CableProperties).totalDistance !== undefined}>
+            <div class="flex flex-col">
+              <div class="flex items-center gap-2 mb-1.5">
+                <span class="text-[13px] font-bold text-gray-500 uppercase tracking-wide">Total Distance:</span>
+              </div>
+              <span class="text-[17px] font-medium text-gray-900">
+                {formatDistance((properties as CableProperties).totalDistance!)}
+              </span>
+            </div>
+          </Show>
+
+          {/* Number of Segments */}
+          <Show when={'segments' in properties && (properties as CableProperties).segments && (properties as CableProperties).segments!.length > 0}>
+            <div class="flex flex-col">
+              <div class="flex items-center gap-2 mb-1.5">
+                <span class="text-[13px] font-bold text-gray-500 uppercase tracking-wide">Segments:</span>
+              </div>
+              <span class="text-[17px] font-medium text-gray-900">
+                {(properties as CableProperties).segments!.length} segments
+              </span>
+            </div>
+          </Show>
+
+          {/* Style Information */}
+          <Show when={'style' in properties && (properties as CableProperties).style}>
+            <div class="flex flex-col">
+              <div class="flex items-center gap-2 mb-1.5">
+                <span class="text-[13px] font-bold text-gray-500 uppercase tracking-wide">Style:</span>
+              </div>
+              <div class="flex gap-2 items-center">
+                <Show when={(properties as CableProperties).style?.lineColor}>
+                  <div 
+                    class="w-8 h-3 rounded border border-gray-300" 
+                    style={{ 'background-color': (properties as CableProperties).style?.lineColor }}
+                  />
+                  <span class="text-[14px] text-gray-700">
+                    Width: {(properties as CableProperties).style?.lineWidth || 'default'}
+                  </span>
+                </Show>
+              </div>
+            </div>
+          </Show>
+
+          {/* Metadata Description */}
+          <Show when={'metadata' in properties && (properties as CableProperties).metadata?.description}>
+            <div class="flex flex-col">
+              <div class="flex items-center gap-2 mb-1.5">
+                <span class="text-[13px] font-bold text-gray-500 uppercase tracking-wide">Description:</span>
+              </div>
+              <span class="text-[14px] text-gray-700 leading-relaxed">
+                {(properties as CableProperties).metadata!.description}
+              </span>
             </div>
           </Show>
         </div>

@@ -1,5 +1,5 @@
 import { createSignal, Show } from 'solid-js';
-import { KmlConverter } from '../services/KmlConverter';
+import { EnhancedKmlConverter } from '../services/EnhancedKmlConverter';
 import type { CableFeatureCollection } from '../types';
 
 interface UploadModalProps {
@@ -68,10 +68,17 @@ export function UploadModal(props: UploadModalProps) {
       const content = await file.text();
       console.log('File content loaded, length:', content.length);
       
-      // Convert KML to GeoJSON
-      console.log('Converting KML to GeoJSON...');
-      const geoJsonData = KmlConverter.convertKmlToGeoJson(content);
-      console.log('Conversion successful, features:', geoJsonData.features.length);
+      // Convert KML to GeoJSON with Enhanced Converter
+      console.log('Converting KML to GeoJSON with enhanced features...');
+      const geoJsonData = EnhancedKmlConverter.convertKmlToGeoJson(content);
+      console.log('Conversion successful!');
+      console.log('- Features:', geoJsonData.features.length);
+      
+      // Log segment information
+      const totalSegments = geoJsonData.features.reduce((sum, f) => sum + (f.properties.segments?.length || 0), 0);
+      const totalDistance = geoJsonData.features.reduce((sum, f) => sum + (f.properties.totalDistance || 0), 0);
+      console.log('- Total segments:', totalSegments);
+      console.log('- Total distance:', (totalDistance / 1000).toFixed(2), 'km');
       
       if (geoJsonData.features.length === 0) {
         setError('No cable routes found in KML file');
@@ -81,7 +88,7 @@ export function UploadModal(props: UploadModalProps) {
 
       setPreviewData(geoJsonData);
       setIsConverting(false);
-      console.log('Preview data set');
+      console.log('Preview data set with enhanced properties');
     } catch (err) {
       console.error('Error during conversion:', err);
       const errorMsg = err instanceof Error ? err.message : 'Failed to convert KML file';
@@ -215,6 +222,35 @@ export function UploadModal(props: UploadModalProps) {
                         {previewData()?.features.reduce((sum, f) => 
                           sum + (f.geometry.coordinates?.length || 0), 0
                         ) || 0}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-4 border border-green-200 flex items-center gap-3">
+                    <div class="text-2xl">📏</div>
+                    <div>
+                      <p class="text-xs font-medium text-green-600 uppercase tracking-wide m-0 mb-1">Total Segments</p>
+                      <p class="text-2xl font-bold text-green-900 m-0">
+                        {previewData()?.features.reduce((sum, f) => 
+                          sum + (f.properties.segments?.length || 0), 0
+                        ) || 0}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div class="bg-gradient-to-br from-orange-50 to-orange-100 rounded-2xl p-4 border border-orange-200 flex items-center gap-3">
+                    <div class="text-2xl">📐</div>
+                    <div>
+                      <p class="text-xs font-medium text-orange-600 uppercase tracking-wide m-0 mb-1">Total Distance</p>
+                      <p class="text-2xl font-bold text-orange-900 m-0">
+                        {(() => {
+                          const totalDist = previewData()?.features.reduce((sum, f) => 
+                            sum + (f.properties.totalDistance || 0), 0
+                          ) || 0;
+                          return totalDist >= 1000 
+                            ? `${(totalDist / 1000).toFixed(2)} km`
+                            : `${totalDist.toFixed(0)} m`;
+                        })()}
                       </p>
                     </div>
                   </div>
