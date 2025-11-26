@@ -118,9 +118,9 @@ export function UploadModal(props: UploadModalProps) {
   return (
     <Show when={props.isOpen}>
       <div 
-        class="fixed top-0 left-0 right-0 bottom-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[2000] animate-[fadeIn_0.2s_ease-in] font-['Outfit',sans-serif]" 
+        class="fixed top-0 left-0 right-0 bottom-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[2000] animate-[fadeIn_0.2s_ease-in]" 
         onClick={handleClose}
-        style={{"font-family": "'Outfit', sans-serif"}}
+        style={{"font-family": "'Poppins', sans-serif"}}
       >
         <div 
           class="bg-white rounded-[20px] shadow-[0_20px_60px_rgba(0,0,0,0.3)] w-[90%] max-w-[600px] max-h-[90vh] overflow-hidden flex flex-col animate-[slideUp_0.3s_ease-out]" 

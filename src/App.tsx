@@ -4,6 +4,8 @@ import { PopupComponent } from './components/PopupComponent';
 import { DrawingTools } from './components/DrawingTools';
 import { Sidebar } from './components/Sidebar';
 import { UploadModal } from './components/UploadModal';
+import { LoginForm } from './components/LoginForm';
+import { ProfileDropdown } from './components/ProfileDropdown';
 import { DataLoader } from './services/DataLoader';
 import type { CableFeatureCollection, MapViewMethods, SoilType } from './types';
 import type { Feature, LineString, Point } from 'geojson';
@@ -13,6 +15,8 @@ import './App.css';
 // import './components/DrawingTools.css';
 
 function App() {
+  const [isLoggedIn, setIsLoggedIn] = createSignal(false);
+  const [userEmail, setUserEmail] = createSignal('');
   const [cableData, setCableData] = createSignal<CableFeatureCollection>({
     type: 'FeatureCollection',
     features: []
@@ -31,6 +35,15 @@ function App() {
   // Load cable data on mount (from local storage or sample data)
   // Requirements: 8.2, 8.4, 8.5
   onMount(async () => {
+    // Check if user is already logged in
+    const loggedIn = localStorage.getItem('isLoggedIn') === 'true';
+    const email = localStorage.getItem('userEmail');
+    
+    if (loggedIn && email) {
+      setIsLoggedIn(true);
+      setUserEmail(email);
+    }
+
     try {
       const data = await DataLoader.loadCableData();
       setCableData(data);
@@ -50,6 +63,24 @@ function App() {
       });
     }
   });
+
+  const handleLoginSuccess = (email: string) => {
+    setIsLoggedIn(true);
+    setUserEmail(email);
+  };
+
+  const handleLogout = () => {
+    // Clear localStorage
+    localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('userEmail');
+    
+    // Reset state
+    setIsLoggedIn(false);
+    setUserEmail('');
+    
+    // Close any open popups
+    handleClosePopup();
+  };
 
   const handleFeatureClick = (feature: Feature<LineString | Point, CableProperties | MarkerProperties>, coordinates: [number, number], screenPosition: { x: number; y: number }) => {
     // Requirement 4.5: Ensure only one popup is visible at a time
@@ -213,9 +244,18 @@ function App() {
   };
 
   return (
-    <div class="w-screen h-screen relative overflow-hidden flex flex-row">
-      {/* Sidebar Panel */}
-      <Sidebar 
+    <Show
+      when={isLoggedIn()}
+      fallback={<LoginForm onLoginSuccess={handleLoginSuccess} />}
+    >
+      <div class="w-screen h-screen relative overflow-hidden flex flex-row">
+        {/* Profile Dropdown - Top Right */}
+        <div class="absolute top-6 right-6 z-[1001]">
+          <ProfileDropdown userEmail={userEmail()} onLogout={handleLogout} />
+        </div>
+
+        {/* Sidebar Panel */}
+        <Sidebar 
         onUploadClick={() => {
           console.log('Upload button clicked');
           setIsUploadModalOpen(true);
@@ -312,7 +352,8 @@ function App() {
           onCancel={handleDrawCancel}
         />
       </Show>
-    </div>
+      </div>
+    </Show>
   );
 }
 

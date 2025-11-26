@@ -39,7 +39,7 @@ export function PopupComponent(props: PopupProps) {
   const properties = getProperties();
 
   return (
-    <div class="relative bg-white rounded-2xl shadow-[0_8px_24px_rgba(0,0,0,0.15)] overflow-hidden w-[320px] z-[1000] font-['-apple-system','BlinkMacSystemFont','Segoe_UI','Roboto','Helvetica_Neue','Arial','sans-serif'] pointer-events-auto">
+    <div class="relative bg-white rounded-2xl shadow-[0_8px_24px_rgba(0,0,0,0.15)] overflow-hidden w-[320px] z-[1000] pointer-events-auto" style={{"font-family": "'Poppins', sans-serif"}}>
       {/* Header with branding */}
       <div class="relative bg-white px-6 pt-5 pb-4 border-b border-gray-100">
         {/* Title */}

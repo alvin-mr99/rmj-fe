@@ -27,8 +27,8 @@ export function Sidebar(props: SidebarProps) {
 
   return (
     <div 
-      class={`fixed left-6 top-6 bg-white rounded-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.12)] transition-[width] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] z-[1000] flex flex-col flex-shrink-0 font-['Outfit',sans-serif] h-[calc(100vh-48px)] ${isMinimized() ? 'w-[70px]' : 'w-[340px]'}`}
-      style={{"font-family": "'Outfit', sans-serif"}}
+      class={`fixed left-6 top-6 bg-white rounded-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.12)] transition-[width] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] z-[1000] flex flex-col flex-shrink-0 h-[calc(100vh-48px)] ${isMinimized() ? 'w-[70px]' : 'w-[340px]'}`}
+      style={{"font-family": "'Poppins', sans-serif"}}
     >
       <div class="flex items-center justify-between px-6 py-5 border-b border-gray-100">
         <Show when={!isMinimized()}>
@@ -50,7 +50,7 @@ export function Sidebar(props: SidebarProps) {
         <For each={menuItems}>
           {(item) => (
             <button
-              class={`relative flex items-center gap-4 w-full px-4 py-3.5 mb-2 bg-transparent border-none rounded-[16px] text-gray-600 font-['Outfit',sans-serif] text-[15px] font-medium cursor-pointer transition-all duration-200 text-left ${
+              class={`relative flex items-center gap-4 w-full px-4 py-3.5 mb-2 bg-transparent border-none rounded-[16px] text-gray-600 text-[15px] font-medium cursor-pointer transition-all duration-200 text-left ${
                 isMinimized() ? 'justify-center px-2' : ''
               } ${
                 activeMenu() === item.id 
@@ -59,7 +59,7 @@ export function Sidebar(props: SidebarProps) {
               }`}
               onClick={() => handleMenuClick(item.id, item.onClick)}
               title={isMinimized() ? item.label : ''}
-              style={{"font-family": "'Outfit', sans-serif"}}
+              style={{"font-family": "'Poppins', sans-serif"}}
             >
               <span class="text-[22px] text-gray-700 flex items-center justify-center min-w-[22px]">{item.icon}</span>
               <Show when={!isMinimized()}>

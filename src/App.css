@@ -7,11 +7,63 @@
 
 @import "tailwindcss";
 
+/* Apply Poppins Medium globally */
+* {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 500;
+}
+
 /* Reset root to allow full viewport usage */
 #root {
+  font-family: 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 500; /* Poppins Medium */
+
   width: 100%;
   height: 100%;
   margin: 0;
   padding: 0;
   overflow: hidden;
+}
+
+/* MapLibre control positioning - move controls to bottom right */
+.maplibregl-ctrl-top-right {
+  top: auto !important; /* Remove top positioning */
+  bottom: 24px !important; /* Position from bottom */
+  right: 24px !important; /* Position from right */
+}
+
+.maplibregl-ctrl-group {
+  margin: 0 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+  border-radius: 8px !important;
+}
+
+/* Optional: Styling for better appearance */
+.maplibregl-ctrl-group button {
+  width: 36px !important;
+  height: 36px !important;
+}
+
+.maplibregl-ctrl-zoom-in,
+.maplibregl-ctrl-zoom-out,
+.maplibregl-ctrl-compass {
+  background-color: white !important;
+  border: none !important;
+}
+
+.maplibregl-ctrl-group button:hover {
+  background-color: #f5f5f5 !important;
+}
+
+/* Profile dropdown animation */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
