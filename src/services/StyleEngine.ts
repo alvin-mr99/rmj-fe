@@ -49,7 +49,7 @@ export function getCableLineStyle(): LayerSpecification {
         'Batuan', '#808080',       // Gray - Requirement 2.3
         '#000000'                  // Default black - Requirement 2.4
       ],
-      'line-width': 3,
+      'line-width': 6,
       'line-opacity': 0.8
     },
     layout: {
@@ -60,26 +60,34 @@ export function getCableLineStyle(): LayerSpecification {
 }
 
 /**
- * Returns MapLibre layer specification for marker points with flag icon styling
+ * Returns MapLibre layer specification for marker points with circle styling
+ * Markers only visible at zoom level 15 and above (close zoom)
  * 
- * @returns LayerSpecification for marker symbol layer
+ * @returns LayerSpecification for marker circle layer
  * 
  * Requirements: 3.3
  */
 export function getMarkerStyle(): LayerSpecification {
   return {
     id: 'cable-markers',
-    type: 'symbol',
+    type: 'circle',
     source: 'markers',
-    layout: {
-      'icon-image': 'marker-flag',
-      'icon-size': 0.8,
-      'icon-allow-overlap': true,
-      'icon-ignore-placement': false,
-      'icon-anchor': 'bottom'
-    },
+    minzoom: 15, // Only show markers when zoomed in close
     paint: {
-      'icon-opacity': 0.9
+      'circle-radius': 3,
+      // Data-driven color based on parent cable's soilType
+      'circle-color': [
+        'match',
+        ['get', 'soilType'],
+        'Pasir', '#FFFF00',        // Yellow - matches cable color
+        'Tanah Liat', '#8B4513',   // Brown - matches cable color
+        'Batuan', '#808080',       // Gray - matches cable color
+        '#FF0000'                  // Default red
+      ],
+      'circle-opacity': 0.9,
+      'circle-stroke-width': 2,
+      'circle-stroke-color': '#FFFFFF',
+      'circle-stroke-opacity': 1
     }
   };
 }

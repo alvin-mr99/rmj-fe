@@ -47,7 +47,7 @@ export function MapView(props: MapViewProps) {
       style: 'https://api.maptiler.com/maps/streets-v2/style.json?key=4Iyrc6TBGKphNJNy3iTH',
       center: [106.827, -6.175], // Jakarta, Indonesia
       zoom: 22,
-      pitch: 40,
+      pitch: 70,
       bearing: 0, 
       attributionControl: false,
       hash: false,
@@ -92,14 +92,30 @@ export function MapView(props: MapViewProps) {
         if (!map) return;
         
         try {
-          // Check if click was on a feature layer
-          const features = map.queryRenderedFeatures(e.point, {
-            layers: ['cable-routes', 'cable-markers']
-          });
+          // Check if layers exist before querying
+          const layersToQuery = [];
+          if (map.getLayer('cable-routes')) {
+            layersToQuery.push('cable-routes');
+          }
+          if (map.getLayer('cable-markers')) {
+            layersToQuery.push('cable-markers');
+          }
           
-          // If no features were clicked, call the onMapClick handler
-          if (features.length === 0 && props.onMapClick) {
-            props.onMapClick();
+          // Only query if layers exist
+          if (layersToQuery.length > 0) {
+            const features = map.queryRenderedFeatures(e.point, {
+              layers: layersToQuery
+            });
+            
+            // If no features were clicked, call the onMapClick handler
+            if (features.length === 0 && props.onMapClick) {
+              props.onMapClick();
+            }
+          } else {
+            // No layers exist yet, just call onMapClick
+            if (props.onMapClick) {
+              props.onMapClick();
+            }
           }
         } catch (error) {
           console.error('Error handling map click:', error);
@@ -122,7 +138,12 @@ export function MapView(props: MapViewProps) {
 
   // Re-render when cable data changes
   createEffect(() => {
+    // Track props.cableData to trigger re-render
+    const data = props.cableData;
+    console.log('MapView createEffect triggered, features:', data.features.length);
+    
     if (map && map.loaded()) {
+      console.log('Map is loaded, re-rendering...');
       renderCableRoutes();
       renderMarkers();
       fitBoundsToRoutes();
@@ -192,11 +213,15 @@ export function MapView(props: MapViewProps) {
     if (!map) return;
 
     try {
+      console.log('renderCableRoutes called, features:', props.cableData?.features.length);
+      
       // Validate GeoJSON data before rendering - Requirement 8.5
       if (!props.cableData || !props.cableData.features || props.cableData.features.length === 0) {
         console.warn('No cable data to render');
         return;
       }
+      
+      console.log('Rendering', props.cableData.features.length, 'cable routes');
 
       // Remove existing source and layer if they exist
       if (map.getLayer('cable-routes')) {
@@ -291,44 +316,7 @@ export function MapView(props: MapViewProps) {
         data: markerCollection
       });
 
-      // Load marker icon if not already loaded
-      if (!map.hasImage('marker-flag')) {
-        try {
-          // Create a simple flag-shaped marker using canvas
-          const size = 32;
-          const canvas = document.createElement('canvas');
-          canvas.width = size;
-          canvas.height = size;
-          const ctx = canvas.getContext('2d');
-          
-          if (ctx) {
-            // Draw flag pole
-            ctx.fillStyle = '#333';
-            ctx.fillRect(size / 2 - 1, size / 4, 2, size * 3 / 4);
-            
-            // Draw flag
-            ctx.fillStyle = '#FF0000';
-            ctx.beginPath();
-            ctx.moveTo(size / 2, size / 4);
-            ctx.lineTo(size * 3 / 4, size / 3);
-            ctx.lineTo(size / 2, size / 2.5);
-            ctx.closePath();
-            ctx.fill();
-          }
-
-          map.addImage('marker-flag', {
-            width: size,
-            height: size,
-            data: ctx!.getImageData(0, 0, size, size).data
-          });
-        } catch (error) {
-          console.error('Error creating marker icon:', error);
-          // Continue without custom icon - graceful degradation
-          return;
-        }
-      }
-
-      // Add symbol layer with flag icon styling - Requirement 3.3
+      // Add circle layer for markers - Requirement 3.3
       const markerStyle = StyleEngine.getMarkerStyle();
       map.addLayer(markerStyle);
 

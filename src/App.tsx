@@ -1,8 +1,9 @@
 import { createSignal, onMount, Show } from 'solid-js';
 import { MapView } from './components/MapView';
 import { PopupComponent } from './components/PopupComponent';
-import { SearchControl } from './components/SearchControl';
 import { DrawingTools } from './components/DrawingTools';
+import { Sidebar } from './components/Sidebar';
+import { UploadModal } from './components/UploadModal';
 import { DataLoader } from './services/DataLoader';
 import type { CableFeatureCollection, MapViewMethods, SoilType } from './types';
 import type { Feature, LineString, Point } from 'geojson';
@@ -19,14 +20,12 @@ function App() {
   const [selectedFeature, setSelectedFeature] = createSignal<Feature<LineString | Point, CableProperties | MarkerProperties> | null>(null);
   const [popupCoordinates, setPopupCoordinates] = createSignal<[number, number] | null>(null);
   const [popupPosition, setPopupPosition] = createSignal<{ x: number; y: number } | null>(null);
-  const [mapMethods, setMapMethods] = createSignal<MapViewMethods | null>(null);
-  const [searchMarker, setSearchMarker] = createSignal<maplibregl.Marker | null>(null);
-  const [uploadError, setUploadError] = createSignal<string | null>(null);
+  const [, setMapMethods] = createSignal<MapViewMethods | null>(null);
   const [isDrawingMode, setIsDrawingMode] = createSignal(false);
   const [drawnFeature, setDrawnFeature] = createSignal<Feature<LineString> | null>(null);
   const [showInputForm, setShowInputForm] = createSignal(false);
+  const [isUploadModalOpen, setIsUploadModalOpen] = createSignal(false);
   let mapInstance: maplibregl.Map | null = null;
-  let fileInputRef: HTMLInputElement | undefined;
 
   // Load cable data on mount (from local storage or sample data)
   // Requirements: 8.2, 8.4, 8.5
@@ -70,130 +69,46 @@ function App() {
     mapInstance = map;
   };
 
-  /**
-   * Handle location selection from search
-   * Requirements 6.3, 6.4: Center map and add temporary marker
-   */
-  const handleLocationSelect = (coordinates: [number, number]) => {
-    // Remove existing search marker if present
-    const existingMarker = searchMarker();
-    if (existingMarker) {
-      existingMarker.remove();
-    }
-
-    // Center map on search result - Requirement 6.3
-    const methods = mapMethods();
-    if (methods) {
-      methods.panTo(coordinates, { duration: 1000 });
-      methods.zoomTo(14, { duration: 1000 });
-    }
-
-    // Add temporary marker at search result location - Requirement 6.4
-    if (mapInstance) {
-      const marker = new maplibregl.Marker({
-        color: '#FF6B6B',
-        scale: 1.2
-      })
-        .setLngLat(coordinates)
-        .addTo(mapInstance);
-
-      setSearchMarker(marker);
-    }
-  };
-
   const handleMapClick = () => {
     // Requirement 4.5: Close popup when clicking elsewhere on map
     handleClosePopup();
   };
 
   /**
-   * Handle custom data upload
-   * Requirements: 9.5, 8.5
+   * Handle upload modal success
    */
-  const handleFileUpload = async (event: Event) => {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-
-    if (!file) {
-      return;
-    }
-
-    // Validate file type
-    if (!file.name.endsWith('.json') && !file.name.endsWith('.geojson')) {
-      setUploadError('Please upload a valid JSON or GeoJSON file');
-      return;
-    }
-
-    // Validate file size (max 10MB)
-    const maxSize = 10 * 1024 * 1024; // 10MB
-    if (file.size > maxSize) {
-      setUploadError('File is too large. Maximum size is 10MB.');
-      return;
-    }
-
-    try {
-      setUploadError(null);
-      
-      // Load and validate the file - Requirement 8.5
-      const data = await DataLoader.loadFromFile(file);
-      
-      // Replace current cable data with uploaded data - Requirement 9.5
-      setCableData(data);
-      
-      // Save to local storage for persistence
-      try {
-        DataLoader.saveToLocalStorage(data);
-      } catch (saveError) {
-        // Handle save errors gracefully - Requirement 8.5
-        console.warn('Failed to save to local storage:', saveError);
-        // Continue anyway - data is still loaded in memory
-      }
-      
-      // Close popup if open
-      handleClosePopup();
-      
-      // Fit map bounds to show new data
-      const methods = mapMethods();
-      if (methods && data.features.length > 0) {
-        // The MapView component will handle fitBounds on data change
-      }
-      
-      console.log('Custom data loaded successfully');
-    } catch (error) {
-      // Handle errors gracefully - Requirement 8.5
-      // Display user-friendly error message
-      const errorMessage = error instanceof Error ? error.message : 'Failed to load file';
-      setUploadError(errorMessage);
-      
-      // Log errors to console for debugging
-      console.error('Error uploading file:', error);
-    } finally {
-      // Reset file input
-      if (input) {
-        input.value = '';
-      }
-    }
-  };
-
-  /**
-   * Trigger file input click
-   */
-  const handleUploadClick = () => {
-    fileInputRef?.click();
-  };
-
-  /**
-   * Toggle drawing mode
-   * Requirement 7.1: Enable line drawing tools on the map
-   */
-  const handleDrawingToggle = () => {
-    const newMode = !isDrawingMode();
-    setIsDrawingMode(newMode);
+  const handleUploadSuccess = (data: CableFeatureCollection) => {
+    console.log('=== UPLOAD SUCCESS ===');
+    console.log('handleUploadSuccess called with data:', data);
+    console.log('Number of features:', data.features.length);
     
-    // Close popup when entering drawing mode
-    if (newMode) {
-      handleClosePopup();
+    // Validate data before setting
+    if (!data || !data.features || data.features.length === 0) {
+      console.error('Invalid data received in handleUploadSuccess');
+      alert('Invalid data received. Please try again.');
+      return;
     }
+    
+    // Replace current cable data with uploaded data
+    setCableData(data);
+    
+    // Force a re-render by logging after state update
+    setTimeout(() => {
+      console.log('Cable data updated, current features:', cableData().features.length);
+    }, 100);
+    
+    // Save to local storage for persistence
+    try {
+      DataLoader.saveToLocalStorage(data);
+      console.log('Data saved to local storage');
+    } catch (saveError) {
+      console.warn('Failed to save to local storage:', saveError);
+    }
+    
+    // Close popup if open
+    handleClosePopup();
+    
+    console.log('Custom data loaded successfully - map should update now');
   };
 
   /**
@@ -268,47 +183,40 @@ function App() {
       // Handle errors gracefully - Requirement 8.5
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
       console.error('Error adding new route:', errorMsg);
-      setUploadError('Failed to add new route. Please try again.');
+      alert('Failed to add new route. Please try again.');
     }
   };
 
   return (
     <div class="app-container">
-      {/* Header with upload button - Requirement 9.5 */}
-      <header class="app-header">
-        <h1 class="app-title">Underground Cable Map</h1>
-        <div class="header-controls">
-          <button 
-            class="upload-button"
-            onClick={handleUploadClick}
-            title="Upload custom GeoJSON data"
-          >
-            📁 Upload Data
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".json,.geojson"
-            style={{ display: 'none' }}
-            onChange={handleFileUpload}
-          />
-          <button 
-            class={`upload-button ${isDrawingMode() ? 'active' : ''}`}
-            onClick={handleDrawingToggle}
-            title="Draw new cable route"
-          >
-            ✏️ {isDrawingMode() ? 'Cancel Drawing' : 'Draw Route'}
-          </button>
-        </div>
-      </header>
+      {/* Sidebar Panel */}
+      <Sidebar 
+        onUploadClick={() => {
+          console.log('Upload button clicked');
+          setIsUploadModalOpen(true);
+        }}
+        onDashboardClick={async () => {
+          console.log('Dashboard clicked - Loading test data');
+          try {
+            const response = await fetch('/data/test-output.json');
+            const data = await response.json();
+            console.log('Test data loaded:', data);
+            handleUploadSuccess(data);
+          } catch (error) {
+            console.error('Failed to load test data:', error);
+          }
+        }}
+        onAnalyticsClick={() => console.log('Analytics clicked')}
+        onFilteringClick={() => console.log('Filtering clicked')}
+        onTopologyClick={() => console.log('Topology clicked')}
+      />
 
-      {/* Error message for upload failures */}
-      <Show when={uploadError()}>
-        <div class="upload-error">
-          <span>⚠️ {uploadError()}</span>
-          <button onClick={() => setUploadError(null)}>✕</button>
-        </div>
-      </Show>
+      {/* Upload Modal */}
+      <UploadModal 
+        isOpen={isUploadModalOpen()}
+        onClose={() => setIsUploadModalOpen(false)}
+        onUploadSuccess={handleUploadSuccess}
+      />
 
       <div class="map-wrapper">
         <MapView 
@@ -329,7 +237,7 @@ function App() {
       </div>
       
       {/* Search control - Requirements: 6.3, 6.4 */}
-      <SearchControl onLocationSelect={handleLocationSelect} />
+      {/* <SearchControl onLocationSelect={handleLocationSelect} /> */}
       
       {/* Popup overlay - Requirements: 4.1, 4.2, 4.5 */}
       <Show when={selectedFeature() && popupCoordinates() && popupPosition()}>
