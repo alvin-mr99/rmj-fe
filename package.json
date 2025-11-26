@@ -19,6 +19,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.17",
+    "@tailwindcss/vite": "^4.1.17",
     "@types/mapbox__mapbox-gl-draw": "^1.4.9",
     "@types/node": "^24.10.1",
     "@vitest/ui": "^4.0.13",

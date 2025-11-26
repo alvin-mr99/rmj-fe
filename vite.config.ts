@@ -1,8 +1,9 @@
 import { defineConfig } from 'vite'
 import solid from 'vite-plugin-solid'
+import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
-  plugins: [solid()],
+  plugins: [solid(), tailwindcss()],
   build: {
     // Enable minification
     minify: 'esbuild',
@@ -11,7 +12,7 @@ export default defineConfig({
     sourcemap: false,
     
     // Target modern browsers
-    target: 'es2020',
+    target: 'esnext',
     
     // Optimize chunk size
     chunkSizeWarningLimit: 1000,

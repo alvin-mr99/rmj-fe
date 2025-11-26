@@ -10,7 +10,7 @@ import type { Feature, LineString, Point } from 'geojson';
 import type { CableProperties, MarkerProperties } from './types';
 import maplibregl from 'maplibre-gl';
 import './App.css';
-import './components/DrawingTools.css';
+// import './components/DrawingTools.css';
 
 function App() {
   const [cableData, setCableData] = createSignal<CableFeatureCollection>({
@@ -25,6 +25,7 @@ function App() {
   const [drawnFeature, setDrawnFeature] = createSignal<Feature<LineString> | null>(null);
   const [showInputForm, setShowInputForm] = createSignal(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = createSignal(false);
+  const [mapZoom, setMapZoom] = createSignal(12); // Default zoom level
   let mapInstance: maplibregl.Map | null = null;
 
   // Load cable data on mount (from local storage or sample data)
@@ -67,6 +68,30 @@ function App() {
   const handleMapLoad = (map: maplibregl.Map) => {
     console.log('Map loaded successfully');
     mapInstance = map;
+    
+    // Set initial zoom level
+    setMapZoom(map.getZoom());
+    
+    // Listen to zoom changes to update popup scale
+    map.on('zoom', () => {
+      setMapZoom(map.getZoom());
+      
+      // Update popup position when zooming
+      if (selectedFeature() && popupCoordinates()) {
+        const coords = popupCoordinates()!;
+        const point = map.project(coords);
+        setPopupPosition({ x: point.x, y: point.y });
+      }
+    });
+    
+    // Update popup position on map move
+    map.on('move', () => {
+      if (selectedFeature() && popupCoordinates()) {
+        const coords = popupCoordinates()!;
+        const point = map.project(coords);
+        setPopupPosition({ x: point.x, y: point.y });
+      }
+    });
   };
 
   const handleMapClick = () => {
@@ -188,7 +213,7 @@ function App() {
   };
 
   return (
-    <div class="app-container">
+    <div class="w-screen h-screen relative overflow-hidden flex flex-row">
       {/* Sidebar Panel */}
       <Sidebar 
         onUploadClick={() => {
@@ -218,7 +243,7 @@ function App() {
         onUploadSuccess={handleUploadSuccess}
       />
 
-      <div class="map-wrapper">
+      <div class="flex-1 w-full relative">
         <MapView 
           cableData={cableData()} 
           onFeatureClick={handleFeatureClick}
@@ -241,22 +266,43 @@ function App() {
       
       {/* Popup overlay - Requirements: 4.1, 4.2, 4.5 */}
       <Show when={selectedFeature() && popupCoordinates() && popupPosition()}>
-        <div
-          style={{
-            position: 'absolute',
-            left: `${popupPosition()!.x}px`,
-            top: `${popupPosition()!.y}px`,
-            transform: 'translate(-50%, -100%)',
-            'margin-top': '-10px',
-            'pointer-events': 'none'
-          }}
-        >
-          <PopupComponent
-            feature={selectedFeature()!}
-            coordinates={popupCoordinates()!}
-            onClose={handleClosePopup}
-          />
-        </div>
+        {(() => {
+          // Calculate scale based on zoom level - INVERTED LOGIC
+          // Zoom IN (closer) = smaller popup
+          // Zoom OUT (farther) = larger popup
+          const zoom = mapZoom();
+          const minZoom = 8;
+          const maxZoom = 18;
+          const minScale = 0.7;  // Minimum size when zoomed in close (increased from 0.5)
+          const maxScale = 1.1;  // Maximum size when zoomed out far (reduced from 1.2)
+          
+          // Inverted linear interpolation for scale
+          const normalizedZoom = Math.max(0, Math.min(1, (zoom - minZoom) / (maxZoom - minZoom)));
+          // Invert the scale: high zoom = small scale
+          const scale = maxScale - (maxScale - minScale) * normalizedZoom;
+          
+          return (
+            <div
+              style={{
+                position: 'absolute',
+                left: `${popupPosition()!.x}px`,
+                top: `${popupPosition()!.y}px`,
+                transform: `translate(-50%, -100%) scale(${scale})`,
+                'transform-origin': 'center bottom',
+                'margin-top': '-10px',
+                'pointer-events': 'none',
+                transition: 'transform 0.15s ease-out',
+                'will-change': 'transform'
+              }}
+            >
+              <PopupComponent
+                feature={selectedFeature()!}
+                coordinates={popupCoordinates()!}
+                onClose={handleClosePopup}
+              />
+            </div>
+          );
+        })()}
       </Show>
 
       {/* Drawing input form - Requirement 7.3 */}
@@ -300,14 +346,15 @@ function DrawingInputForm(props: DrawingInputFormProps) {
 
   return (
     <>
-      <div class="drawing-form-overlay" onClick={props.onCancel} />
-      <div class="drawing-input-form">
-        <h3>New Cable Route Details</h3>
+      <div class="fixed top-0 left-0 right-0 bottom-0 bg-black/50 z-[100] animate-[fadeIn_0.2s_ease]" onClick={props.onCancel} />
+      <div class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[101] bg-white rounded-lg p-6 shadow-[0_4px_12px_rgba(0,0,0,0.15)] min-w-[300px] max-w-[90vw] md:min-w-[280px] md:p-5">
+        <h3 class="m-0 mb-4 text-lg font-semibold text-gray-800 md:text-base">New Cable Route Details</h3>
         <form onSubmit={handleSubmit}>
-          <div class="form-group">
-            <label for="soil-type">Soil Type</label>
+          <div class="mb-4">
+            <label for="soil-type" class="block mb-1.5 text-sm font-medium text-gray-600">Soil Type</label>
             <select
               id="soil-type"
+              class="w-full px-3 py-2 border border-gray-300 rounded text-sm box-border focus:outline-none focus:border-green-500"
               value={soilType()}
               onChange={(e) => setSoilType(e.currentTarget.value as SoilType)}
             >
@@ -317,13 +364,14 @@ function DrawingInputForm(props: DrawingInputFormProps) {
             </select>
           </div>
 
-          <div class="form-group">
-            <label for="depth">Cable Depth (meters)</label>
+          <div class="mb-4">
+            <label for="depth" class="block mb-1.5 text-sm font-medium text-gray-600">Cable Depth (meters)</label>
             <input
               id="depth"
               type="number"
               step="0.1"
               min="0.1"
+              class="w-full px-3 py-2 border border-gray-300 rounded text-sm box-border focus:outline-none focus:border-green-500"
               value={depth()}
               onInput={(e) => setDepth(e.currentTarget.value)}
               placeholder="e.g., 1.5"
@@ -331,16 +379,23 @@ function DrawingInputForm(props: DrawingInputFormProps) {
           </div>
 
           <Show when={error()}>
-            <div style={{ color: 'red', 'font-size': '12px', 'margin-bottom': '8px' }}>
+            <div class="text-red-600 text-xs mb-2">
               {error()}
             </div>
           </Show>
 
-          <div class="form-actions">
-            <button type="button" class="btn-cancel" onClick={props.onCancel}>
+          <div class="flex gap-2 justify-end mt-5">
+            <button 
+              type="button" 
+              class="px-4 py-2 border-none rounded text-sm font-medium cursor-pointer transition-colors duration-200 bg-gray-100 text-gray-800 hover:bg-gray-200" 
+              onClick={props.onCancel}
+            >
               Cancel
             </button>
-            <button type="submit" class="btn-submit">
+            <button 
+              type="submit" 
+              class="px-4 py-2 border-none rounded text-sm font-medium cursor-pointer transition-colors duration-200 bg-green-600 text-white hover:bg-green-700"
+            >
               Add Route
             </button>
           </div>

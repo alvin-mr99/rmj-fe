@@ -1,5 +1,4 @@
 import { createSignal, Show, For } from 'solid-js';
-import './Sidebar.css';
 
 interface SidebarProps {
   onUploadClick: () => void;
@@ -14,11 +13,11 @@ export function Sidebar(props: SidebarProps) {
   const [activeMenu, setActiveMenu] = createSignal<string>('dashboard');
 
   const menuItems = [
-    { id: 'dashboard', icon: '📊', label: 'Dashboard', onClick: props.onDashboardClick },
-    { id: 'upload', icon: '📁', label: 'Upload File', onClick: props.onUploadClick },
-    { id: 'analytics', icon: '📈', label: 'Analytics', onClick: props.onAnalyticsClick },
-    { id: 'filtering', icon: '🔍', label: 'Filtering', onClick: props.onFilteringClick },
-    { id: 'topology', icon: '⚙️', label: 'Topology Settings', onClick: props.onTopologyClick },
+    { id: 'dashboard', icon: '📊', label: 'Dashboard', subtitle: 'Main overview', onClick: props.onDashboardClick },
+    { id: 'upload', icon: '📁', label: 'Upload File', subtitle: 'Import KML data', onClick: props.onUploadClick },
+    { id: 'analytics', icon: '📈', label: 'Analytics', subtitle: 'Data analysis', onClick: props.onAnalyticsClick },
+    { id: 'filtering', icon: '🔍', label: 'Filtering', subtitle: 'Filter cables', onClick: props.onFilteringClick },
+    { id: 'topology', icon: '⚙️', label: 'Topology Settings', subtitle: 'Configuration', onClick: props.onTopologyClick },
   ];
 
   const handleMenuClick = (id: string, onClick?: () => void) => {
@@ -27,16 +26,19 @@ export function Sidebar(props: SidebarProps) {
   };
 
   return (
-    <div class={`sidebar ${isMinimized() ? 'minimized' : ''}`}>
-      <div class="sidebar-header">
+    <div 
+      class={`fixed left-6 top-6 bg-white rounded-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.12)] transition-[width] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] z-[1000] flex flex-col flex-shrink-0 font-['Outfit',sans-serif] h-[calc(100vh-48px)] ${isMinimized() ? 'w-[70px]' : 'w-[340px]'}`}
+      style={{"font-family": "'Outfit', sans-serif"}}
+    >
+      <div class="flex items-center justify-between px-6 py-5 border-b border-gray-100">
         <Show when={!isMinimized()}>
-          <div class="sidebar-logo">
-            <div class="logo-icon">🗺️</div>
-            <h2 class="logo-text">Cable Map</h2>
+          <div class="flex items-center gap-3 animate-[fadeIn_0.3s_ease-in]">
+            <div class="text-[32px]">🗺️</div>
+            <h2 class="text-xl font-bold text-gray-800 m-0 tracking-[-0.5px]">Cable Map</h2>
           </div>
         </Show>
         <button 
-          class="sidebar-toggle"
+          class="bg-blue-500 text-white w-10 h-10 rounded-[12px] cursor-pointer flex items-center justify-center text-base transition-all duration-200 hover:bg-blue-600 hover:scale-105 border-none shadow-sm"
           onClick={() => setIsMinimized(!isMinimized())}
           title={isMinimized() ? 'Expand sidebar' : 'Minimize sidebar'}
         >
@@ -44,17 +46,24 @@ export function Sidebar(props: SidebarProps) {
         </button>
       </div>
 
-      <nav class="sidebar-nav">
+      <nav class="flex-1 py-4 px-4 overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-thumb]:rounded-full">
         <For each={menuItems}>
           {(item) => (
             <button
-              class={`sidebar-menu-item ${activeMenu() === item.id ? 'active' : ''}`}
+              class={`relative flex items-center gap-4 w-full px-4 py-3.5 mb-2 bg-transparent border-none rounded-[16px] text-gray-600 font-['Outfit',sans-serif] text-[15px] font-medium cursor-pointer transition-all duration-200 text-left ${
+                isMinimized() ? 'justify-center px-2' : ''
+              } ${
+                activeMenu() === item.id 
+                  ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-[0_4px_12px_rgba(59,130,246,0.3)]' 
+                  : 'hover:bg-gray-50 hover:text-gray-900'
+              }`}
               onClick={() => handleMenuClick(item.id, item.onClick)}
               title={isMinimized() ? item.label : ''}
+              style={{"font-family": "'Outfit', sans-serif"}}
             >
-              <span class="menu-icon">{item.icon}</span>
+              <span class="text-[22px] text-gray-700 flex items-center justify-center min-w-[22px]">{item.icon}</span>
               <Show when={!isMinimized()}>
-                <span class="menu-label">{item.label}</span>
+                <span class="whitespace-nowrap overflow-hidden text-ellipsis animate-[fadeIn_0.3s_ease-in]">{item.label}</span>
               </Show>
             </button>
           )}
@@ -62,10 +71,10 @@ export function Sidebar(props: SidebarProps) {
       </nav>
 
       <Show when={!isMinimized()}>
-        <div class="sidebar-footer">
-          <div class="footer-info">
-            <p class="footer-text">Underground Cable Management System</p>
-            <p class="footer-version">v1.0.0</p>
+        <div class="py-4 px-6 border-t border-gray-100 animate-[fadeIn_0.3s_ease-in]">
+          <div class="text-center">
+            <p class="text-xs text-gray-500 m-0 mb-1 leading-[1.4]">Underground Cable Management System</p>
+            <p class="text-[11px] text-gray-400 m-0 font-medium">v1.0.0</p>
           </div>
         </div>
       </Show>

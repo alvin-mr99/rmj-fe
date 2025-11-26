@@ -1,13 +1,13 @@
 import { Show } from 'solid-js';
 import type { PopupProps } from '../types';
 import type { CableProperties, MarkerProperties } from '../types';
-import './PopupComponent.css';
 
 /**
  * PopupComponent
  * 
  * Displays detailed information about cable routes and markers in an interactive popup.
  * Shows soil type, depth, and coordinates with proper formatting.
+ * Size scales with map zoom level.
  * 
  * Requirements: 4.1, 4.2, 4.3, 4.4
  */
@@ -39,57 +39,68 @@ export function PopupComponent(props: PopupProps) {
   const properties = getProperties();
 
   return (
-    <div class="popup-container">
-      <div class="popup-content">
-        {/* Close button - Requirement: 4.1, 4.2 */}
+    <div class="relative bg-white rounded-2xl shadow-[0_8px_24px_rgba(0,0,0,0.15)] overflow-hidden w-[320px] z-[1000] font-['-apple-system','BlinkMacSystemFont','Segoe_UI','Roboto','Helvetica_Neue','Arial','sans-serif'] pointer-events-auto">
+      {/* Header with branding */}
+      <div class="relative bg-white px-6 pt-5 pb-4 border-b border-gray-100">
+        {/* Title */}
+        <h3 class="m-0 text-[22px] font-bold text-gray-900 leading-tight">Cable Information</h3>
+        
+        {/* Close button */}
         <button 
-          class="popup-close-button"
+          class="absolute top-4 right-4 bg-blue-500 text-white w-9 h-9 flex items-center justify-center transition-all duration-200 rounded-lg hover:bg-blue-600 active:bg-blue-700 border-none text-lg font-bold"
           onClick={() => props.onClose()}
           aria-label="Close popup"
         >
-          ×
+          ✕
         </button>
+      </div>
 
-        {/* Popup header */}
-        <div class="popup-header">
-          <h3 class="popup-title">Cable Information</h3>
-        </div>
-
-        {/* Popup body with information - Requirements: 4.1, 4.2 */}
-        <div class="popup-body">
+      {/* Content body */}
+      <div class="px-6 py-5">
+        <div class="flex flex-col gap-4">
           {/* Soil Type */}
-          <div class="popup-field">
-            <span class="popup-label">Soil Type:</span>
-            <span class="popup-value">{properties.soilType}</span>
+          <div class="flex flex-col">
+            <div class="flex items-center gap-2 mb-1.5">
+              <span class="text-[13px] font-bold text-gray-500 uppercase tracking-wide">Soil Type:</span>
+            </div>
+            <span class="text-[17px] font-medium text-gray-900">{properties.soilType}</span>
           </div>
 
-          {/* Depth - Requirement: 4.4 */}
-          <div class="popup-field">
-            <span class="popup-label">Depth:</span>
-            <span class="popup-value">{formatDepth(properties.depth)}</span>
+          {/* Depth */}
+          <div class="flex flex-col">
+            <div class="flex items-center gap-2 mb-1.5">
+              <span class="text-[13px] font-bold text-gray-500 uppercase tracking-wide">Depth:</span>
+            </div>
+            <span class="text-[17px] font-medium text-gray-900">{formatDepth(properties.depth)}</span>
           </div>
 
-          {/* Coordinates - Requirement: 4.3 */}
-          <div class="popup-field">
-            <span class="popup-label">Coordinates:</span>
-            <span class="popup-value">{formatCoordinates(props.coordinates)}</span>
+          {/* Coordinates */}
+          <div class="flex flex-col">
+            <div class="flex items-center gap-2 mb-1.5">
+              <span class="text-[13px] font-bold text-gray-500 uppercase tracking-wide">Coordinates:</span>
+            </div>
+            <span class="text-[15px] font-medium text-gray-900 font-mono">{formatCoordinates(props.coordinates)}</span>
           </div>
 
-          {/* Additional info for markers */}
+          {/* Distance from Start (for markers) */}
           <Show when={'distanceFromStart' in properties}>
-            <div class="popup-field">
-              <span class="popup-label">Distance from Start:</span>
-              <span class="popup-value">
+            <div class="flex flex-col">
+              <div class="flex items-center gap-2 mb-1.5">
+                <span class="text-[13px] font-bold text-gray-500 uppercase tracking-wide">Distance:</span>
+              </div>
+              <span class="text-[17px] font-medium text-gray-900">
                 {((properties as MarkerProperties).distanceFromStart).toFixed(2)} m
               </span>
             </div>
           </Show>
 
-          {/* Additional info for cables */}
+          {/* Route Name */}
           <Show when={'name' in properties && (properties as CableProperties).name}>
-            <div class="popup-field">
-              <span class="popup-label">Route Name:</span>
-              <span class="popup-value">{(properties as CableProperties).name}</span>
+            <div class="flex flex-col">
+              <div class="flex items-center gap-2 mb-1.5">
+                <span class="text-[13px] font-bold text-gray-500 uppercase tracking-wide">Route Name:</span>
+              </div>
+              <span class="text-[17px] font-medium text-gray-900">{(properties as CableProperties).name}</span>
             </div>
           </Show>
         </div>

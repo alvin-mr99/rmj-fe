@@ -1,6 +1,5 @@
 import { createSignal } from 'solid-js';
 import type { SearchControlProps } from '../types';
-import './SearchControl.css';
 
 /**
  * SearchControl Component
@@ -106,20 +105,20 @@ export function SearchControl(props: SearchControlProps) {
   };
 
   return (
-    <div class="search-control">
-      <form onSubmit={handleSearch} class="search-form">
+    <div class="absolute top-2.5 left-2.5 right-2.5 z-[1000] bg-white rounded-lg shadow-[0_2px_8px_rgba(0,0,0,0.15)] p-3 w-auto max-w-none md:max-w-[380px] md:right-auto lg:max-w-[420px] lg:p-3.5">
+      <form onSubmit={handleSearch} class="flex flex-col gap-2.5 items-stretch md:flex-row md:gap-2 lg:flex-row lg:gap-2.5">
         <input
           type="text"
           value={searchQuery()}
           onInput={handleInputChange}
           placeholder="Search for a location..."
-          class="search-input"
+          class="flex-1 px-3.5 py-3 border border-gray-300 rounded text-base outline-none transition-colors duration-200 w-full min-h-[44px] appearance-none focus:border-blue-500 focus:shadow-[0_0_0_2px_rgba(74,144,226,0.1)] disabled:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60 md:min-h-[40px] md:text-[15px] lg:min-h-[38px] lg:text-sm lg:px-3 lg:py-2.5"
           disabled={isSearching()}
           aria-label="Location search"
         />
         <button
           type="submit"
-          class="search-button"
+          class="px-5 py-3 bg-blue-500 text-white border-none rounded text-base font-medium cursor-pointer transition-all duration-200 whitespace-nowrap w-full min-h-[44px] [-webkit-tap-highlight-color:transparent] hover:bg-blue-600 active:bg-blue-700 active:scale-[0.98] disabled:bg-gray-300 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-blue-500 focus-visible:outline-offset-2 md:w-auto md:min-w-[100px] md:min-h-[40px] md:text-[15px] lg:w-auto lg:min-w-[100px] lg:min-h-[38px] lg:text-sm lg:px-5 lg:py-2.5 lg:hover:-translate-y-px lg:hover:shadow-[0_2px_4px_rgba(0,0,0,0.1)] lg:active:translate-y-0"
           disabled={isSearching() || !searchQuery().trim()}
           aria-label="Search"
         >
@@ -129,7 +128,7 @@ export function SearchControl(props: SearchControlProps) {
       
       {/* Error message display */}
       {errorMessage() && (
-        <div class="search-error" role="alert">
+        <div class="mt-2 p-2.5 px-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm leading-[1.4] md:text-[13px] lg:text-[13px]" role="alert">
           {errorMessage()}
         </div>
       )}
