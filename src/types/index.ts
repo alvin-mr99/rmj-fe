@@ -65,10 +65,11 @@ export interface CableProperties {
  */
 export interface MarkerProperties {
   cableId: string;
+  cableName?: string;
   soilType: SoilType;
   depth: number;
   distanceFromStart: number; // in meters
-  coordinates: [number, number];
+  coordinates?: [number, number];
   // Enhanced properties
   style?: KMLStyle;
   metadata?: KMLMetadata;
@@ -80,9 +81,10 @@ export interface MarkerProperties {
 export type CableFeature = Feature<LineString, CableProperties>;
 
 /**
- * GeoJSON FeatureCollection of cable routes
+ * GeoJSON FeatureCollection of cable routes and points
+ * Supports both LineString (cable routes) and Point (individual points) geometries
  */
-export type CableFeatureCollection = FeatureCollection<LineString, CableProperties>;
+export type CableFeatureCollection = FeatureCollection<LineString | Point, CableProperties>;
 
 /**
  * GeoJSON Feature representing a marker point

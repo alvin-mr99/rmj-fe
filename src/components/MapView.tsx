@@ -223,6 +223,10 @@ export function MapView(props: MapViewProps) {
       
       console.log('Rendering', props.cableData.features.length, 'cable routes');
 
+      // Separate LineString features for cable routes rendering
+      const lineFeatures = props.cableData.features.filter(f => f.geometry.type === 'LineString');
+      console.log(`  - Rendering ${lineFeatures.length} LineString cable routes`);
+
       // Remove existing source and layer if they exist
       if (map.getLayer('cable-routes')) {
         map.removeLayer('cable-routes');
@@ -237,42 +241,48 @@ export function MapView(props: MapViewProps) {
         map.removeSource('segment-midpoints');
       }
 
-      // Add GeoJSON source for cable routes
-      map.addSource('cables', {
-        type: 'geojson',
-        data: props.cableData
-      });
+      // Only add cable routes layer if there are LineString features
+      if (lineFeatures.length > 0) {
+        // Add GeoJSON source for cable routes (LineStrings only)
+        map.addSource('cables', {
+          type: 'geojson',
+          data: {
+            type: 'FeatureCollection',
+            features: lineFeatures
+          }
+        });
 
-      // Add line layer with data-driven styling from StyleEngine
-      const lineStyle = StyleEngine.getCableLineStyle();
-      map.addLayer(lineStyle);
-      
-      // Add segment distance labels
-      renderSegmentLabels();
+        // Add line layer with data-driven styling from StyleEngine
+        const lineStyle = StyleEngine.getCableLineStyle();
+        map.addLayer(lineStyle);
+        
+        // Add segment distance labels
+        renderSegmentLabels();
 
-      // Add click event handler for cable routes - Requirements 4.1, 4.2
-      map.on('click', 'cable-routes', (e) => {
-        try {
-          if (!e.features || e.features.length === 0) return;
+        // Add click event handler for cable routes - Requirements 4.1, 4.2
+        map.on('click', 'cable-routes', (e) => {
+          try {
+            if (!e.features || e.features.length === 0) return;
 
-          const feature = e.features[0] as any;
-          const coordinates: [number, number] = [e.lngLat.lng, e.lngLat.lat];
-          const screenPosition = { x: e.point.x, y: e.point.y };
-          
-          props.onFeatureClick(feature as Feature<LineString, CableProperties>, coordinates, screenPosition);
-        } catch (error) {
-          console.error('Error handling cable route click:', error);
-        }
-      });
+            const feature = e.features[0] as any;
+            const coordinates: [number, number] = [e.lngLat.lng, e.lngLat.lat];
+            const screenPosition = { x: e.point.x, y: e.point.y };
+            
+            props.onFeatureClick(feature as Feature<LineString, CableProperties>, coordinates, screenPosition);
+          } catch (error) {
+            console.error('Error handling cable route click:', error);
+          }
+        });
 
-      // Change cursor on hover
-      map.on('mouseenter', 'cable-routes', () => {
-        if (map) map.getCanvas().style.cursor = 'pointer';
-      });
+        // Change cursor on hover
+        map.on('mouseenter', 'cable-routes', () => {
+          if (map) map.getCanvas().style.cursor = 'pointer';
+        });
 
-      map.on('mouseleave', 'cable-routes', () => {
-        if (map) map.getCanvas().style.cursor = '';
-      });
+        map.on('mouseleave', 'cable-routes', () => {
+          if (map) map.getCanvas().style.cursor = '';
+        });
+      }
     } catch (error) {
       console.error('Error rendering cable routes:', error);
       // Continue execution - don't break the app
@@ -383,9 +393,25 @@ export function MapView(props: MapViewProps) {
       
       props.cableData.features.forEach((cableFeature) => {
         try {
-          // Handle Turf.js calculation errors - Requirement 8.5
-          const markers = markerGenerator.generateMarkers(cableFeature, 30);
-          allMarkers.push(...markers.features);
+          // Check if this is already a Point feature from KML
+          if (cableFeature.geometry.type === 'Point') {
+            // Convert CableProperties to MarkerProperties for Point features
+            const pointMarker: Feature<Point, MarkerProperties> = {
+              type: 'Feature',
+              geometry: cableFeature.geometry,
+              properties: {
+                ...cableFeature.properties,
+                cableId: cableFeature.properties.id,
+                cableName: cableFeature.properties.name || cableFeature.properties.id,
+                distanceFromStart: 0
+              }
+            };
+            allMarkers.push(pointMarker);
+          } else if (cableFeature.geometry.type === 'LineString') {
+            // Generate markers along LineString - Requirement 8.5
+            const markers = markerGenerator.generateMarkers(cableFeature as Feature<LineString, CableProperties>, 30);
+            allMarkers.push(...markers.features);
+          }
         } catch (error) {
           console.error(`Error generating markers for cable ${cableFeature.properties.id}:`, error);
           // Continue with other routes - graceful degradation
@@ -396,6 +422,8 @@ export function MapView(props: MapViewProps) {
         type: 'FeatureCollection' as const,
         features: allMarkers
       };
+
+      console.log(`✓ Rendering ${allMarkers.length} markers on map`);
 
       // Remove existing marker source and layer if they exist
       if (map.getLayer('cable-markers')) {
@@ -458,9 +486,15 @@ export function MapView(props: MapViewProps) {
       const bounds = new maplibregl.LngLatBounds();
       
       props.cableData.features.forEach((feature) => {
-        feature.geometry.coordinates.forEach((coord) => {
-          bounds.extend(coord as [number, number]);
-        });
+        if (feature.geometry.type === 'LineString') {
+          // Handle LineString: iterate through all coordinates
+          feature.geometry.coordinates.forEach((coord) => {
+            bounds.extend(coord as [number, number]);
+          });
+        } else if (feature.geometry.type === 'Point') {
+          // Handle Point: extend bounds with the single coordinate
+          bounds.extend(feature.geometry.coordinates as [number, number]);
+        }
       });
 
       // Fit map to bounds with padding

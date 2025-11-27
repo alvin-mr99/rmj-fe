@@ -13,7 +13,7 @@
  */
 
 import type { CableFeatureCollection, CableProperties, KMLStyle, SegmentInfo, KMLMetadata } from '../types';
-import type { Feature, LineString } from 'geojson';
+import type { Feature, LineString, Point } from 'geojson';
 
 /**
  * Default color mapping from KML hex colors to soil types
@@ -433,7 +433,7 @@ function mapColorToSoilType(color: string | null): string | null {
  * @returns CableFeatureCollection in GeoJSON format with enhanced properties
  */
 export function convertKmlToGeoJson(kmlContent: string): CableFeatureCollection {
-  const features: Feature<LineString, CableProperties>[] = [];
+  const features: Feature<LineString | Point, CableProperties>[] = [];
   
   try {
     // Parse KML using DOMParser
@@ -594,7 +594,74 @@ export function convertKmlToGeoJson(kmlContent: string): CableFeatureCollection 
         cableIndex++;
       }
       
-      // TODO: Add support for Polygon and Point geometries in future enhancement
+      // Process Point geometries
+      const point = placemark.querySelector('Point');
+      if (point) {
+        const coordinatesEl = point.querySelector('coordinates');
+        if (!coordinatesEl || !coordinatesEl.textContent) return;
+        
+        const coordinates = parseCoordinates(coordinatesEl.textContent);
+        if (coordinates.length === 0) return;
+        
+        // Use the first coordinate (Point should only have one)
+        const coord = coordinates[0];
+        
+        console.log(`\n📍 Point Feature ${cableIndex}: ${name}`);
+        console.log(`  📍 Coordinate: [${coord[0]}, ${coord[1]}]`);
+        
+        // Determine soil type from name, description, or style
+        let soilType: string = 'Tanah Liat'; // Default
+        let detectionMethod = 'default';
+        
+        // Priority 1: Try to extract from NAME
+        const soilFromName = extractSoilTypeFromText(name);
+        if (soilFromName) {
+          soilType = soilFromName;
+          detectionMethod = 'name';
+          console.log(`  ✓ Soil type from NAME: ${soilType}`);
+        } else if (metadata.description) {
+          // Priority 2: Try from DESCRIPTION
+          const soilFromDesc = extractSoilTypeFromText(metadata.description);
+          if (soilFromDesc) {
+            soilType = soilFromDesc;
+            detectionMethod = 'description';
+            console.log(`  ✓ Soil type from DESCRIPTION: ${soilType}`);
+          }
+        } else if (style?.iconColor) {
+          // Priority 3: Try from icon color
+          const soilFromColor = mapColorToSoilType(style.iconColor);
+          if (soilFromColor) {
+            soilType = soilFromColor;
+            detectionMethod = 'color';
+            console.log(`  ✓ Soil type from ICON COLOR: ${soilType}`);
+          }
+        }
+        
+        const depth = SOIL_TYPE_DEPTH[soilType] || 2.0;
+        
+        console.log(`  📌 FINAL: ${soilType} (detected from: ${detectionMethod})`);
+        console.log(`  💧 Depth: ${depth}m\n`);
+        
+        // Create GeoJSON Point feature
+        const pointFeature: Feature<Point, CableProperties> = {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: coord
+          },
+          properties: {
+            id: `point-${cableIndex}`,
+            name: name,
+            soilType: soilType as 'Pasir' | 'Tanah Liat' | 'Batuan',
+            depth: depth,
+            style: style,
+            metadata: metadata
+          }
+        };
+        
+        features.push(pointFeature as any); // Cast to match CableFeatureCollection type
+        cableIndex++;
+      }
     });
     
     console.log(`✓ Converted ${features.length} features from KML`);
