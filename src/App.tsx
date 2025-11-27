@@ -7,6 +7,8 @@ import { RightSidebar } from './components/RightSidebar';
 import { UploadModal } from './components/UploadModal';
 import { LoginForm } from './components/LoginForm';
 import { ProfileDropdown } from './components/ProfileDropdown';
+import { FilterTab } from './components/FilterTab';
+import { AnalysisTab } from './components/AnalysisTab';
 import { DataLoader } from './services/DataLoader';
 import type { CableFeatureCollection, MapViewMethods, SoilType } from './types';
 import type { Feature, LineString, Point } from 'geojson';
@@ -22,6 +24,10 @@ function App() {
     type: 'FeatureCollection',
     features: []
   });
+  const [filteredCableData, setFilteredCableData] = createSignal<CableFeatureCollection>({
+    type: 'FeatureCollection',
+    features: []
+  });
   const [selectedFeature, setSelectedFeature] = createSignal<Feature<LineString | Point, CableProperties | MarkerProperties> | null>(null);
   const [popupCoordinates, setPopupCoordinates] = createSignal<[number, number] | null>(null);
   const [popupPosition, setPopupPosition] = createSignal<{ x: number; y: number } | null>(null);
@@ -34,6 +40,8 @@ function App() {
   const [uploadedFileName, setUploadedFileName] = createSignal<string>('');
   const [uploadedFileSize, setUploadedFileSize] = createSignal<number>(0);
   const [showRightSidebar, setShowRightSidebar] = createSignal(false);
+  const [showFilterTab, setShowFilterTab] = createSignal(false);
+  const [showAnalysisTab, setShowAnalysisTab] = createSignal(false);
   let mapInstance: maplibregl.Map | null = null;
 
   // Load cable data on mount (from local storage or sample data)
@@ -54,6 +62,7 @@ function App() {
     try {
       const data = await DataLoader.loadCableData();
       setCableData(data);
+      setFilteredCableData(data); // Initialize filtered data with all data
     } catch (error) {
       // Handle errors gracefully - Requirement 8.5
       // Log errors to console for debugging
@@ -154,6 +163,7 @@ function App() {
     
     // Replace current cable data with uploaded data
     setCableData(data);
+    setFilteredCableData(data); // Reset filtered data
     
     // Store file info for RightSidebar
     if (fileName) setUploadedFileName(fileName);
@@ -179,6 +189,61 @@ function App() {
     handleClosePopup();
     
     console.log('Custom data loaded successfully - map should update now');
+  };
+
+  /**
+   * Handle filter changes from FilterTab
+   */
+  const handleFilterChange = (filtered: CableFeatureCollection) => {
+    setFilteredCableData(filtered);
+    // Close popup when filters change
+    handleClosePopup();
+  };
+
+  /**
+   * Handle opening filter tab
+   */
+  const handleFilteringClick = () => {
+    setShowFilterTab(true);
+  };
+
+  /**
+   * Handle closing filter tab
+   */
+  const handleCloseFilterTab = () => {
+    setShowFilterTab(false);
+  };
+
+  /**
+   * Handle opening analysis tab
+   */
+  const handleAnalyticsClick = () => {
+    setShowAnalysisTab(true);
+  };
+
+  /**
+   * Handle closing analysis tab
+   */
+  const handleCloseAnalysisTab = () => {
+    setShowAnalysisTab(false);
+  };
+
+  /**
+   * Handle feature selection from analysis tab
+   */
+  const handleAnalysisFeatureSelect = (feature: Feature<LineString | Point, CableProperties>, coordinates: [number, number]) => {
+    // Find screen position for the coordinates
+    if (mapInstance) {
+      const point = mapInstance.project(coordinates);
+      handleFeatureClick(feature, coordinates, { x: point.x, y: point.y });
+      
+      // Pan to the feature
+      mapInstance.flyTo({
+        center: coordinates,
+        zoom: 16,
+        duration: 1000
+      });
+    }
   };
 
   /**
@@ -234,6 +299,7 @@ function App() {
       };
 
       setCableData(updatedData);
+      setFilteredCableData(updatedData); // Update filtered data as well
       
       // Save to local storage for persistence
       try {
@@ -285,10 +351,28 @@ function App() {
             console.error('Failed to load test data:', error);
           }
         }}
-        onAnalyticsClick={() => console.log('Analytics clicked')}
-        onFilteringClick={() => console.log('Filtering clicked')}
+        onAnalyticsClick={handleAnalyticsClick}
+        onFilteringClick={handleFilteringClick}
         onTopologyClick={() => console.log('Topology clicked')}
       />
+
+      {/* Filter Tab */}
+      <Show when={showFilterTab()}>
+        <FilterTab
+          cableData={cableData()}
+          onFilterChange={handleFilterChange}
+          onClose={handleCloseFilterTab}
+        />
+      </Show>
+
+      {/* Analysis Tab */}
+      <Show when={showAnalysisTab()}>
+        <AnalysisTab
+          cableData={cableData()}
+          onClose={handleCloseAnalysisTab}
+          onFeatureSelect={handleAnalysisFeatureSelect}
+        />
+      </Show>
 
       {/* Upload Modal */}
       <UploadModal 
@@ -299,7 +383,7 @@ function App() {
 
       <div class="flex-1 w-full relative">
         <MapView 
-          cableData={cableData()} 
+          cableData={filteredCableData()} 
           onFeatureClick={handleFeatureClick}
           onMapLoad={handleMapLoad}
           onMapClick={handleMapClick}

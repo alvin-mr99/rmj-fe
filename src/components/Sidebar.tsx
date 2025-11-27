@@ -41,7 +41,7 @@ export function Sidebar(props: SidebarProps) {
       id: 'filtering', 
       icon: '🔍', 
       label: 'Filtering', 
-      subtitle: 'Filter cables', 
+      subtitle: 'Filter data', 
       description: 'Filter and search cable networks',
       onClick: props.onFilteringClick 
     },
