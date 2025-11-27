@@ -10,6 +10,7 @@ import type { SoilType } from '../types';
 
 /**
  * Maps soil type to corresponding color
+ * Colors are chosen to be distinct and match typical Google Earth representations
  * 
  * @param soilType - The soil type classification
  * @returns Hex color code for the soil type
@@ -18,9 +19,9 @@ import type { SoilType } from '../types';
  */
 export function getSoilTypeColor(soilType: SoilType | string): string {
   const colorMap: Record<string, string> = {
-    'Pasir': '#FFFF00',        // Yellow - Requirement 2.1
-    'Tanah Liat': '#8B4513',   // Brown - Requirement 2.2
-    'Batuan': '#808080',       // Gray - Requirement 2.3
+    'Pasir': '#FFC107',        // Amber/Orange - Sand (Google Earth yellow-ish) - Requirement 2.1
+    'Tanah Liat': '#D32F2F',   // Red - Clay soil - Requirement 2.2
+    'Batuan': '#616161',       // Dark Gray - Rock - Requirement 2.3
   };
 
   // Return mapped color or default black for invalid/missing types - Requirement 2.4
@@ -44,9 +45,9 @@ export function getCableLineStyle(): LayerSpecification {
       'line-color': [
         'match',
         ['get', 'soilType'],
-        'Pasir', '#FFFF00',        // Yellow - Requirement 2.1
-        'Tanah Liat', '#8B4513',   // Brown - Requirement 2.2
-        'Batuan', '#808080',       // Gray - Requirement 2.3
+        'Pasir', '#FFC107',        // Amber/Orange - Sand - Requirement 2.1
+        'Tanah Liat', '#D32F2F',   // Red - Clay - Requirement 2.2
+        'Batuan', '#616161',       // Dark Gray - Rock - Requirement 2.3
         '#000000'                  // Default black - Requirement 2.4
       ],
       'line-width': 6,
@@ -79,9 +80,9 @@ export function getMarkerStyle(): LayerSpecification {
       'circle-color': [
         'match',
         ['get', 'soilType'],
-        'Pasir', '#FFFF00',        // Yellow - matches cable color
-        'Tanah Liat', '#8B4513',   // Brown - matches cable color
-        'Batuan', '#808080',       // Gray - matches cable color
+        'Pasir', '#FFC107',        // Amber/Orange - matches cable color
+        'Tanah Liat', '#D32F2F',   // Red - matches cable color
+        'Batuan', '#616161',       // Dark Gray - matches cable color
         '#FF0000'                  // Default red
       ],
       'circle-opacity': 0.9,

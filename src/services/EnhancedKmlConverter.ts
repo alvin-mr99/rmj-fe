@@ -17,14 +17,29 @@ import type { Feature, LineString } from 'geojson';
 
 /**
  * Default color mapping from KML hex colors to soil types
+ * KML uses ABGR format (Alpha-Blue-Green-Red)
  * This is used as fallback when style information is available
  */
 const COLOR_TO_SOIL_TYPE: Record<string, string> = {
-  'ff2dc0fb': 'Pasir',        // Yellow/Orange
-  'ff2f2fd3': 'Tanah Liat',   // Red
-  'ff757575': 'Batuan',       // Gray
-  'ff37405d': 'Batuan',       // Dark Gray
-  'ff808080': 'Batuan',       // Medium Gray
+  // Yellow/Orange shades - Pasir (Sand)
+  'ff2dc0fb': 'Pasir',
+  'ff14c8ff': 'Pasir',
+  'ff00d4ff': 'Pasir',
+  'ff00ffff': 'Pasir',
+  
+  // Red/Pink shades - Tanah Liat (Clay)
+  'ff2f2fd3': 'Tanah Liat',
+  'ff0000ff': 'Tanah Liat',
+  'ff1414ff': 'Tanah Liat',
+  'ff0014ff': 'Tanah Liat',
+  
+  // Gray/Dark shades - Batuan (Rock)
+  'ff757575': 'Batuan',
+  'ff37405d': 'Batuan',
+  'ff808080': 'Batuan',
+  'ff555555': 'Batuan',
+  'ff404040': 'Batuan',
+  'ff666666': 'Batuan',
 };
 
 /**
@@ -47,6 +62,12 @@ function calculateDistance(coord1: [number, number], coord2: [number, number]): 
   const [lon1, lat1] = coord1;
   const [lon2, lat2] = coord2;
   
+  // Validate coordinates
+  if (!isFinite(lon1) || !isFinite(lat1) || !isFinite(lon2) || !isFinite(lat2)) {
+    console.warn('Invalid coordinates for distance calculation:', coord1, coord2);
+    return 0;
+  }
+  
   const φ1 = (lat1 * Math.PI) / 180;
   const φ2 = (lat2 * Math.PI) / 180;
   const Δφ = ((lat2 - lat1) * Math.PI) / 180;
@@ -58,7 +79,10 @@ function calculateDistance(coord1: [number, number], coord2: [number, number]): 
   
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   
-  return R * c;
+  const distance = R * c;
+  
+  // Validate result
+  return isFinite(distance) ? distance : 0;
 }
 
 /**
@@ -71,6 +95,12 @@ function calculateBearing(coord1: [number, number], coord2: [number, number]): n
   const [lon1, lat1] = coord1;
   const [lon2, lat2] = coord2;
   
+  // Validate coordinates
+  if (!isFinite(lon1) || !isFinite(lat1) || !isFinite(lon2) || !isFinite(lat2)) {
+    console.warn('Invalid coordinates for bearing calculation:', coord1, coord2);
+    return 0;
+  }
+  
   const φ1 = (lat1 * Math.PI) / 180;
   const φ2 = (lat2 * Math.PI) / 180;
   const Δλ = ((lon2 - lon1) * Math.PI) / 180;
@@ -82,7 +112,8 @@ function calculateBearing(coord1: [number, number], coord2: [number, number]): n
   const θ = Math.atan2(y, x);
   const bearing = ((θ * 180 / Math.PI) + 360) % 360;
   
-  return bearing;
+  // Validate result
+  return isFinite(bearing) ? bearing : 0;
 }
 
 /**
@@ -312,16 +343,87 @@ function extractMetadata(placemark: Element): KMLMetadata {
 }
 
 /**
+ * Extract soil type from name or description
+ * Enhanced with better keyword matching and logging
+ */
+function extractSoilTypeFromText(text: string | null | undefined): string | null {
+  if (!text) return null;
+  
+  const lowerText = text.toLowerCase();
+  console.log(`  🔍 Checking text: "${text}"`);
+  
+  // Check for keywords in order of specificity
+  // IMPROVED: Check for more variations and exact words
+  
+  // Pasir (Sand) - check for "pasir" anywhere in text
+  if (lowerText.includes('pasir') || lowerText.includes('sand')) {
+    console.log(`  ✅ Matched keyword: Pasir`);
+    return 'Pasir';
+  }
+  
+  // Batuan (Rock) - check for "batuan", "batu", or "rock"
+  if (lowerText.includes('batuan') || lowerText.includes('batu') || lowerText.includes('rock')) {
+    console.log(`  ✅ Matched keyword: Batuan`);
+    return 'Batuan';
+  }
+  
+  // Tanah Liat (Clay) - check for exact phrase first
+  if (lowerText.includes('tanah liat') || lowerText.includes('clay') || lowerText.includes('liat')) {
+    console.log(`  ✅ Matched keyword: Tanah Liat`);
+    return 'Tanah Liat';
+  }
+  
+  // Tanah (generic) - only match if it's the ONLY word or at the start
+  // This prevents matching "batuan" which contains "batu"
+  const words = lowerText.split(/\s+/);
+  if (words.includes('tanah') && !lowerText.includes('batuan')) {
+    console.log(`  ✅ Matched keyword: Tanah (default to Tanah Liat)`);
+    return 'Tanah Liat';
+  }
+  
+  console.log(`  ❌ No keyword matched in: "${text}"`);
+  return null;
+}
+
+/**
  * Map color to soil type (fallback for backward compatibility)
  */
-function mapColorToSoilType(color: string | null): string {
-  if (!color) return 'Tanah Liat';
+function mapColorToSoilType(color: string | null): string | null {
+  if (!color) return null;
   
-  // Extract ABGR from RGBA if needed
+  // Extract ABGR from color string
   const abgrMatch = color.match(/[a-f0-9]{8}/i);
   const abgr = abgrMatch ? abgrMatch[0].toLowerCase() : color.toLowerCase();
   
-  return COLOR_TO_SOIL_TYPE[abgr] || 'Tanah Liat';
+  // Try exact match first
+  if (COLOR_TO_SOIL_TYPE[abgr]) {
+    return COLOR_TO_SOIL_TYPE[abgr];
+  }
+  
+  // Try approximate color matching based on RGB values
+  if (abgr.length === 8) {
+    const r = parseInt(abgr.substring(6, 8), 16);
+    const g = parseInt(abgr.substring(4, 6), 16);
+    const b = parseInt(abgr.substring(2, 4), 16);
+    
+    // Yellow/Orange range (high red and green, low blue) - Pasir
+    if (r > 200 && g > 180 && b < 100) {
+      return 'Pasir';
+    }
+    
+    // Red range (high red, low green and blue) - Tanah Liat
+    if (r > 180 && g < 100 && b < 100) {
+      return 'Tanah Liat';
+    }
+    
+    // Gray range (similar RGB values) - Batuan
+    const maxDiff = Math.max(Math.abs(r - g), Math.abs(g - b), Math.abs(r - b));
+    if (maxDiff < 50 && r < 150) {
+      return 'Batuan';
+    }
+  }
+  
+  return null;
 }
 
 /**
@@ -409,11 +511,64 @@ export function convertKmlToGeoJson(kmlContent: string): CableFeatureCollection 
         const segments = calculateSegments(coordinates);
         const totalDistance = calculateTotalDistance(coordinates);
         
-        // Determine soil type from color (backward compatibility)
-        const soilType = style?.lineColor 
-          ? mapColorToSoilType(style.lineColor)
-          : 'Tanah Liat';
+        // Enhanced logging
+        console.log(`\n📦 Feature ${cableIndex}: ${name}`);
+        console.log(`  📍 Coordinates: ${coordinates.length} points`);
+        console.log(`  📏 Segments: ${segments.length}`);
+        console.log(`  📐 Total Distance: ${(totalDistance / 1000).toFixed(2)} km`);
+        
+        // Determine soil type with ENHANCED priority detection
+        let soilType: string = 'Tanah Liat'; // Default
+        let detectionMethod = 'default';
+        
+        // Priority 1: Try to extract from NAME first
+        console.log(`  🔎 Priority 1: Checking NAME`);
+        const soilFromName = extractSoilTypeFromText(name);
+        if (soilFromName) {
+          soilType = soilFromName;
+          detectionMethod = 'name';
+          console.log(`  ✓ Soil type from NAME: ${soilType}`);
+        } else {
+          // Priority 2: Try from DESCRIPTION
+          console.log(`  🔎 Priority 2: Checking DESCRIPTION`);
+          if (metadata.description) {
+            const soilFromDesc = extractSoilTypeFromText(metadata.description);
+            if (soilFromDesc) {
+              soilType = soilFromDesc;
+              detectionMethod = 'description';
+              console.log(`  ✓ Soil type from DESCRIPTION: ${soilType}`);
+            }
+          } else {
+            console.log(`  ⚠️ No description available`);
+          }
+          
+          // Priority 3: Try from LINE COLOR (only if still default)
+          if (soilType === 'Tanah Liat' && style?.lineColor) {
+            console.log(`  🔎 Priority 3: Checking LINE COLOR`);
+            const soilFromColor = mapColorToSoilType(style.lineColor);
+            if (soilFromColor) {
+              soilType = soilFromColor;
+              detectionMethod = 'color';
+              console.log(`  ✓ Soil type from COLOR ${style.lineColor}: ${soilType}`);
+            } else {
+              console.log(`  ⚠️ Color ${style.lineColor} not mapped to soil type`);
+            }
+          }
+        }
+        
         const depth = SOIL_TYPE_DEPTH[soilType] || 2.0;
+        
+        // Final summary log with color indicators
+        const soilColors: Record<string, string> = {
+          'Pasir': '🟠',
+          'Tanah Liat': '🔴',
+          'Batuan': '⚫'
+        };
+        
+        console.log(`  ══════════════════════════════════════`);
+        console.log(`  ${soilColors[soilType] || '⚪'} FINAL: ${soilType} (detected from: ${detectionMethod})`);
+        console.log(`  💧 Depth: ${depth}m`);
+        console.log(`  ══════════════════════════════════════\n`);
         
         // Create GeoJSON feature with enhanced properties
         const feature: Feature<LineString, CableProperties> = {
@@ -428,10 +583,10 @@ export function convertKmlToGeoJson(kmlContent: string): CableFeatureCollection 
             depth: depth,
             name: name,
             installDate: new Date().toISOString().split('T')[0],
-            style: style,
-            segments: segments,
-            totalDistance: totalDistance,
-            metadata: metadata
+            style: style || undefined,
+            segments: segments || [],
+            totalDistance: totalDistance || 0,
+            metadata: Object.keys(metadata).length > 0 ? metadata : undefined
           }
         };
         

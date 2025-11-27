@@ -3,6 +3,7 @@ import { MapView } from './components/MapView';
 import { PopupComponent } from './components/PopupComponent';
 import { DrawingTools } from './components/DrawingTools';
 import { Sidebar } from './components/Sidebar';
+import { RightSidebar } from './components/RightSidebar';
 import { UploadModal } from './components/UploadModal';
 import { LoginForm } from './components/LoginForm';
 import { ProfileDropdown } from './components/ProfileDropdown';
@@ -30,6 +31,9 @@ function App() {
   const [showInputForm, setShowInputForm] = createSignal(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = createSignal(false);
   const [mapZoom, setMapZoom] = createSignal(12); // Default zoom level
+  const [uploadedFileName, setUploadedFileName] = createSignal<string>('');
+  const [uploadedFileSize, setUploadedFileSize] = createSignal<number>(0);
+  const [showRightSidebar, setShowRightSidebar] = createSignal(false);
   let mapInstance: maplibregl.Map | null = null;
 
   // Load cable data on mount (from local storage or sample data)
@@ -42,6 +46,9 @@ function App() {
     if (loggedIn && email) {
       setIsLoggedIn(true);
       setUserEmail(email);
+      
+      // Show RightSidebar after login
+      setShowRightSidebar(true);
     }
 
     try {
@@ -133,7 +140,7 @@ function App() {
   /**
    * Handle upload modal success
    */
-  const handleUploadSuccess = (data: CableFeatureCollection) => {
+  const handleUploadSuccess = (data: CableFeatureCollection, fileName?: string, fileSize?: number) => {
     console.log('=== UPLOAD SUCCESS ===');
     console.log('handleUploadSuccess called with data:', data);
     console.log('Number of features:', data.features.length);
@@ -147,6 +154,13 @@ function App() {
     
     // Replace current cable data with uploaded data
     setCableData(data);
+    
+    // Store file info for RightSidebar
+    if (fileName) setUploadedFileName(fileName);
+    if (fileSize) setUploadedFileSize(fileSize);
+    
+    // Show RightSidebar
+    setShowRightSidebar(true);
     
     // Force a re-render by logging after state update
     setTimeout(() => {
@@ -266,7 +280,7 @@ function App() {
             const response = await fetch('/data/test-output.json');
             const data = await response.json();
             console.log('Test data loaded:', data);
-            handleUploadSuccess(data);
+            handleUploadSuccess(data, 'test-output.json', 0);
           } catch (error) {
             console.error('Failed to load test data:', error);
           }
@@ -300,6 +314,25 @@ function App() {
           onCancel={handleDrawCancel}
         />
       </div>
+
+      {/* Right Sidebar - Always show, but with empty state when no data */}
+      <Show when={showRightSidebar()}>
+        <RightSidebar
+          cableData={cableData()}
+          fileName={uploadedFileName()}
+          fileSize={uploadedFileSize()}
+          onChangeFile={() => {
+            setIsUploadModalOpen(true);
+          }}
+          onLoadToMap={() => {
+            // Data already loaded, just close sidebar or do nothing
+            console.log('Data already loaded to map');
+          }}
+          onCancel={() => {
+            setShowRightSidebar(false);
+          }}
+        />
+      </Show>
       
       {/* Search control - Requirements: 6.3, 6.4 */}
       {/* <SearchControl onLocationSelect={handleLocationSelect} /> */}

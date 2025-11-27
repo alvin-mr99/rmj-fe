@@ -1,4 +1,4 @@
-import { Show, For } from 'solid-js';
+import { Show } from 'solid-js';
 import type { PopupProps } from '../types';
 import type { CableProperties, MarkerProperties } from '../types';
 
@@ -118,7 +118,7 @@ export function PopupComponent(props: PopupProps) {
           </Show>
 
           {/* Total Distance (for cable routes with segments) */}
-          <Show when={'totalDistance' in properties && (properties as CableProperties).totalDistance !== undefined}>
+          <Show when={'totalDistance' in properties && typeof (properties as CableProperties).totalDistance === 'number'}>
             <div class="flex flex-col">
               <div class="flex items-center gap-2 mb-1.5">
                 <span class="text-[13px] font-bold text-gray-500 uppercase tracking-wide">Total Distance:</span>
@@ -130,7 +130,7 @@ export function PopupComponent(props: PopupProps) {
           </Show>
 
           {/* Number of Segments */}
-          <Show when={'segments' in properties && (properties as CableProperties).segments && (properties as CableProperties).segments!.length > 0}>
+          <Show when={'segments' in properties && Array.isArray((properties as CableProperties).segments) && (properties as CableProperties).segments!.length > 0}>
             <div class="flex flex-col">
               <div class="flex items-center gap-2 mb-1.5">
                 <span class="text-[13px] font-bold text-gray-500 uppercase tracking-wide">Segments:</span>

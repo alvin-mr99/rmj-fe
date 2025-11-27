@@ -13,11 +13,46 @@ export function Sidebar(props: SidebarProps) {
   const [activeMenu, setActiveMenu] = createSignal<string>('dashboard');
 
   const menuItems = [
-    { id: 'dashboard', icon: '📊', label: 'Dashboard', subtitle: 'Main overview', onClick: props.onDashboardClick },
-    { id: 'upload', icon: '📁', label: 'Upload File', subtitle: 'Import KML data', onClick: props.onUploadClick },
-    { id: 'analytics', icon: '📈', label: 'Analytics', subtitle: 'Data analysis', onClick: props.onAnalyticsClick },
-    { id: 'filtering', icon: '🔍', label: 'Filtering', subtitle: 'Filter cables', onClick: props.onFilteringClick },
-    { id: 'topology', icon: '⚙️', label: 'Topology Settings', subtitle: 'Configuration', onClick: props.onTopologyClick },
+    { 
+      id: 'dashboard', 
+      icon: '📊', 
+      label: 'Dashboard', 
+      subtitle: 'Main overview', 
+      description: 'View system statistics and overview',
+      onClick: props.onDashboardClick 
+    },
+    { 
+      id: 'upload', 
+      icon: '📁', 
+      label: 'Upload File', 
+      subtitle: 'Import KML data', 
+      description: 'Upload and import KML cable data',
+      onClick: props.onUploadClick 
+    },
+    { 
+      id: 'analytics', 
+      icon: '📈', 
+      label: 'Analytics', 
+      subtitle: 'Data analysis', 
+      description: 'Analyze cable network data',
+      onClick: props.onAnalyticsClick 
+    },
+    { 
+      id: 'filtering', 
+      icon: '🔍', 
+      label: 'Filtering', 
+      subtitle: 'Filter cables', 
+      description: 'Filter and search cable networks',
+      onClick: props.onFilteringClick 
+    },
+    { 
+      id: 'topology', 
+      icon: '⚙️', 
+      label: 'Topology Settings', 
+      subtitle: 'Configuration', 
+      description: 'Configure network topology',
+      onClick: props.onTopologyClick 
+    },
   ];
 
   const handleMenuClick = (id: string, onClick?: () => void) => {
@@ -50,20 +85,41 @@ export function Sidebar(props: SidebarProps) {
         <For each={menuItems}>
           {(item) => (
             <button
-              class={`relative flex items-center gap-4 w-full px-4 py-3.5 mb-2 bg-transparent border-none rounded-[16px] text-gray-600 text-[15px] font-medium cursor-pointer transition-all duration-200 text-left ${
+              class={`relative flex items-center gap-4 w-full px-4 py-4 mb-3 border-none rounded-[20px] font-medium cursor-pointer transition-all duration-300 text-left ${
                 isMinimized() ? 'justify-center px-2' : ''
               } ${
                 activeMenu() === item.id 
-                  ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-[0_4px_12px_rgba(59,130,246,0.3)]' 
-                  : 'hover:bg-gray-50 hover:text-gray-900'
+                  ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-[0_4px_16px_rgba(59,130,246,0.4)] scale-[1.02]' 
+                  : 'bg-white hover:bg-gray-50 shadow-[0_2px_8px_rgba(0,0,0,0.08)]'
               }`}
               onClick={() => handleMenuClick(item.id, item.onClick)}
               title={isMinimized() ? item.label : ''}
               style={{"font-family": "'Poppins', sans-serif"}}
             >
-              <span class="text-[22px] text-gray-700 flex items-center justify-center min-w-[22px]">{item.icon}</span>
+              <div class={`flex items-center justify-center w-[52px] h-[52px] rounded-[16px] flex-shrink-0 transition-all duration-300 ${
+                activeMenu() === item.id 
+                  ? 'bg-white/20' 
+                  : 'bg-gray-100'
+              }`}>
+                <span class={`text-[24px] transition-all duration-300 ${
+                  activeMenu() === item.id ? 'scale-110' : ''
+                }`}>
+                  {item.icon}
+                </span>
+              </div>
               <Show when={!isMinimized()}>
-                <span class="whitespace-nowrap overflow-hidden text-ellipsis animate-[fadeIn_0.3s_ease-in]">{item.label}</span>
+                <div class="flex flex-col gap-0.5 animate-[fadeIn_0.3s_ease-in] flex-1">
+                  <span class={`text-[17px] font-bold whitespace-nowrap overflow-hidden text-ellipsis ${
+                    activeMenu() === item.id ? 'text-white' : 'text-gray-800'
+                  }`}>
+                    {item.label}
+                  </span>
+                  <span class={`text-[13px] font-normal ${
+                    activeMenu() === item.id ? 'text-white/80' : 'text-gray-500'
+                  }`}>
+                    {item.subtitle}
+                  </span>
+                </div>
               </Show>
             </button>
           )}

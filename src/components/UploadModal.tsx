@@ -5,7 +5,7 @@ import type { CableFeatureCollection } from '../types';
 interface UploadModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onUploadSuccess: (data: CableFeatureCollection) => void;
+  onUploadSuccess: (data: CableFeatureCollection, fileName?: string, fileSize?: number) => void;
 }
 
 export function UploadModal(props: UploadModalProps) {
@@ -100,10 +100,11 @@ export function UploadModal(props: UploadModalProps) {
 
   const handleConfirmUpload = () => {
     const data = previewData();
+    const file = selectedFile();
     console.log('Upload confirmed, data:', data);
-    if (data) {
+    if (data && file) {
       console.log('Calling onUploadSuccess with', data.features.length, 'features');
-      props.onUploadSuccess(data);
+      props.onUploadSuccess(data, file.name, file.size);
       handleClose();
     }
   };
