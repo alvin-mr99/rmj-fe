@@ -5,12 +5,13 @@ import { DrawingTools } from './components/DrawingTools';
 import { Sidebar } from './components/Sidebar';
 import { RightSidebar } from './components/RightSidebar';
 import { UploadModal } from './components/UploadModal';
+import { BoQUploadModal } from './components/BoQUploadModal';
 import { LoginForm } from './components/LoginForm';
 import { ProfileDropdown } from './components/ProfileDropdown';
 import { FilterTab } from './components/FilterTab';
 import { AnalysisTab } from './components/AnalysisTab';
 import { DataLoader } from './services/DataLoader';
-import type { CableFeatureCollection, MapViewMethods, SoilType } from './types';
+import type { CableFeatureCollection, MapViewMethods, SoilType, BoQData } from './types';
 import type { Feature, LineString, Point } from 'geojson';
 import type { CableProperties, MarkerProperties } from './types';
 import maplibregl from 'maplibre-gl';
@@ -36,6 +37,8 @@ function App() {
   const [drawnFeature, setDrawnFeature] = createSignal<Feature<LineString> | null>(null);
   const [showInputForm, setShowInputForm] = createSignal(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = createSignal(false);
+  const [isBoQUploadModalOpen, setIsBoQUploadModalOpen] = createSignal(false);
+  const [boqData, setBoqData] = createSignal<BoQData | null>(null);
   const [mapZoom, setMapZoom] = createSignal(12); // Default zoom level
   const [uploadedFileName, setUploadedFileName] = createSignal<string>('');
   const [uploadedFileSize, setUploadedFileSize] = createSignal<number>(0);
@@ -192,6 +195,34 @@ function App() {
   };
 
   /**
+   * Handle BOQ upload success
+   */
+  const handleBoQUploadSuccess = (data: BoQData, fileName?: string, fileSize?: number) => {
+    console.log('=== BOQ UPLOAD SUCCESS ===');
+    console.log('handleBoQUploadSuccess called with data:', data);
+    console.log('Number of items:', data.items.length);
+    
+    // Validate data before setting
+    if (!data || !data.items || data.items.length === 0) {
+      console.error('Invalid BOQ data received');
+      alert('Invalid BOQ data received. Please try again.');
+      return;
+    }
+    
+    // Set BOQ data
+    setBoqData(data);
+    
+    // Store file info
+    if (fileName) console.log('BOQ file:', fileName);
+    if (fileSize) console.log('BOQ file size:', fileSize);
+    
+    // Show RightSidebar
+    setShowRightSidebar(true);
+    
+    console.log('BOQ data loaded successfully');
+  };
+
+  /**
    * Handle filter changes from FilterTab
    */
   const handleFilterChange = (filtered: CableFeatureCollection) => {
@@ -337,8 +368,12 @@ function App() {
         {/* Sidebar Panel */}
         <Sidebar 
         onUploadClick={() => {
-          console.log('Upload button clicked');
+          console.log('Upload KML button clicked');
           setIsUploadModalOpen(true);
+        }}
+        onUploadBoQClick={() => {
+          console.log('Upload BOQ button clicked');
+          setIsBoQUploadModalOpen(true);
         }}
         onDashboardClick={async () => {
           console.log('Dashboard clicked - Loading test data');
@@ -381,6 +416,13 @@ function App() {
         onUploadSuccess={handleUploadSuccess}
       />
 
+      {/* BOQ Upload Modal */}
+      <BoQUploadModal 
+        isOpen={isBoQUploadModalOpen()}
+        onClose={() => setIsBoQUploadModalOpen(false)}
+        onUploadSuccess={handleBoQUploadSuccess}
+      />
+
       <div class="flex-1 w-full relative">
         <MapView 
           cableData={filteredCableData()} 
@@ -401,12 +443,16 @@ function App() {
 
       {/* Right Sidebar - Always show, but with empty state when no data */}
       <Show when={showRightSidebar()}>
-        <RightSidebar
+        <RightSidebar 
           cableData={cableData()}
+          boqData={boqData()}
           fileName={uploadedFileName()}
           fileSize={uploadedFileSize()}
           onChangeFile={() => {
             setIsUploadModalOpen(true);
+          }}
+          onUploadBoQ={() => {
+            setIsBoQUploadModalOpen(true);
           }}
           onLoadToMap={() => {
             // Data already loaded, just close sidebar or do nothing
@@ -416,9 +462,7 @@ function App() {
             setShowRightSidebar(false);
           }}
         />
-      </Show>
-      
-      {/* Search control - Requirements: 6.3, 6.4 */}
+      </Show>      {/* Search control - Requirements: 6.3, 6.4 */}
       {/* <SearchControl onLocationSelect={handleLocationSelect} /> */}
       
       {/* Popup overlay - Requirements: 4.1, 4.2, 4.5 */}

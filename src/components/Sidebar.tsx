@@ -2,6 +2,7 @@ import { createSignal, Show, For } from 'solid-js';
 
 interface SidebarProps {
   onUploadClick: () => void;
+  onUploadBoQClick?: () => void;
   onDashboardClick?: () => void;
   onAnalyticsClick?: () => void;
   onFilteringClick?: () => void;
@@ -28,6 +29,14 @@ export function Sidebar(props: SidebarProps) {
       subtitle: 'Import KML data', 
       description: 'Upload and import KML cable data',
       onClick: props.onUploadClick 
+    },
+    { 
+      id: 'upload-boq', 
+      icon: '�', 
+      label: 'Upload File BoQ', 
+      subtitle: 'Import BoQ data', 
+      description: 'Upload and import BoQ data',
+      onClick: props.onUploadBoQClick 
     },
     { 
       id: 'analytics', 

@@ -6,6 +6,36 @@ import type { Feature, FeatureCollection, LineString, Point } from 'geojson';
 export type SoilType = 'Pasir' | 'Tanah Liat' | 'Batuan';
 
 /**
+ * BOQ (Bill of Quantity) Types
+ */
+export interface BoQItem {
+  no: number;
+  description: string;
+  unit: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  category?: string;
+  notes?: string;
+}
+
+export interface BoQSummary {
+  totalItems: number;
+  totalCost: number;
+  materialCost: number;
+  laborCost: number;
+  equipmentCost?: number;
+}
+
+export interface BoQData {
+  projectName?: string;
+  projectCode?: string;
+  date?: string;
+  items: BoQItem[];
+  summary: BoQSummary;
+}
+
+/**
  * Style properties from KML
  */
 export interface KMLStyle {

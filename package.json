@@ -15,7 +15,8 @@
     "@mapbox/mapbox-gl-draw": "^1.5.1",
     "@turf/turf": "^7.3.0",
     "maplibre-gl": "^5.13.0",
-    "solid-js": "^1.9.10"
+    "solid-js": "^1.9.10",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.17",

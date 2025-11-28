@@ -1,13 +1,15 @@
 import { createSignal, Show, For } from 'solid-js';
-import type { CableFeatureCollection } from '../types';
+import type { CableFeatureCollection, BoQData } from '../types';
 
 interface RightSidebarProps {
   cableData: CableFeatureCollection | null;
+  boqData?: BoQData | null;
   fileName?: string;
   fileSize?: number;
   onChangeFile?: () => void;
   onLoadToMap?: () => void;
   onCancel?: () => void;
+  onUploadBoQ?: () => void;
 }
 
 interface StatCard {
@@ -21,6 +23,7 @@ interface StatCard {
 
 export function RightSidebar(props: RightSidebarProps) {
   const [isMinimized, setIsMinimized] = createSignal(false);
+  const [activeTab, setActiveTab] = createSignal<'kml' | 'boq'>('kml');
 
   // Calculate statistics from cable data
   const calculateStats = () => {
@@ -111,6 +114,15 @@ export function RightSidebar(props: RightSidebarProps) {
     return name;
   };
 
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(value);
+  };
+
   return (
     <div 
       class={`fixed right-4 bg-white rounded-[20px] shadow-[0_8px_32px_rgba(0,0,0,0.12)] transition-[width,top] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] z-[1000] flex flex-col flex-shrink-0 h-[calc(100vh-86px)] ${isMinimized() ? 'w-[60px] top-[78px]' : 'w-[380px] top-[78px]'}`}
@@ -120,8 +132,10 @@ export function RightSidebar(props: RightSidebarProps) {
       <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100">
         <Show when={!isMinimized()}>
           <div class="flex items-center gap-2.5 animate-[fadeIn_0.3s_ease-in]">
-            <div class="text-[20px]">📤</div>
-            <h2 class="text-[16px] font-bold text-gray-800 m-0 tracking-[-0.5px]">KML Details</h2>
+            <div class="text-[20px]">{activeTab() === 'kml' ? '📤' : '📊'}</div>
+            <h2 class="text-[16px] font-bold text-gray-800 m-0 tracking-[-0.5px]">
+              {activeTab() === 'kml' ? 'KML Details' : 'BOQ Details'}
+            </h2>
           </div>
         </Show>
         <button 
@@ -134,6 +148,32 @@ export function RightSidebar(props: RightSidebarProps) {
       </div>
 
       <Show when={!isMinimized()}>
+        {/* Tab Navigation */}
+        <div class="flex border-b border-gray-100 px-4 pt-2">
+          <button
+            class={`flex-1 px-4 py-2.5 text-[12px] font-semibold transition-all duration-200 border-b-2 ${
+              activeTab() === 'kml'
+                ? 'text-blue-600 border-blue-600'
+                : 'text-gray-500 border-transparent hover:text-gray-700'
+            }`}
+            onClick={() => setActiveTab('kml')}
+          >
+            📤 KML
+          </button>
+          <button
+            class={`flex-1 px-4 py-2.5 text-[12px] font-semibold transition-all duration-200 border-b-2 ${
+              activeTab() === 'boq'
+                ? 'text-green-600 border-green-600'
+                : 'text-gray-500 border-transparent hover:text-gray-700'
+            }`}
+            onClick={() => setActiveTab('boq')}
+          >
+            📊 BOQ
+          </button>
+        </div>
+
+        {/* KML Tab Content */}
+        <Show when={activeTab() === 'kml'}>
         <div class="flex-1 overflow-y-auto overflow-x-hidden px-4 py-3 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-thumb]:rounded-full">
           {/* Empty State - No KML Data */}
           <Show when={!props.cableData || props.cableData.features.length === 0}>
@@ -238,6 +278,89 @@ export function RightSidebar(props: RightSidebarProps) {
                 Change File
               </button>
             </div>
+          </div>
+        </Show>
+        </Show>
+
+        {/* BOQ Tab Content */}
+        <Show when={activeTab() === 'boq'}>
+          <div class="flex-1 overflow-y-auto overflow-x-hidden px-4 py-3 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-thumb]:rounded-full">
+            {/* Empty State - No BOQ Data */}
+            <Show when={!props.boqData}>
+              <div class="flex flex-col items-center justify-center py-10 px-3 text-center">
+                <div class="text-[56px] mb-3 opacity-50">📊</div>
+                <h3 class="text-[16px] font-semibold text-gray-800 m-0 mb-1.5">No BOQ Data</h3>
+                <p class="text-[13px] text-gray-500 m-0 mb-5 max-w-[240px]">
+                  Upload an Excel file to view Bill of Quantity details
+                </p>
+                <button
+                  class="px-5 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white text-[13px] font-semibold rounded-[10px] cursor-pointer transition-all duration-200 hover:from-green-600 hover:to-emerald-700 hover:scale-[1.02] border-none shadow-[0_4px_12px_rgba(34,197,94,0.3)]"
+                  onClick={props.onUploadBoQ}
+                >
+                  Upload BOQ File
+                </button>
+              </div>
+            </Show>
+
+            {/* BOQ Summary - Only show when there's data */}
+            <Show when={props.boqData}>
+              <div class="bg-gray-50 rounded-[12px] p-3 mb-3">
+                <h3 class="text-[13px] font-bold text-gray-800 m-0 mb-2">Summary</h3>
+                <div class="grid grid-cols-2 gap-2">
+                  <div class="bg-white rounded-[8px] p-2.5">
+                    <p class="text-[9px] font-bold text-green-600 m-0 mb-1 tracking-wide">TOTAL ITEMS</p>
+                    <p class="text-[18px] font-bold text-green-600 m-0">{props.boqData?.summary.totalItems || 0}</p>
+                  </div>
+                  <div class="bg-white rounded-[8px] p-2.5">
+                    <p class="text-[9px] font-bold text-blue-600 m-0 mb-1 tracking-wide">TOTAL COST</p>
+                    <p class="text-[11px] font-bold text-blue-600 m-0 truncate" title={formatCurrency(props.boqData?.summary.totalCost || 0)}>
+                      {formatCurrency(props.boqData?.summary.totalCost || 0)}
+                    </p>
+                  </div>
+                  <div class="bg-white rounded-[8px] p-2.5">
+                    <p class="text-[9px] font-bold text-purple-600 m-0 mb-1 tracking-wide">MATERIAL</p>
+                    <p class="text-[11px] font-bold text-purple-600 m-0 truncate" title={formatCurrency(props.boqData?.summary.materialCost || 0)}>
+                      {formatCurrency(props.boqData?.summary.materialCost || 0)}
+                    </p>
+                  </div>
+                  <div class="bg-white rounded-[8px] p-2.5">
+                    <p class="text-[9px] font-bold text-orange-600 m-0 mb-1 tracking-wide">LABOR</p>
+                    <p class="text-[11px] font-bold text-orange-600 m-0 truncate" title={formatCurrency(props.boqData?.summary.laborCost || 0)}>
+                      {formatCurrency(props.boqData?.summary.laborCost || 0)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* BOQ Items List */}
+              <div class="mb-3">
+                <h3 class="text-[13px] font-bold text-gray-800 m-0 mb-2">Items</h3>
+                <div class="space-y-1.5 max-h-[400px] overflow-y-auto pr-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-thumb]:rounded-full">
+                  <For each={props.boqData?.items}>
+                    {(item, index) => (
+                      <div class="bg-gray-50 rounded-[8px] p-2.5 transition-all duration-200 hover:bg-gray-100">
+                        <div class="flex items-start gap-2 mb-1">
+                          <div class="w-6 h-6 bg-gradient-to-br from-green-500 to-emerald-600 rounded-[6px] flex items-center justify-center text-white font-bold text-[10px] flex-shrink-0">
+                            {index() + 1}
+                          </div>
+                          <div class="flex-1 min-w-0">
+                            <p class="text-[11px] font-semibold text-gray-800 m-0 mb-0.5">{item.description}</p>
+                            <div class="flex items-center gap-2 text-[10px] text-gray-500">
+                              <span>{item.quantity} {item.unit}</span>
+                              <span>×</span>
+                              <span>{formatCurrency(item.unitPrice)}</span>
+                            </div>
+                          </div>
+                          <div class="text-right flex-shrink-0">
+                            <p class="text-[11px] font-bold text-green-600 m-0">{formatCurrency(item.totalPrice)}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </For>
+                </div>
+              </div>
+            </Show>
           </div>
         </Show>
       </Show>
