@@ -46,22 +46,32 @@ export function FilterTab(props: FilterTabProps) {
   };
 
   const applyFilters = () => {
+    console.log('=== APPLYING FILTERS ===');
+    console.log('Selected soil types:', selectedSoilTypes());
+    console.log('Depth range:', depthMin(), '-', depthMax());
+    console.log('Distance range:', distanceMin(), '-', distanceMax());
+    console.log('Line width range:', lineWidthMin(), '-', lineWidthMax());
+    console.log('Total features before filter:', props.cableData.features.length);
+    
     const filtered = props.cableData.features.filter(feature => {
       const properties = feature.properties;
       
       // Filter by soil type
       if (!selectedSoilTypes().includes(properties.soilType)) {
+        console.log(`  ❌ Filtered out ${properties.name || properties.id}: soil type ${properties.soilType} not selected`);
         return false;
       }
       
       // Filter by depth
       if (properties.depth < depthMin() || properties.depth > depthMax()) {
+        console.log(`  ❌ Filtered out ${properties.name || properties.id}: depth ${properties.depth}m outside range`);
         return false;
       }
       
       // Filter by distance (if totalDistance exists)
       if (properties.totalDistance !== undefined) {
         if (properties.totalDistance < distanceMin() || properties.totalDistance > distanceMax()) {
+          console.log(`  ❌ Filtered out ${properties.name || properties.id}: distance ${properties.totalDistance}m outside range`);
           return false;
         }
       }
@@ -70,12 +80,17 @@ export function FilterTab(props: FilterTabProps) {
       if (properties.style?.lineWidth !== undefined) {
         const lineWidth = properties.style.lineWidth;
         if (lineWidth < lineWidthMin() || lineWidth > lineWidthMax()) {
+          console.log(`  ❌ Filtered out ${properties.name || properties.id}: line width ${lineWidth} outside range`);
           return false;
         }
       }
       
+      console.log(`  ✅ Kept ${properties.name || properties.id}`);
       return true;
     });
+
+    console.log('Total features after filter:', filtered.length);
+    console.log('=== FILTER COMPLETE ===');
 
     props.onFilterChange({
       type: 'FeatureCollection',
@@ -84,6 +99,7 @@ export function FilterTab(props: FilterTabProps) {
   };
 
   const resetFilters = () => {
+    console.log('=== RESETTING FILTERS ===');
     setSelectedSoilTypes(['Pasir', 'Tanah Liat', 'Batuan']);
     setDepthMin(0);
     setDepthMax(10);
@@ -92,7 +108,10 @@ export function FilterTab(props: FilterTabProps) {
     setLineWidthMin(0);
     setLineWidthMax(20);
     
-    // Apply reset immediately
+    console.log('All filters reset to default values');
+    console.log('Showing all', props.cableData.features.length, 'features');
+    
+    // Apply reset immediately - show all data
     props.onFilterChange(props.cableData);
   };
 

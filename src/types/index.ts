@@ -36,6 +36,17 @@ export interface BoQData {
 }
 
 /**
+ * BOQ File data with metadata (similar to KMLFileData)
+ */
+export interface BoQFileData {
+  id: string;
+  fileName: string;
+  fileSize: number;
+  data: BoQData;
+  uploadDate: string;
+}
+
+/**
  * Style properties from KML
  */
 export interface KMLStyle {
@@ -117,6 +128,17 @@ export type CableFeature = Feature<LineString, CableProperties>;
 export type CableFeatureCollection = FeatureCollection<LineString | Point, CableProperties>;
 
 /**
+ * KML File data with metadata
+ */
+export interface KMLFileData {
+  id: string;
+  fileName: string;
+  fileSize: number;
+  data: CableFeatureCollection;
+  uploadDate: string;
+}
+
+/**
  * GeoJSON Feature representing a marker point
  */
 export type MarkerFeature = Feature<Point, MarkerProperties>;
@@ -139,7 +161,8 @@ export interface AppProps {}
  * State for the App root component
  */
 export interface AppState {
-  cableData: CableFeatureCollection;
+  kmlFiles: KMLFileData[];
+  selectedKmlId: string | null;
   selectedFeature: Feature<LineString | Point, CableProperties | MarkerProperties> | null;
   isDrawingMode: boolean;
 }
@@ -148,7 +171,7 @@ export interface AppState {
  * Props for the MapView component
  */
 export interface MapViewProps {
-  cableData: CableFeatureCollection;
+  kmlFiles: KMLFileData[];
   onFeatureClick: (feature: Feature<LineString | Point, CableProperties | MarkerProperties>, coordinates: [number, number], screenPosition: { x: number; y: number }) => void;
   onMapLoad: (map: any) => void; // maplibregl.Map type
   onMapClick?: () => void; // Optional handler for clicking on empty map area
@@ -180,6 +203,14 @@ export interface PopupProps {
  */
 export interface SearchControlProps {
   onLocationSelect: (coordinates: [number, number]) => void;
+}
+
+/**
+ * Props for the TopSearchInput component
+ */
+export interface TopSearchInputProps {
+  kmlFiles: KMLFileData[];
+  map: maplibregl.Map | null;
 }
 
 /**

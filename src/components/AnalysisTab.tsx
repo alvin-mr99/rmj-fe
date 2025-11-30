@@ -12,9 +12,11 @@ export function AnalysisTab(props: AnalysisTabProps) {
     const [searchPoint, setSearchPoint] = createSignal('');
     const [searchLine, setSearchLine] = createSignal('');
 
-    // Extract line features (cables)
+    // Extract line features (routes)
     const getLineFeatures = () => {
-        return props.cableData.features.filter(f => f.geometry.type === 'LineString');
+        return props.cableData.features.filter(
+            (f): f is Feature<LineString, CableProperties> => f.geometry.type === 'LineString'
+        );
     };
 
     // Extract point features from line coordinates
@@ -22,19 +24,20 @@ export function AnalysisTab(props: AnalysisTabProps) {
         const points: Array<{
             id: string;
             coordinates: [number, number];
-            cableId: string;
-            cableName: string;
+            routeId: string;
+            routeName: string;
         }> = [];
 
         props.cableData.features.forEach(feature => {
             if (feature.geometry.type === 'LineString') {
                 const coords = feature.geometry.coordinates as [number, number][];
+                const routeName = feature.properties.name || feature.properties.id;
                 coords.forEach((coord, index) => {
                     points.push({
-                        id: `${feature.properties.id}-point-${index}`,
+                        id: `${routeName}-point-${index + 1}`,
                         coordinates: coord,
-                        cableId: feature.properties.id,
-                        cableName: feature.properties.name || feature.properties.id
+                        routeId: feature.properties.id,
+                        routeName: routeName
                     });
                 });
             }
@@ -63,7 +66,7 @@ export function AnalysisTab(props: AnalysisTabProps) {
 
         return points.filter(p =>
             p.id.toLowerCase().includes(query) ||
-            p.cableName.toLowerCase().includes(query) ||
+            p.routeName.toLowerCase().includes(query) ||
             p.coordinates[0].toString().includes(query) ||
             p.coordinates[1].toString().includes(query)
         );
@@ -106,10 +109,10 @@ export function AnalysisTab(props: AnalysisTabProps) {
         }
     };
 
-    const handlePointClick = (point: { id: string; coordinates: [number, number]; cableId: string; cableName: string }) => {
+    const handlePointClick = (point: { id: string; coordinates: [number, number]; routeId: string; routeName: string }) => {
         if (props.onFeatureSelect) {
             // Find the associated line feature
-            const lineFeature = props.cableData.features.find(f => f.properties.id === point.cableId);
+            const lineFeature = props.cableData.features.find(f => f.properties.id === point.routeId);
             if (lineFeature) {
                 props.onFeatureSelect(lineFeature, point.coordinates);
             }
@@ -128,7 +131,7 @@ export function AnalysisTab(props: AnalysisTabProps) {
                     <div>
                         <h2 class="text-[16px] font-bold text-gray-800 m-0 tracking-[-0.5px]">Data Analysis</h2>
                         <p class="text-[11px] text-gray-500 m-0 mt-0.5">
-                            {stats.totalLines} lines, {stats.totalPoints} points
+                            {stats.totalLines} routes, {stats.totalPoints} points
                         </p>
                     </div>
                 </div>
@@ -162,7 +165,7 @@ export function AnalysisTab(props: AnalysisTabProps) {
                                         type="text"
                                         value={searchPoint()}
                                         onInput={(e) => setSearchPoint(e.currentTarget.value)}
-                                        placeholder="Search points by name or coordinates..."
+                                        placeholder="Search points by route name..."
                                         class="w-full px-3 py-2 pl-9 border border-gray-300 rounded-[10px] text-[13px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                     />
                                     <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
@@ -207,8 +210,8 @@ export function AnalysisTab(props: AnalysisTabProps) {
                 {/* Line Features Section */}
                 <div class="mb-4">
                     <div class="flex items-center gap-2 mb-2">
-                        <span class="text-[18px]">🌐</span>
-                        <h3 class="text-[15px] font-bold text-gray-800 m-0">Line Features</h3>
+                        <span class="text-[18px]">🛤️</span>
+                        <h3 class="text-[15px] font-bold text-gray-800 m-0">Route Features</h3>
                         <span class="text-[12px] font-semibold text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full">
                             {stats.filteredLines}
                         </span>
@@ -222,20 +225,20 @@ export function AnalysisTab(props: AnalysisTabProps) {
                                         type="text"
                                         value={searchLine()}
                                         onInput={(e) => setSearchLine(e.currentTarget.value)}
-                                        placeholder="Search lines by name or type..."
+                                        placeholder="Search routes by name or soil type..."
                                         class="w-full px-3 py-2 pl-9 border border-gray-300 rounded-[10px] text-[13px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                     />
                                     <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
                                 </div>
                             </div>
 
-                            {/* Lines List */}
+                            {/* Routes List */}
                             <div class="flex flex-col gap-2 max-h-[250px] overflow-y-auto [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full">
                                 <Show
                                     when={filteredLineFeatures().length > 0}
                                     fallback={
                                         <div class="text-center py-6 text-gray-400">
-                                            <p class="text-[13px]">No lines found</p>
+                                            <p class="text-[13px]">No routes found</p>
                                         </div>
                                     }
                                 >
@@ -298,7 +301,7 @@ export function AnalysisTab(props: AnalysisTabProps) {
                 <div class="grid grid-cols-2 gap-2.5">
                     <div class="bg-white rounded-[10px] p-2.5 text-center">
                         <p class="text-[18px] font-bold text-blue-600 m-0">{stats.totalLines}</p>
-                        <p class="text-[11px] text-gray-600 m-0 mt-0.5">Total Lines</p>
+                        <p class="text-[11px] text-gray-600 m-0 mt-0.5">Total Routes</p>
                     </div>
                     <div class="bg-white rounded-[10px] p-2.5 text-center">
                         <p class="text-[18px] font-bold text-green-600 m-0">{stats.totalPoints}</p>

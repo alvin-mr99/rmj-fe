@@ -8,10 +8,10 @@ import { UploadModal } from './components/UploadModal';
 import { BoQUploadModal } from './components/BoQUploadModal';
 import { LoginForm } from './components/LoginForm';
 import { ProfileDropdown } from './components/ProfileDropdown';
-import { FilterTab } from './components/FilterTab';
+import { TopSearchInput } from './components/TopSearchInput';
 import { AnalysisTab } from './components/AnalysisTab';
-import { DataLoader } from './services/DataLoader';
-import type { CableFeatureCollection, MapViewMethods, SoilType, BoQData } from './types';
+import { FilterTab } from './components/FilterTab';
+import type { KMLFileData, MapViewMethods, SoilType, BoQFileData } from './types';
 import type { Feature, LineString, Point } from 'geojson';
 import type { CableProperties, MarkerProperties } from './types';
 import maplibregl from 'maplibre-gl';
@@ -21,14 +21,10 @@ import './App.css';
 function App() {
   const [isLoggedIn, setIsLoggedIn] = createSignal(false);
   const [userEmail, setUserEmail] = createSignal('');
-  const [cableData, setCableData] = createSignal<CableFeatureCollection>({
-    type: 'FeatureCollection',
-    features: []
-  });
-  const [filteredCableData, setFilteredCableData] = createSignal<CableFeatureCollection>({
-    type: 'FeatureCollection',
-    features: []
-  });
+  const [kmlFiles, setKmlFiles] = createSignal<KMLFileData[]>([]);
+  const [selectedKmlId, setSelectedKmlId] = createSignal<string | null>(null);
+  const [filteredKmlFiles, setFilteredKmlFiles] = createSignal<KMLFileData[]>([]); // Filtered version of kmlFiles
+  const [isFilterActive, setIsFilterActive] = createSignal(false); // Track if filter is active
   const [selectedFeature, setSelectedFeature] = createSignal<Feature<LineString | Point, CableProperties | MarkerProperties> | null>(null);
   const [popupCoordinates, setPopupCoordinates] = createSignal<[number, number] | null>(null);
   const [popupPosition, setPopupPosition] = createSignal<{ x: number; y: number } | null>(null);
@@ -38,14 +34,13 @@ function App() {
   const [showInputForm, setShowInputForm] = createSignal(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = createSignal(false);
   const [isBoQUploadModalOpen, setIsBoQUploadModalOpen] = createSignal(false);
-  const [boqData, setBoqData] = createSignal<BoQData | null>(null);
+  const [boqFiles, setBoqFiles] = createSignal<BoQFileData[]>([]); // Changed from single BoQData to array
+  const [selectedBoqId, setSelectedBoqId] = createSignal<string | null>(null); // Track selected BOQ
   const [mapZoom, setMapZoom] = createSignal(12); // Default zoom level
-  const [uploadedFileName, setUploadedFileName] = createSignal<string>('');
-  const [uploadedFileSize, setUploadedFileSize] = createSignal<number>(0);
   const [showRightSidebar, setShowRightSidebar] = createSignal(false);
-  const [showFilterTab, setShowFilterTab] = createSignal(false);
+  const [mapInstance, setMapInstance] = createSignal<maplibregl.Map | null>(null);
   const [showAnalysisTab, setShowAnalysisTab] = createSignal(false);
-  let mapInstance: maplibregl.Map | null = null;
+  const [showFilterTab, setShowFilterTab] = createSignal(false);
 
   // Load cable data on mount (from local storage or sample data)
   // Requirements: 8.2, 8.4, 8.5
@@ -63,23 +58,43 @@ function App() {
     }
 
     try {
-      const data = await DataLoader.loadCableData();
-      setCableData(data);
-      setFilteredCableData(data); // Initialize filtered data with all data
+      // Load KML files from local storage
+      const stored = localStorage.getItem('kmlFiles');
+      if (stored) {
+        const files: KMLFileData[] = JSON.parse(stored);
+        setKmlFiles(files);
+        if (files.length > 0) {
+          setSelectedKmlId(files[0].id);
+        }
+      }
     } catch (error) {
       // Handle errors gracefully - Requirement 8.5
       // Log errors to console for debugging
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-      console.error('Error loading cable data:', errorMsg);
+      console.error('Error loading KML data:', errorMsg);
       
       // Display user-friendly error message
-      console.warn('Unable to load cable data. The map will be displayed without cable routes.');
+      console.warn('Unable to load KML data. The map will be displayed without cable routes.');
       
-      // Fallback to empty feature collection - graceful degradation
-      setCableData({
-        type: 'FeatureCollection',
-        features: []
-      });
+      // Fallback to empty array - graceful degradation
+      setKmlFiles([]);
+    }
+
+    try {
+      // Load BOQ files from local storage
+      const storedBoq = localStorage.getItem('boqFiles');
+      if (storedBoq) {
+        const files: BoQFileData[] = JSON.parse(storedBoq);
+        setBoqFiles(files);
+        if (files.length > 0) {
+          setSelectedBoqId(files[0].id);
+        }
+        console.log('Loaded', files.length, 'BOQ files from localStorage');
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error loading BOQ data:', errorMsg);
+      setBoqFiles([]);
     }
   });
 
@@ -117,7 +132,7 @@ function App() {
 
   const handleMapLoad = (map: maplibregl.Map) => {
     console.log('Map loaded successfully');
-    mapInstance = map;
+    setMapInstance(map);
     
     // Set initial zoom level
     setMapZoom(map.getZoom());
@@ -152,37 +167,41 @@ function App() {
   /**
    * Handle upload modal success
    */
-  const handleUploadSuccess = (data: CableFeatureCollection, fileName?: string, fileSize?: number) => {
+  const handleUploadSuccess = (files: KMLFileData[]) => {
     console.log('=== UPLOAD SUCCESS ===');
-    console.log('handleUploadSuccess called with data:', data);
-    console.log('Number of features:', data.features.length);
+    console.log('handleUploadSuccess called with', files.length, 'files');
     
     // Validate data before setting
-    if (!data || !data.features || data.features.length === 0) {
-      console.error('Invalid data received in handleUploadSuccess');
-      alert('Invalid data received. Please try again.');
+    if (!files || files.length === 0) {
+      console.error('No files received in handleUploadSuccess');
+      alert('No valid files received. Please try again.');
       return;
     }
     
-    // Replace current cable data with uploaded data
-    setCableData(data);
-    setFilteredCableData(data); // Reset filtered data
+    // Add new files to existing files
+    setKmlFiles(prev => [...prev, ...files]);
     
-    // Store file info for RightSidebar
-    if (fileName) setUploadedFileName(fileName);
-    if (fileSize) setUploadedFileSize(fileSize);
+    // Select the first newly uploaded file
+    if (files.length > 0) {
+      setSelectedKmlId(files[0].id);
+    }
+    
+    // Reset filter when new files uploaded
+    setIsFilterActive(false);
+    setFilteredKmlFiles([]);
     
     // Show RightSidebar
     setShowRightSidebar(true);
     
     // Force a re-render by logging after state update
     setTimeout(() => {
-      console.log('Cable data updated, current features:', cableData().features.length);
+      console.log('KML files updated, current count:', kmlFiles().length);
     }, 100);
     
     // Save to local storage for persistence
     try {
-      DataLoader.saveToLocalStorage(data);
+      const allFiles = [...kmlFiles(), ...files];
+      localStorage.setItem('kmlFiles', JSON.stringify(allFiles));
       console.log('Data saved to local storage');
     } catch (saveError) {
       console.warn('Failed to save to local storage:', saveError);
@@ -195,86 +214,45 @@ function App() {
   };
 
   /**
-   * Handle BOQ upload success
+   * Handle BOQ upload success - now supports multiple files
    */
-  const handleBoQUploadSuccess = (data: BoQData, fileName?: string, fileSize?: number) => {
+  const handleBoQUploadSuccess = (files: BoQFileData[]) => {
     console.log('=== BOQ UPLOAD SUCCESS ===');
-    console.log('handleBoQUploadSuccess called with data:', data);
-    console.log('Number of items:', data.items.length);
+    console.log('handleBoQUploadSuccess called with', files.length, 'files');
     
     // Validate data before setting
-    if (!data || !data.items || data.items.length === 0) {
-      console.error('Invalid BOQ data received');
-      alert('Invalid BOQ data received. Please try again.');
+    if (!files || files.length === 0) {
+      console.error('No files received in handleBoQUploadSuccess');
+      alert('No valid files received. Please try again.');
       return;
     }
     
-    // Set BOQ data
-    setBoqData(data);
+    // Add new files to existing files
+    setBoqFiles(prev => [...prev, ...files]);
     
-    // Store file info
-    if (fileName) console.log('BOQ file:', fileName);
-    if (fileSize) console.log('BOQ file size:', fileSize);
+    // Select the first newly uploaded file
+    if (files.length > 0) {
+      setSelectedBoqId(files[0].id);
+    }
     
     // Show RightSidebar
     setShowRightSidebar(true);
     
-    console.log('BOQ data loaded successfully');
-  };
-
-  /**
-   * Handle filter changes from FilterTab
-   */
-  const handleFilterChange = (filtered: CableFeatureCollection) => {
-    setFilteredCableData(filtered);
-    // Close popup when filters change
-    handleClosePopup();
-  };
-
-  /**
-   * Handle opening filter tab
-   */
-  const handleFilteringClick = () => {
-    setShowFilterTab(true);
-  };
-
-  /**
-   * Handle closing filter tab
-   */
-  const handleCloseFilterTab = () => {
-    setShowFilterTab(false);
-  };
-
-  /**
-   * Handle opening analysis tab
-   */
-  const handleAnalyticsClick = () => {
-    setShowAnalysisTab(true);
-  };
-
-  /**
-   * Handle closing analysis tab
-   */
-  const handleCloseAnalysisTab = () => {
-    setShowAnalysisTab(false);
-  };
-
-  /**
-   * Handle feature selection from analysis tab
-   */
-  const handleAnalysisFeatureSelect = (feature: Feature<LineString | Point, CableProperties>, coordinates: [number, number]) => {
-    // Find screen position for the coordinates
-    if (mapInstance) {
-      const point = mapInstance.project(coordinates);
-      handleFeatureClick(feature, coordinates, { x: point.x, y: point.y });
-      
-      // Pan to the feature
-      mapInstance.flyTo({
-        center: coordinates,
-        zoom: 16,
-        duration: 1000
-      });
+    // Force a re-render by logging after state update
+    setTimeout(() => {
+      console.log('BOQ files updated, current count:', boqFiles().length);
+    }, 100);
+    
+    // Save to local storage for persistence
+    try {
+      const allFiles = [...boqFiles(), ...files];
+      localStorage.setItem('boqFiles', JSON.stringify(allFiles));
+      console.log('BOQ data saved to local storage');
+    } catch (saveError) {
+      console.warn('Failed to save BOQ to local storage:', saveError);
     }
+    
+    console.log('BOQ data loaded successfully');
   };
 
   /**
@@ -309,48 +287,58 @@ function App() {
     const feature = drawnFeature();
     if (!feature) return;
 
+    console.log('New route submitted:', { soilType, depth });
+    console.warn('Route saving to KML files not yet implemented in multiple KML mode');
+    
+    // TODO: Implement adding route to selected KML file
+    // For now, just close the form
+    setShowInputForm(false);
+    setDrawnFeature(null);
+  };
+  
+  /**
+   * Handle KML file deletion
+   */
+  const handleKmlDelete = (id: string) => {
+    console.log('Deleting KML file:', id);
+    setKmlFiles(prev => prev.filter(f => f.id !== id));
+    
+    // If deleted file was selected, select another one or null
+    if (selectedKmlId() === id) {
+      const remainingFiles = kmlFiles().filter(f => f.id !== id);
+      setSelectedKmlId(remainingFiles.length > 0 ? remainingFiles[0].id : null);
+    }
+    
+    // Update local storage
     try {
-      // Create new CableFeature from drawn geometry and user input - Requirement 7.4
-      const newCableFeature: Feature<LineString, CableProperties> = {
-        type: 'Feature',
-        geometry: feature.geometry,
-        properties: {
-          id: `cable-${Date.now()}`,
-          soilType,
-          depth,
-          name: `New Cable Route ${Date.now()}`
-        }
-      };
-
-      // Add new feature to cable data - Requirement 7.4
-      const currentData = cableData();
-      const updatedData: CableFeatureCollection = {
-        type: 'FeatureCollection',
-        features: [...currentData.features, newCableFeature]
-      };
-
-      setCableData(updatedData);
-      setFilteredCableData(updatedData); // Update filtered data as well
-      
-      // Save to local storage for persistence
-      try {
-        DataLoader.saveToLocalStorage(updatedData);
-      } catch (saveError) {
-        // Handle save errors gracefully - Requirement 8.5
-        console.warn('Failed to save to local storage:', saveError);
-        // Continue anyway - data is still loaded in memory
-      }
-
-      // Clean up
-      setDrawnFeature(null);
-      setShowInputForm(false);
-      
-      console.log('New cable route added successfully');
+      const remainingFiles = kmlFiles().filter(f => f.id !== id);
+      localStorage.setItem('kmlFiles', JSON.stringify(remainingFiles));
+      console.log('KML file deleted and storage updated');
     } catch (error) {
-      // Handle errors gracefully - Requirement 8.5
-      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-      console.error('Error adding new route:', errorMsg);
-      alert('Failed to add new route. Please try again.');
+      console.warn('Failed to update local storage:', error);
+    }
+  };
+
+  /**
+   * Handle BOQ file deletion
+   */
+  const handleBoqDelete = (id: string) => {
+    console.log('Deleting BOQ file:', id);
+    setBoqFiles(prev => prev.filter(f => f.id !== id));
+    
+    // If deleted file was selected, select another one or null
+    if (selectedBoqId() === id) {
+      const remainingFiles = boqFiles().filter(f => f.id !== id);
+      setSelectedBoqId(remainingFiles.length > 0 ? remainingFiles[0].id : null);
+    }
+    
+    // Update local storage
+    try {
+      const remainingFiles = boqFiles().filter(f => f.id !== id);
+      localStorage.setItem('boqFiles', JSON.stringify(remainingFiles));
+      console.log('BOQ file deleted and storage updated');
+    } catch (error) {
+      console.warn('Failed to update local storage:', error);
     }
   };
 
@@ -367,6 +355,19 @@ function App() {
 
         {/* Sidebar Panel */}
         <Sidebar 
+        kmlFiles={kmlFiles()}
+        selectedKmlId={selectedKmlId()}
+        onKmlSelect={(id) => {
+          setSelectedKmlId(id);
+          // Reset filter when switching files
+          setIsFilterActive(false);
+          setFilteredKmlFiles([]);
+        }}
+        onKmlDelete={handleKmlDelete}
+        boqFiles={boqFiles()}
+        selectedBoqId={selectedBoqId()}
+        onBoqSelect={setSelectedBoqId}
+        onBoqDelete={handleBoqDelete}
         onUploadClick={() => {
           console.log('Upload KML button clicked');
           setIsUploadModalOpen(true);
@@ -381,33 +382,54 @@ function App() {
             const response = await fetch('/data/test-output.json');
             const data = await response.json();
             console.log('Test data loaded:', data);
-            handleUploadSuccess(data, 'test-output.json', 0);
+            const testFile: KMLFileData = {
+              id: `kml-${Date.now()}`,
+              fileName: 'test-output.json',
+              fileSize: 0,
+              data: data,
+              uploadDate: new Date().toISOString()
+            };
+            handleUploadSuccess([testFile]);
           } catch (error) {
             console.error('Failed to load test data:', error);
           }
         }}
-        onAnalyticsClick={handleAnalyticsClick}
-        onFilteringClick={handleFilteringClick}
+        onAnalyticsClick={() => {
+          console.log('Analytics clicked');
+          
+          // Ensure a KML file is selected before showing analysis tab
+          if (!selectedKmlId() && kmlFiles().length > 0) {
+            setSelectedKmlId(kmlFiles()[0].id);
+          }
+          
+          // Check if there are any KML files available
+          if (kmlFiles().length === 0) {
+            alert('Please upload a KML file first to view analytics.');
+            return;
+          }
+          
+          setShowAnalysisTab(true);
+          setShowFilterTab(false);
+        }}
+        onFilteringClick={() => {
+          console.log('Filtering clicked');
+          
+          // Ensure a KML file is selected before showing filter tab
+          if (!selectedKmlId() && kmlFiles().length > 0) {
+            setSelectedKmlId(kmlFiles()[0].id);
+          }
+          
+          // Check if there are any KML files available
+          if (kmlFiles().length === 0) {
+            alert('Please upload a KML file first to filter data.');
+            return;
+          }
+          
+          setShowFilterTab(true);
+          setShowAnalysisTab(false);
+        }}
         onTopologyClick={() => console.log('Topology clicked')}
       />
-
-      {/* Filter Tab */}
-      <Show when={showFilterTab()}>
-        <FilterTab
-          cableData={cableData()}
-          onFilterChange={handleFilterChange}
-          onClose={handleCloseFilterTab}
-        />
-      </Show>
-
-      {/* Analysis Tab */}
-      <Show when={showAnalysisTab()}>
-        <AnalysisTab
-          cableData={cableData()}
-          onClose={handleCloseAnalysisTab}
-          onFeatureSelect={handleAnalysisFeatureSelect}
-        />
-      </Show>
 
       {/* Upload Modal */}
       <UploadModal 
@@ -425,16 +447,22 @@ function App() {
 
       <div class="flex-1 w-full relative">
         <MapView 
-          cableData={filteredCableData()} 
+          kmlFiles={isFilterActive() ? filteredKmlFiles() : kmlFiles()} 
           onFeatureClick={handleFeatureClick}
           onMapLoad={handleMapLoad}
           onMapClick={handleMapClick}
           ref={setMapMethods}
         />
         
+        {/* Top Search Input with Autocomplete */}
+        <TopSearchInput 
+          kmlFiles={kmlFiles()}
+          map={mapInstance()}
+        />
+        
         {/* Drawing tools - Requirements: 7.1, 7.2, 7.3 */}
         <DrawingTools 
-          map={mapInstance}
+          map={mapInstance()}
           isActive={isDrawingMode()}
           onDrawComplete={handleDrawComplete}
           onCancel={handleDrawCancel}
@@ -444,25 +472,92 @@ function App() {
       {/* Right Sidebar - Always show, but with empty state when no data */}
       <Show when={showRightSidebar()}>
         <RightSidebar 
-          cableData={cableData()}
-          boqData={boqData()}
-          fileName={uploadedFileName()}
-          fileSize={uploadedFileSize()}
+          kmlFiles={kmlFiles()}
+          selectedKmlId={selectedKmlId()}
+          onKmlSelect={(id) => {
+            setSelectedKmlId(id);
+            // Reset filter when switching files
+            setIsFilterActive(false);
+            setFilteredKmlFiles([]);
+          }}
+          boqFiles={boqFiles()}
+          selectedBoqId={selectedBoqId()}
+          onBoqSelect={setSelectedBoqId}
           onChangeFile={() => {
             setIsUploadModalOpen(true);
           }}
           onUploadBoQ={() => {
             setIsBoQUploadModalOpen(true);
           }}
-          onLoadToMap={() => {
-            // Data already loaded, just close sidebar or do nothing
-            console.log('Data already loaded to map');
-          }}
           onCancel={() => {
             setShowRightSidebar(false);
           }}
         />
-      </Show>      {/* Search control - Requirements: 6.3, 6.4 */}
+      </Show>
+
+      {/* Analysis Tab */}
+      <Show when={showAnalysisTab() && selectedKmlId()}>
+        {(() => {
+          const selectedFile = kmlFiles().find(f => f.id === selectedKmlId());
+          if (!selectedFile) return null;
+          
+          return (
+            <AnalysisTab 
+              cableData={selectedFile.data}
+              onClose={() => setShowAnalysisTab(false)}
+              onFeatureSelect={(feature, coordinates) => {
+                // Get map instance to calculate screen position
+                const map = mapInstance();
+                if (map) {
+                  const point = map.project(coordinates);
+                  handleFeatureClick(feature, coordinates, { x: point.x, y: point.y });
+                }
+              }}
+            />
+          );
+        })()}
+      </Show>
+
+      {/* Filter Tab */}
+      <Show when={showFilterTab() && selectedKmlId()}>
+        {(() => {
+          const selectedFile = kmlFiles().find(f => f.id === selectedKmlId());
+          if (!selectedFile) return null;
+          
+          return (
+            <FilterTab 
+              cableData={selectedFile.data}
+              onClose={() => {
+                setShowFilterTab(false);
+                // Reset filter when closing
+                setIsFilterActive(false);
+                setFilteredKmlFiles([]);
+              }}
+              onFilterChange={(filteredData) => {
+                console.log('Filter applied, filtered features:', filteredData.features.length);
+                
+                // Update the selected KML file with filtered data
+                const selectedId = selectedKmlId();
+                if (!selectedId) return;
+                
+                // Create a filtered version of the KML file
+                const filteredFile: KMLFileData = {
+                  ...selectedFile,
+                  data: filteredData
+                };
+                
+                // Update filteredKmlFiles with the new filtered data
+                setFilteredKmlFiles([filteredFile]);
+                setIsFilterActive(true);
+                
+                console.log('✓ Filter applied successfully, map should update');
+              }}
+            />
+          );
+        })()}
+      </Show>
+
+      {/* Search control - Requirements: 6.3, 6.4 */}
       {/* <SearchControl onLocationSelect={handleLocationSelect} /> */}
       
       {/* Popup overlay - Requirements: 4.1, 4.2, 4.5 */}

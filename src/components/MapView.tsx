@@ -138,9 +138,9 @@ export function MapView(props: MapViewProps) {
 
   // Re-render when cable data changes
   createEffect(() => {
-    // Track props.cableData to trigger re-render
-    const data = props.cableData;
-    console.log('MapView createEffect triggered, features:', data.features.length);
+    // Track props.kmlFiles to trigger re-render
+    const files = props.kmlFiles;
+    console.log('MapView createEffect triggered, KML files count:', files.length);
     
     if (map && map.loaded()) {
       console.log('Map is loaded, re-rendering...');
@@ -213,18 +213,18 @@ export function MapView(props: MapViewProps) {
     if (!map) return;
 
     try {
-      console.log('renderCableRoutes called, features:', props.cableData?.features.length);
+      console.log('renderCableRoutes called, KML files:', props.kmlFiles.length);
       
-      // Validate GeoJSON data before rendering - Requirement 8.5
-      if (!props.cableData || !props.cableData.features || props.cableData.features.length === 0) {
-        console.warn('No cable data to render');
-        return;
-      }
+      // Combine all features from all KML files
+      const allFeatures: Feature<LineString | Point, CableProperties>[] = [];
+      props.kmlFiles.forEach(kmlFile => {
+        allFeatures.push(...kmlFile.data.features);
+      });
       
-      console.log('Rendering', props.cableData.features.length, 'cable routes');
+      console.log('Rendering', allFeatures.length, 'total features from all KML files');
 
       // Separate LineString features for cable routes rendering
-      const lineFeatures = props.cableData.features.filter(f => f.geometry.type === 'LineString');
+      const lineFeatures = allFeatures.filter(f => f.geometry.type === 'LineString');
       console.log(`  - Rendering ${lineFeatures.length} LineString cable routes`);
 
       // Remove existing source and layer if they exist
@@ -299,9 +299,11 @@ export function MapView(props: MapViewProps) {
       // Create point features at the midpoint of each segment with distance labels
       const labelFeatures: Feature<Point, any>[] = [];
       
-      props.cableData.features.forEach((cableFeature) => {
-        const segments = cableFeature.properties.segments;
-        if (!segments || segments.length === 0) return;
+      // Combine all features from all KML files
+      props.kmlFiles.forEach(kmlFile => {
+        kmlFile.data.features.forEach((cableFeature) => {
+          const segments = cableFeature.properties.segments;
+          if (!segments || segments.length === 0) return;
         
         segments.forEach((segment, index) => {
           // Calculate midpoint
@@ -335,6 +337,7 @@ export function MapView(props: MapViewProps) {
           
           labelFeatures.push(labelFeature);
         });
+      });
       });
       
       // Add source for segment labels
@@ -383,16 +386,12 @@ export function MapView(props: MapViewProps) {
     if (!map) return;
 
     try {
-      // Validate cable data
-      if (!props.cableData || !props.cableData.features || props.cableData.features.length === 0) {
-        return;
-      }
-
-      // Generate markers for all cable routes - Requirements 3.1, 3.5
+      // Generate markers for all cable routes from all KML files - Requirements 3.1, 3.5
       const allMarkers: Feature<Point, MarkerProperties>[] = [];
       
-      props.cableData.features.forEach((cableFeature) => {
-        try {
+      props.kmlFiles.forEach(kmlFile => {
+        kmlFile.data.features.forEach((cableFeature) => {
+          try {
           // Check if this is already a Point feature from KML
           if (cableFeature.geometry.type === 'Point') {
             // Convert CableProperties to MarkerProperties for Point features
@@ -416,6 +415,7 @@ export function MapView(props: MapViewProps) {
           console.error(`Error generating markers for cable ${cableFeature.properties.id}:`, error);
           // Continue with other routes - graceful degradation
         }
+      });
       });
 
       const markerCollection = {
@@ -477,24 +477,26 @@ export function MapView(props: MapViewProps) {
    * Requirements: 1.4, 8.5
    */
   function fitBoundsToRoutes() {
-    if (!map || !props.cableData || !props.cableData.features || props.cableData.features.length === 0) {
+    if (!map || props.kmlFiles.length === 0) {
       return;
     }
 
     try {
-      // Calculate bounds from all cable route coordinates
+      // Calculate bounds from all cable route coordinates from all KML files
       const bounds = new maplibregl.LngLatBounds();
       
-      props.cableData.features.forEach((feature) => {
-        if (feature.geometry.type === 'LineString') {
-          // Handle LineString: iterate through all coordinates
-          feature.geometry.coordinates.forEach((coord) => {
-            bounds.extend(coord as [number, number]);
-          });
-        } else if (feature.geometry.type === 'Point') {
-          // Handle Point: extend bounds with the single coordinate
-          bounds.extend(feature.geometry.coordinates as [number, number]);
-        }
+      props.kmlFiles.forEach(kmlFile => {
+        kmlFile.data.features.forEach((feature) => {
+          if (feature.geometry.type === 'LineString') {
+            // Handle LineString: iterate through all coordinates
+            feature.geometry.coordinates.forEach((coord) => {
+              bounds.extend(coord as [number, number]);
+            });
+          } else if (feature.geometry.type === 'Point') {
+            // Handle Point: extend bounds with the single coordinate
+            bounds.extend(feature.geometry.coordinates as [number, number]);
+          }
+        });
       });
 
       // Fit map to bounds with padding

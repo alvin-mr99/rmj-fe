@@ -1,19 +1,24 @@
-import { createSignal, Show } from 'solid-js';
+import { createSignal, Show, For } from 'solid-js';
 import { BoQConverter } from '../services/BoQConverter';
-import type { BoQData, BoQItem } from '../types';
+import type { BoQFileData, BoQData } from '../types';
 
 interface BoQUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onUploadSuccess: (data: BoQData, fileName?: string, fileSize?: number) => void;
+  onUploadSuccess: (files: BoQFileData[]) => void;
+}
+
+interface FilePreview {
+  file: File;
+  data: BoQData | null;
+  error: string | null;
+  isConverting: boolean;
 }
 
 export function BoQUploadModal(props: BoQUploadModalProps) {
   const [isDragging, setIsDragging] = createSignal(false);
-  const [selectedFile, setSelectedFile] = createSignal<File | null>(null);
-  const [previewData, setPreviewData] = createSignal<BoQData | null>(null);
-  const [isConverting, setIsConverting] = createSignal(false);
-  const [error, setError] = createSignal<string | null>(null);
+  const [selectedFiles, setSelectedFiles] = createSignal<FilePreview[]>([]);
+  const [globalError, setGlobalError] = createSignal<string | null>(null);
   let fileInputRef: HTMLInputElement | undefined;
 
   const handleDragOver = (e: DragEvent) => {
@@ -32,101 +37,145 @@ export function BoQUploadModal(props: BoQUploadModalProps) {
     
     const files = e.dataTransfer?.files;
     if (files && files.length > 0) {
-      await processFile(files[0]);
+      await processFiles(Array.from(files));
     }
   };
 
   const handleFileSelect = async (e: Event) => {
     const input = e.target as HTMLInputElement;
-    const file = input.files?.[0];
-    if (file) {
-      await processFile(file);
+    const files = input.files;
+    if (files && files.length > 0) {
+      await processFiles(Array.from(files));
     }
   };
 
-  const processFile = async (file: File) => {
-    setError(null);
+  const processFiles = async (files: File[]) => {
+    setGlobalError(null);
     
-    // Validate file type
-    const validExtensions = ['.xlsx', '.xls'];
-    const isValidFile = validExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
-    
-    if (!isValidFile) {
-      setError('Please upload a valid Excel file (.xlsx or .xls)');
-      return;
-    }
-
-    // Validate file size (max 5MB)
-    const maxSize = 5 * 1024 * 1024;
-    if (file.size > maxSize) {
-      setError('File is too large. Maximum size is 5MB.');
-      return;
-    }
-
-    setSelectedFile(file);
-    setIsConverting(true);
-
-    try {
-      console.log('Converting Excel to BOQ data...');
-      console.log('File:', file.name, 'Size:', file.size);
-      const boqData = await BoQConverter.convertExcelToBoQ(file);
-      console.log('Conversion successful!');
-      console.log('- Items:', boqData.items.length);
-      console.log('- Total Cost:', boqData.summary.totalCost);
+    // Validate all files first
+    const validFiles: File[] = [];
+    for (const file of files) {
+      // Validate file type
+      const validExtensions = ['.xlsx', '.xls'];
+      const isValidFile = validExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
       
-      if (boqData.items.length === 0) {
-        setError('No BOQ items found in Excel file. Please check the file format.');
-        setIsConverting(false);
-        return;
+      if (!isValidFile) {
+        setGlobalError(`${file.name}: Please upload valid Excel files only (.xlsx or .xls)`);
+        continue;
       }
 
-      setPreviewData(boqData);
-      setIsConverting(false);
-      console.log('Preview data set');
-    } catch (err) {
-      console.error('Error during conversion:', err);
-      let errorMsg = 'Failed to convert Excel file';
+      // Validate file size (max 5MB)
+      const maxSize = 5 * 1024 * 1024;
+      if (file.size > maxSize) {
+        setGlobalError(`${file.name}: File is too large. Maximum size is 5MB.`);
+        continue;
+      }
       
-      if (err instanceof Error) {
-        errorMsg = err.message;
+      validFiles.push(file);
+    }
+    
+    if (validFiles.length === 0) {
+      return;
+    }
+
+    // Create preview entries for all valid files
+    const previews: FilePreview[] = validFiles.map(file => ({
+      file,
+      data: null,
+      error: null,
+      isConverting: true
+    }));
+    
+    setSelectedFiles(previews);
+
+    // Process each file
+    for (let i = 0; i < validFiles.length; i++) {
+      const file = validFiles[i];
+      
+      try {
+        console.log(`Processing ${file.name}, size:`, file.size);
+        
+        // Convert Excel to BOQ
+        const boqData = await BoQConverter.convertExcelToBoQ(file);
+        console.log(`✓ ${file.name} conversion successful!`);
+        console.log('  - Items:', boqData.items.length);
+        console.log('  - Total Cost:', boqData.summary.totalCost);
+        
+        if (boqData.items.length === 0) {
+          setSelectedFiles(prev => prev.map((p, idx) => 
+            idx === i ? { ...p, error: 'No BOQ items found in Excel file', isConverting: false } : p
+          ));
+          continue;
+        }
+
+        // Update preview with successful data
+        setSelectedFiles(prev => prev.map((p, idx) => 
+          idx === i ? { ...p, data: boqData, isConverting: false } : p
+        ));
+      } catch (err) {
+        console.error(`Error processing ${file.name}:`, err);
+        let errorMsg = err instanceof Error ? err.message : 'Failed to convert Excel file';
         
         // Make error messages more user-friendly
         if (errorMsg.includes('No valid BOQ items')) {
-          errorMsg = 'No BOQ items found in Excel file. Please ensure your file contains:\n• A header row with columns like "Description" or "Uraian"\n• At least one data row with item description';
+          errorMsg = 'No BOQ items found. Please ensure your file contains proper BOQ data.';
         } else if (errorMsg.includes('empty or has insufficient data')) {
           errorMsg = 'Excel file is empty or has insufficient data';
         }
+        
+        setSelectedFiles(prev => prev.map((p, idx) => 
+          idx === i ? { ...p, error: errorMsg, isConverting: false } : p
+        ));
       }
-      
-      setError(errorMsg);
-      setIsConverting(false);
-      setSelectedFile(null);
     }
   };
 
   const handleConfirmUpload = () => {
-    const data = previewData();
-    const file = selectedFile();
-    console.log('Upload confirmed, data:', data);
-    if (data && file) {
-      console.log('Calling onUploadSuccess with', data.items.length, 'items');
-      props.onUploadSuccess(data, file.name, file.size);
-      handleClose();
+    const previews = selectedFiles();
+    const successfulFiles = previews.filter(p => p.data !== null);
+    
+    if (successfulFiles.length === 0) {
+      setGlobalError('No valid BOQ files to upload');
+      return;
     }
+    
+    console.log('Upload confirmed,', successfulFiles.length, 'files ready');
+    
+    // Convert to BoQFileData format
+    const boqFiles: BoQFileData[] = successfulFiles.map((preview, index) => ({
+      id: `boq-${Date.now()}-${index}`,
+      fileName: preview.file.name,
+      fileSize: preview.file.size,
+      data: preview.data!,
+      uploadDate: new Date().toISOString()
+    }));
+    
+    props.onUploadSuccess(boqFiles);
+    handleClose();
   };
 
   const handleClose = () => {
     console.log('Modal closing, resetting state');
-    setSelectedFile(null);
-    setPreviewData(null);
-    setError(null);
-    setIsConverting(false);
+    setSelectedFiles([]);
+    setGlobalError(null);
     setIsDragging(false);
     props.onClose();
   };
 
   const handleBrowseClick = () => {
     fileInputRef?.click();
+  };
+  
+  const handleRemoveFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+  
+  const hasValidFiles = () => {
+    return selectedFiles().some(p => p.data !== null);
+  };
+  
+  const isAnyConverting = () => {
+    return selectedFiles().some(p => p.isConverting);
   };
 
   const formatCurrency = (amount: number) => {
@@ -136,6 +185,10 @@ export function BoQUploadModal(props: BoQUploadModalProps) {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
     }).format(amount);
+  };
+
+  const formatFileSize = (bytes: number) => {
+    return (bytes / 1024).toFixed(2) + ' KB';
   };
 
   return (
@@ -150,10 +203,7 @@ export function BoQUploadModal(props: BoQUploadModalProps) {
           onClick={(e) => e.stopPropagation()}
         >
           <div class="flex items-center justify-between px-7 py-6 border-b border-gray-200">
-            <div>
-              <h2 class="text-2xl font-bold text-gray-800 m-0 tracking-[-0.5px]">Upload BOQ File</h2>
-              <p class="text-sm text-gray-500 mt-1 mb-0">Bill of Quantity Excel File</p>
-            </div>
+            <h2 class="text-2xl font-bold text-gray-800 m-0 tracking-[-0.5px]">Upload BOQ Files</h2>
             <button 
               class="bg-gray-100 hover:bg-red-50 border border-gray-200 hover:border-red-200 text-gray-600 hover:text-red-500 w-9 h-9 rounded-[10px] cursor-pointer text-xl flex items-center justify-center transition-all duration-200 hover:scale-105" 
               onClick={handleClose}
@@ -163,7 +213,8 @@ export function BoQUploadModal(props: BoQUploadModalProps) {
           </div>
 
           <div class="flex-1 p-7 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded">
-            <Show when={!selectedFile()}>
+            {/* Upload Zone - Show when no files selected */}
+            <Show when={selectedFiles().length === 0}>
               <div
                 class={`border-2 border-dashed rounded-2xl px-8 py-12 text-center transition-all duration-300 cursor-pointer ${
                   isDragging() 
@@ -175,7 +226,7 @@ export function BoQUploadModal(props: BoQUploadModalProps) {
                 onDrop={handleDrop}
               >
                 <div class="text-[64px] mb-4" style={{"filter": "drop-shadow(0 4px 12px rgba(34, 197, 94, 0.2))"}}>📊</div>
-                <h3 class="text-xl font-semibold text-gray-800 m-0 mb-2">Drag & Drop Excel File</h3>
+                <h3 class="text-xl font-semibold text-gray-800 m-0 mb-2">Drag & Drop Excel Files</h3>
                 <p class="text-sm text-gray-500 my-3">or</p>
                 <button 
                   class="bg-gradient-to-br from-green-500 to-green-600 text-white px-8 py-3 rounded-xl text-base font-semibold cursor-pointer border-none transition-all duration-200 hover:from-green-600 hover:to-green-700 hover:shadow-[0_4px_12px_rgba(34,197,94,0.4)] hover:scale-105" 
@@ -183,153 +234,144 @@ export function BoQUploadModal(props: BoQUploadModalProps) {
                 >
                   Browse Files
                 </button>
-                <p class="text-xs text-gray-400 mt-3 mb-0">Supports .xlsx and .xls files up to 5MB</p>
+                <p class="text-xs text-gray-400 mt-3 mb-0">Supports multiple .xlsx and .xls files, up to 5MB each</p>
                 <input
                   ref={fileInputRef}
                   type="file"
                   accept=".xlsx,.xls"
+                  multiple
                   style={{ display: 'none' }}
                   onChange={handleFileSelect}
                 />
               </div>
             </Show>
 
-            <Show when={isConverting()}>
-              <div class="text-center py-12">
-                <div class="inline-block w-12 h-12 border-4 border-gray-200 border-t-green-500 rounded-full animate-spin mb-4"></div>
-                <p class="text-gray-600 text-base m-0">Converting Excel to BOQ...</p>
-              </div>
-            </Show>
-
-            <Show when={selectedFile() && previewData() && !isConverting()}>
-              <div>
-                <div class="bg-gray-50 rounded-2xl p-5 mb-4 border border-gray-200 flex items-start justify-between gap-4 flex-wrap">
-                  <div class="flex items-center gap-3 flex-1 min-w-0">
-                    <div class="text-[32px]">✅</div>
-                    <div class="flex-1 min-w-0">
-                      <h4 class="text-base font-semibold text-gray-800 m-0 mb-1 truncate">{selectedFile()?.name}</h4>
-                      <p class="text-sm text-gray-500 m-0">
-                        {((selectedFile()?.size || 0) / 1024).toFixed(2)} KB
-                      </p>
-                    </div>
+            {/* File List - Show when files are selected */}
+            <Show when={selectedFiles().length > 0}>
+              <div class="space-y-4">
+                {/* Global Error Message */}
+                <Show when={globalError()}>
+                  <div class="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+                    <div class="text-[20px] flex-shrink-0">⚠️</div>
+                    <p class="text-[13px] text-red-700 m-0 flex-1 whitespace-pre-line">{globalError()}</p>
                   </div>
-                  <button 
-                    class="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium cursor-pointer transition-all duration-200 hover:bg-gray-100"
-                    onClick={() => {
-                      setSelectedFile(null);
-                      setPreviewData(null);
-                    }}
-                  >
-                    Change File
-                  </button>
-                </div>
+                </Show>
 
-                <div class="grid grid-cols-2 gap-3 mb-4">
-                  <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-4 border border-green-200 flex items-center gap-3">
-                    <div class="text-2xl">📋</div>
-                    <div>
-                      <p class="text-xs font-medium text-green-600 uppercase tracking-wide m-0 mb-1">Total Items</p>
-                      <p class="text-2xl font-bold text-green-900 m-0">{previewData()?.items.length || 0}</p>
-                    </div>
-                  </div>
+                {/* File Preview Cards */}
+                <For each={selectedFiles()}>
+                  {(preview, index) => (
+                    <div class="bg-gray-50 rounded-xl p-4 border-2 border-gray-200 relative">
+                      {/* Remove Button */}
+                      <button
+                        class="absolute top-3 right-3 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-all duration-200 hover:scale-110 border-none cursor-pointer text-[12px] z-10"
+                        onClick={() => handleRemoveFile(index())}
+                        title="Remove file"
+                      >
+                        ✕
+                      </button>
 
-                  <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-4 border border-blue-200 flex items-center gap-3">
-                    <div class="text-2xl">💰</div>
-                    <div>
-                      <p class="text-xs font-medium text-blue-600 uppercase tracking-wide m-0 mb-1">Total Cost</p>
-                      <p class="text-xl font-bold text-blue-900 m-0">
-                        {formatCurrency(previewData()?.summary.totalCost || 0).replace('Rp', 'Rp ')}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl p-4 border border-purple-200 flex items-center gap-3">
-                    <div class="text-2xl">⚡</div>
-                    <div>
-                      <p class="text-xs font-medium text-purple-600 uppercase tracking-wide m-0 mb-1">Material Cost</p>
-                      <p class="text-lg font-bold text-purple-900 m-0">
-                        {formatCurrency(previewData()?.summary.materialCost || 0).replace('Rp', 'Rp ')}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div class="bg-gradient-to-br from-orange-50 to-orange-100 rounded-2xl p-4 border border-orange-200 flex items-center gap-3">
-                    <div class="text-2xl">👷</div>
-                    <div>
-                      <p class="text-xs font-medium text-orange-600 uppercase tracking-wide m-0 mb-1">Labor Cost</p>
-                      <p class="text-lg font-bold text-orange-900 m-0">
-                        {formatCurrency(previewData()?.summary.laborCost || 0).replace('Rp', 'Rp ')}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="bg-gray-50 rounded-2xl p-5 border border-gray-200">
-                  <h4 class="text-base font-semibold text-gray-800 m-0 mb-4 pb-3 border-b border-gray-200">BOQ Items Preview</h4>
-                  <div class="flex flex-col gap-2 max-h-[300px] overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded">
-                    {previewData()?.items.slice(0, 10).map((item: BoQItem, index: number) => (
-                      <div class="flex items-start gap-3 p-3 rounded-xl bg-white border border-gray-200 transition-all duration-200 hover:bg-gray-50 hover:shadow-sm">
-                        <span class="flex items-center justify-center w-7 h-7 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 text-white text-xs font-bold flex-shrink-0">
-                          {index + 1}
-                        </span>
-                        <div class="flex-1 min-w-0">
-                          <p class="text-sm font-medium text-gray-800 m-0 mb-0.5 truncate">{item.description}</p>
-                          <p class="text-xs text-gray-500 m-0">
-                            {item.quantity} {item.unit} × {formatCurrency(item.unitPrice)} = {formatCurrency(item.totalPrice)}
+                      {/* File Info */}
+                      <div class="flex items-start gap-3 mb-3">
+                        <div class="text-[32px] flex-shrink-0">📊</div>
+                        <div class="flex-1 min-w-0 pr-8">
+                          <p class="text-[14px] font-semibold text-gray-800 m-0 truncate" title={preview.file.name}>
+                            {preview.file.name}
+                          </p>
+                          <p class="text-[12px] text-gray-500 m-0 mt-0.5">
+                            {formatFileSize(preview.file.size)}
                           </p>
                         </div>
                       </div>
-                    ))}
-                    {(previewData()?.items.length || 0) > 10 && (
-                      <p class="text-sm text-center text-gray-500 italic m-0 mt-2">
-                        +{(previewData()?.items.length || 0) - 10} more items
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </Show>
 
-            <Show when={error()}>
-              <div class="text-center py-8 px-4">
-                <div class="text-[64px] mb-4" style={{"filter": "drop-shadow(0 4px 12px rgba(239, 68, 68, 0.2))"}}>⚠️</div>
-                <p class="text-gray-700 text-base mb-6 whitespace-pre-line">{error()}</p>
-                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-left">
-                  <p class="text-sm font-semibold text-blue-800 mb-2">💡 Tips:</p>
-                  <ul class="text-sm text-blue-700 text-left list-disc list-inside space-y-1 m-0">
-                    <li>Ensure your Excel has a header row</li>
-                    <li>Column names should include: "Description" / "Uraian"</li>
-                    <li>Optional columns: "No", "Unit", "Quantity", "Price"</li>
-                    <li>Data should start from the row after headers</li>
-                  </ul>
-                </div>
-                <button 
-                  class="bg-gradient-to-br from-red-500 to-red-600 text-white px-6 py-3 rounded-xl text-sm font-semibold cursor-pointer border-none transition-all duration-200 hover:from-red-600 hover:to-red-700 hover:scale-105"
-                  onClick={() => {
-                    setError(null);
-                    setSelectedFile(null);
-                  }}
+                      {/* Converting State */}
+                      <Show when={preview.isConverting}>
+                        <div class="flex items-center gap-2 text-gray-600">
+                          <div class="w-4 h-4 border-2 border-gray-300 border-t-green-500 rounded-full animate-spin"></div>
+                          <span class="text-[13px]">Converting to BOQ...</span>
+                        </div>
+                      </Show>
+
+                      {/* Error State */}
+                      <Show when={preview.error && !preview.isConverting}>
+                        <div class="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
+                          <span class="text-[16px] flex-shrink-0">⚠️</span>
+                          <p class="text-[12px] text-red-700 m-0 flex-1 whitespace-pre-line">{preview.error}</p>
+                        </div>
+                      </Show>
+
+                      {/* Success State with Preview */}
+                      <Show when={preview.data && !preview.isConverting}>
+                        <div class="space-y-2">
+                          <div class="flex items-center gap-2 text-green-600">
+                            <span class="text-[16px]">✓</span>
+                            <span class="text-[13px] font-semibold">Conversion successful</span>
+                          </div>
+                          
+                          <div class="grid grid-cols-2 gap-2">
+                            <div class="bg-white rounded-lg p-2.5 border border-gray-200">
+                              <p class="text-[11px] text-gray-500 m-0 mb-0.5">Total Items</p>
+                              <p class="text-[16px] font-bold text-gray-800 m-0">{preview.data!.items.length}</p>
+                            </div>
+                            <div class="bg-white rounded-lg p-2.5 border border-gray-200">
+                              <p class="text-[11px] text-gray-500 m-0 mb-0.5">Total Cost</p>
+                              <p class="text-[13px] font-bold text-green-600 m-0">
+                                {formatCurrency(preview.data!.summary.totalCost)}
+                              </p>
+                            </div>
+                          </div>
+
+                          <Show when={preview.data!.projectName || preview.data!.projectCode}>
+                            <div class="bg-blue-50 rounded-lg p-2.5 border border-blue-200">
+                              <Show when={preview.data!.projectName}>
+                                <p class="text-[11px] text-gray-600 m-0">
+                                  <span class="font-semibold">Project:</span> {preview.data!.projectName}
+                                </p>
+                              </Show>
+                              <Show when={preview.data!.projectCode}>
+                                <p class="text-[11px] text-gray-600 m-0">
+                                  <span class="font-semibold">Code:</span> {preview.data!.projectCode}
+                                </p>
+                              </Show>
+                            </div>
+                          </Show>
+                        </div>
+                      </Show>
+                    </div>
+                  )}
+                </For>
+
+                {/* Add More Files Button */}
+                <button
+                  class="w-full border-2 border-dashed border-gray-300 rounded-xl py-4 text-gray-600 hover:border-green-500 hover:text-green-600 hover:bg-green-50 transition-all duration-200 cursor-pointer bg-transparent text-sm font-medium"
+                  onClick={handleBrowseClick}
                 >
-                  Try Again
+                  + Add More BOQ Files
                 </button>
               </div>
             </Show>
           </div>
 
-          <Show when={previewData() && !isConverting()}>
-            <div class="flex items-center justify-end gap-3 px-7 py-5 border-t border-gray-200 bg-gray-50">
-              <button 
-                class="bg-white border border-gray-300 text-gray-700 px-6 py-3 rounded-xl text-sm font-medium cursor-pointer transition-all duration-200 hover:bg-gray-100" 
-                onClick={handleClose}
-              >
-                Cancel
-              </button>
-              <button 
-                class="bg-gradient-to-br from-green-500 to-green-600 text-white px-6 py-3 rounded-xl text-sm font-semibold cursor-pointer border-none transition-all duration-200 hover:from-green-600 hover:to-green-700 hover:shadow-[0_4px_12px_rgba(34,197,94,0.4)] hover:scale-105" 
-                onClick={handleConfirmUpload}
-              >
-                Load BOQ Data
-              </button>
+          {/* Footer Actions */}
+          <Show when={selectedFiles().length > 0}>
+            <div class="flex items-center justify-between gap-3 px-7 py-5 border-t border-gray-200 bg-gray-50">
+              <div class="text-sm text-gray-600">
+                {selectedFiles().filter(p => p.data !== null).length} of {selectedFiles().length} files ready
+              </div>
+              <div class="flex gap-3">
+                <button 
+                  class="bg-white border border-gray-300 text-gray-700 px-6 py-3 rounded-xl text-sm font-medium cursor-pointer transition-all duration-200 hover:bg-gray-100" 
+                  onClick={handleClose}
+                >
+                  Cancel
+                </button>
+                <button 
+                  class="bg-gradient-to-br from-green-500 to-green-600 text-white px-6 py-3 rounded-xl text-sm font-semibold cursor-pointer border-none transition-all duration-200 hover:from-green-600 hover:to-green-700 hover:shadow-[0_4px_12px_rgba(34,197,94,0.4)] hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100" 
+                  onClick={handleConfirmUpload}
+                  disabled={!hasValidFiles() || isAnyConverting()}
+                >
+                  Load to App ({selectedFiles().filter(p => p.data !== null).length})
+                </button>
+              </div>
             </div>
           </Show>
         </div>
