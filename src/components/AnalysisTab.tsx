@@ -1,11 +1,13 @@
 import { createSignal, For, Show } from 'solid-js';
 import type { CableFeatureCollection, CableProperties } from '../types';
 import type { Feature, LineString, Point } from 'geojson';
+import type maplibregl from 'maplibre-gl';
 
 interface AnalysisTabProps {
     cableData: CableFeatureCollection;
     onClose: () => void;
     onFeatureSelect?: (feature: Feature<LineString | Point, CableProperties>, coordinates: [number, number]) => void;
+    map?: maplibregl.Map | null;
 }
 
 export function AnalysisTab(props: AnalysisTabProps) {
@@ -102,16 +104,44 @@ export function AnalysisTab(props: AnalysisTabProps) {
     const stats = getStats();
 
     const handleLineClick = (feature: Feature<LineString, CableProperties>) => {
-        if (props.onFeatureSelect && feature.geometry.coordinates.length > 0) {
-            const midIndex = Math.floor(feature.geometry.coordinates.length / 2);
-            const coords = feature.geometry.coordinates[midIndex] as [number, number];
+        const midIndex = Math.floor(feature.geometry.coordinates.length / 2);
+        const coords = feature.geometry.coordinates[midIndex] as [number, number];
+        
+        // Zoom to line location with smooth animation
+        if (props.map) {
+            props.map.flyTo({
+                center: coords,
+                zoom: 17,
+                duration: 1500,
+                essential: true,
+                curve: 1.42,
+                speed: 1.2
+            });
+            console.log(`✈️ Flying to route at`, coords);
+        }
+        
+        // Also trigger feature select for popup
+        if (props.onFeatureSelect) {
             props.onFeatureSelect(feature, coords);
         }
     };
 
     const handlePointClick = (point: { id: string; coordinates: [number, number]; routeId: string; routeName: string }) => {
+        // Zoom to point location with smooth animation
+        if (props.map) {
+            props.map.flyTo({
+                center: point.coordinates,
+                zoom: 19, // Zoom closer for individual points
+                duration: 1500,
+                essential: true,
+                curve: 1.42,
+                speed: 1.2
+            });
+            console.log(`✈️ Flying to ${point.id} at`, point.coordinates);
+        }
+        
+        // Also trigger feature select for popup
         if (props.onFeatureSelect) {
-            // Find the associated line feature
             const lineFeature = props.cableData.features.find(f => f.properties.id === point.routeId);
             if (lineFeature) {
                 props.onFeatureSelect(lineFeature, point.coordinates);

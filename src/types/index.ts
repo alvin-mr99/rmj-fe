@@ -211,6 +211,7 @@ export interface SearchControlProps {
 export interface TopSearchInputProps {
   kmlFiles: KMLFileData[];
   map: maplibregl.Map | null;
+  onFeatureSelect?: (feature: Feature<LineString | Point, CableProperties>, coordinates: [number, number]) => void;
 }
 
 /**

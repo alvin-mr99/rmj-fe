@@ -56,7 +56,7 @@ export function PopupComponent(props: PopupProps) {
       {/* Header with branding */}
       <div class="relative bg-white px-6 pt-5 pb-4 border-b border-gray-100">
         {/* Title */}
-        <h3 class="m-0 text-[22px] font-bold text-gray-900 leading-tight">Cable Information</h3>
+        <h3 class="m-0 text-[22px] font-bold text-gray-900 leading-tight">Point Information</h3>
         
         {/* Close button */}
         <button 

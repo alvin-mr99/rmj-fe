@@ -557,6 +557,13 @@ function App() {
         <TopSearchInput 
           kmlFiles={kmlFiles()}
           map={mapInstance()}
+          onFeatureSelect={(feature, coordinates) => {
+            // Convert map coordinates to screen position for popup
+            if (mapInstance()) {
+              const point = mapInstance()!.project(coordinates);
+              handleFeatureClick(feature, coordinates, { x: point.x, y: point.y });
+            }
+          }}
         />
         
         {/* Drawing tools - Requirements: 7.1, 7.2, 7.3 */}
@@ -603,6 +610,7 @@ function App() {
           return (
             <AnalysisTab 
               cableData={selectedFile.data}
+              map={mapInstance()}
               onClose={() => setShowAnalysisTab(false)}
               onFeatureSelect={(feature, coordinates) => {
                 // Get map instance to calculate screen position

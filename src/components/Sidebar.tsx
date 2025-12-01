@@ -94,15 +94,7 @@ export function Sidebar(props: SidebarProps) {
       subtitle: 'Filter data', 
       description: 'Filter and search cable networks',
       onClick: props.onFilteringClick 
-    },
-    { 
-      id: 'topology', 
-      icon: '⚙️', 
-      label: 'Topology Settings', 
-      subtitle: 'Configuration', 
-      description: 'Configure network topology',
-      onClick: props.onTopologyClick 
-    },
+    }
   ];
 
   const handleMenuClick = (id: string, onClick?: () => void) => {

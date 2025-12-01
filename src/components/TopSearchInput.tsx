@@ -1,23 +1,26 @@
 import { createSignal, createMemo, Show, For, onCleanup } from 'solid-js';
 import type { TopSearchInputProps } from '../types';
-import type { Feature, Point } from 'geojson';
+import type { Feature, Point, LineString } from 'geojson';
 import type { CableProperties } from '../types';
 
 /**
  * Point data structure for search results
  */
 interface PointData {
-  feature: Feature<Point, CableProperties>;
+  id: string;
+  name: string;
   fileName: string;
+  routeName?: string;
   coordinates: [number, number];
+  type: 'point' | 'linepoint';
 }
 
 /**
  * TopSearchInput Component
  * 
  * Search input with autocomplete for finding and navigating to points on the map.
- * Filters points from all KML files and displays dropdown with results.
- * Clicking a result zooms and centers the map to that point's coordinates.
+ * Extracts points from both Point features and LineString coordinates.
+ * Clicking a result zooms and centers the map to that point's coordinates with smooth animation.
  */
 export function TopSearchInput(props: TopSearchInputProps) {
   const [searchQuery, setSearchQuery] = createSignal('');
@@ -26,18 +29,40 @@ export function TopSearchInput(props: TopSearchInputProps) {
   let inputRef: HTMLInputElement | undefined;
   let dropdownRef: HTMLDivElement | undefined;
 
-  // Extract all points from all KML files
+  // Extract all points from all KML files (including LineString coordinates)
   const allPoints = createMemo((): PointData[] => {
     const points: PointData[] = [];
 
     props.kmlFiles.forEach(kmlFile => {
       kmlFile.data.features.forEach(feature => {
+        // Extract Point features
         if (feature.geometry.type === 'Point') {
           const pointFeature = feature as Feature<Point, CableProperties>;
+          const pointName = pointFeature.properties.name || pointFeature.properties.id || 'Unnamed Point';
           points.push({
-            feature: pointFeature,
+            id: pointFeature.properties.id,
+            name: pointName,
             fileName: kmlFile.fileName,
-            coordinates: pointFeature.geometry.coordinates as [number, number]
+            coordinates: pointFeature.geometry.coordinates as [number, number],
+            type: 'point'
+          });
+        }
+        
+        // Extract points from LineString coordinates
+        if (feature.geometry.type === 'LineString') {
+          const lineFeature = feature as Feature<LineString, CableProperties>;
+          const routeName = lineFeature.properties.name || lineFeature.properties.id;
+          const coords = lineFeature.geometry.coordinates as [number, number][];
+          
+          coords.forEach((coord, index) => {
+            points.push({
+              id: `${routeName}-point-${index + 1}`,
+              name: `${routeName}-point-${index + 1}`,
+              fileName: kmlFile.fileName,
+              routeName: routeName,
+              coordinates: coord,
+              type: 'linepoint'
+            });
           });
         }
       });
@@ -52,11 +77,15 @@ export function TopSearchInput(props: TopSearchInputProps) {
     if (!query) return [];
 
     return allPoints().filter(point => {
-      const name = point.feature.properties.name?.toLowerCase() || '';
-      const id = point.feature.properties.id?.toLowerCase() || '';
+      const name = point.name.toLowerCase();
+      const id = point.id.toLowerCase();
       const fileName = point.fileName.toLowerCase();
+      const routeName = point.routeName?.toLowerCase() || '';
       
-      return name.includes(query) || id.includes(query) || fileName.includes(query);
+      return name.includes(query) || 
+             id.includes(query) || 
+             fileName.includes(query) ||
+             routeName.includes(query);
     });
   });
 
@@ -77,13 +106,48 @@ export function TopSearchInput(props: TopSearchInputProps) {
     setSearchQuery('');
     setSelectedIndex(-1);
 
-    // Zoom and center to point coordinates
+    // Smooth zoom and center to point coordinates with flyTo animation
     props.map.flyTo({
       center: point.coordinates,
-      zoom: 18,
-      duration: 1500,
-      essential: true
+      zoom: 19, // Zoom closer to see the point clearly
+      duration: 1500, // Smooth 1.5s animation
+      essential: true,
+      curve: 1.42, // Control the zoom curve (higher = more arc)
+      speed: 1.2 // Control animation speed
     });
+    
+    console.log(`✈️ Flying to ${point.name} at`, point.coordinates);
+
+    // Trigger feature select to show popup
+    if (props.onFeatureSelect) {
+      // Find the line feature that this point belongs to
+      let foundFeature: Feature<LineString | Point, CableProperties> | null = null;
+      
+      props.kmlFiles.forEach(kmlFile => {
+        kmlFile.data.features.forEach(feature => {
+          // If this is a point feature with matching coordinates
+          if (point.type === 'point' && feature.geometry.type === 'Point') {
+            const pointFeature = feature as Feature<Point, CableProperties>;
+            if (pointFeature.properties.id === point.id) {
+              foundFeature = pointFeature;
+            }
+          }
+          
+          // If this is a linepoint from a LineString route
+          if (point.type === 'linepoint' && feature.geometry.type === 'LineString') {
+            const lineFeature = feature as Feature<LineString, CableProperties>;
+            const routeName = lineFeature.properties.name || lineFeature.properties.id;
+            if (point.id.startsWith(routeName)) {
+              foundFeature = lineFeature;
+            }
+          }
+        });
+      });
+      
+      if (foundFeature) {
+        props.onFeatureSelect(foundFeature, point.coordinates);
+      }
+    }
   };
 
   // Handle keyboard navigation
@@ -136,13 +200,23 @@ export function TopSearchInput(props: TopSearchInputProps) {
 
   // Format point display name
   const getPointDisplayName = (point: PointData) => {
-    return point.feature.properties.name || point.feature.properties.id || 'Unnamed Point';
+    return point.name;
   };
 
   // Get truncated filename
   const getTruncatedFileName = (fileName: string, maxLength: number = 25) => {
     if (fileName.length <= maxLength) return fileName;
     return fileName.substring(0, maxLength - 3) + '...';
+  };
+  
+  // Format coordinates for display
+  const formatCoordinates = (coords: [number, number]): string => {
+    return `${coords[1].toFixed(5)}, ${coords[0].toFixed(5)}`;
+  };
+  
+  // Get icon based on point type
+  const getPointIcon = (type: 'point' | 'linepoint'): string => {
+    return type === 'point' ? '📍' : '📌';
   };
 
   return (
@@ -200,8 +274,8 @@ export function TopSearchInput(props: TopSearchInputProps) {
                   onClick={() => handlePointSelect(point)}
                 >
                   {/* Point Icon */}
-                  <div class="flex-shrink-0 w-7 h-7 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 text-sm">
-                    📍
+                  <div class="flex-shrink-0 w-7 h-7 bg-indigo-100 rounded-full flex items-center justify-center text-sm">
+                    {getPointIcon(point.type)}
                   </div>
 
                   {/* Point Info */}
@@ -209,14 +283,14 @@ export function TopSearchInput(props: TopSearchInputProps) {
                     <div class="text-xs font-medium text-gray-900 truncate">
                       {getPointDisplayName(point)}
                     </div>
-                    <div class="text-[10px] text-gray-500 truncate">
-                      {getTruncatedFileName(point.fileName)}
+                    <div class="text-[10px] text-gray-500 truncate mt-0.5">
+                      {point.routeName ? `Route: ${point.routeName}` : getTruncatedFileName(point.fileName)}
                     </div>
                   </div>
 
                   {/* Coordinates */}
-                  <div class="flex-shrink-0 text-[10px] text-gray-400 font-mono">
-                    {point.coordinates[1].toFixed(4)}, {point.coordinates[0].toFixed(4)}
+                  <div class="text-[9px] text-gray-400 text-right flex-shrink-0">
+                    {formatCoordinates(point.coordinates)}
                   </div>
                 </button>
               )}
