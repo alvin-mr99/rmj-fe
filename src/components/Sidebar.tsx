@@ -118,8 +118,7 @@ export function Sidebar(props: SidebarProps) {
       <div class="flex items-center justify-between px-4 py-4 border-b border-gray-100">
         <Show when={!isMinimized()}>
           <div class="flex items-center gap-2 animate-[fadeIn_0.3s_ease-in]">
-            <div class="text-[26px]">🗺️</div>
-            <h2 class="text-lg font-bold text-gray-800 m-0 tracking-[-0.5px]">Cable Map</h2>
+            <h2 class="text-sm font-bold text-gray-800 m-0 tracking-[-0.5px]">SmartWFM RMJ - Telkominfra</h2>
           </div>
         </Show>
         <button 

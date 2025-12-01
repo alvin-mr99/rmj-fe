@@ -62,9 +62,95 @@ function App() {
       const stored = localStorage.getItem('kmlFiles');
       if (stored) {
         const files: KMLFileData[] = JSON.parse(stored);
-        setKmlFiles(files);
-        if (files.length > 0) {
-          setSelectedKmlId(files[0].id);
+        
+        // Remove duplicates based on fileName (keep only the first occurrence)
+        const uniqueFiles = files.filter((file, index, self) => 
+          index === self.findIndex(f => f.fileName === file.fileName)
+        );
+        
+        // If duplicates were found, clean them up
+        if (uniqueFiles.length !== files.length) {
+          console.log(`🧹 Cleaned up ${files.length - uniqueFiles.length} duplicate files`);
+          localStorage.setItem('kmlFiles', JSON.stringify(uniqueFiles));
+        }
+        
+        // Check if map-dki.kml already exists to prevent duplicates
+        const hasDefaultKml = uniqueFiles.some(f => f.fileName === 'map-dki.kml');
+        
+        if (hasDefaultKml) {
+          // map-dki.kml already exists, just load from storage
+          setKmlFiles(uniqueFiles);
+          if (uniqueFiles.length > 0) {
+            setSelectedKmlId(uniqueFiles[0].id);
+          }
+          console.log('✓ Loaded', uniqueFiles.length, 'KML files from localStorage');
+        } else {
+          // map-dki.kml doesn't exist yet, load it and add to existing files
+          console.log('Loading default map-dki.kml and merging with existing files...');
+          try {
+            const response = await fetch('/data/map-dki.kml');
+            if (response.ok) {
+              const kmlText = await response.text();
+              
+              // Convert KML to GeoJSON
+              const { convertKmlToGeoJson } = await import('./services/EnhancedKmlConverter');
+              const geoJsonData = convertKmlToGeoJson(kmlText);
+              
+              const defaultFile: KMLFileData = {
+                id: `kml-default-${Date.now()}`,
+                fileName: 'map-dki.kml',
+                fileSize: new Blob([kmlText]).size,
+                data: geoJsonData,
+                uploadDate: new Date().toISOString()
+              };
+              
+              // Add to beginning of array
+              const allFiles = [defaultFile, ...uniqueFiles];
+              setKmlFiles(allFiles);
+              setSelectedKmlId(defaultFile.id);
+              
+              // Save to localStorage
+              localStorage.setItem('kmlFiles', JSON.stringify(allFiles));
+              console.log('✓ Default map-dki.kml loaded and merged with', uniqueFiles.length, 'existing files');
+            }
+          } catch (error) {
+            console.warn('Failed to load default map-dki.kml:', error);
+            // Still load existing files even if default load fails
+            setKmlFiles(uniqueFiles);
+            if (uniqueFiles.length > 0) {
+              setSelectedKmlId(uniqueFiles[0].id);
+            }
+          }
+        }
+      } else {
+        // If no stored KML files at all, load default map-dki.kml
+        console.log('No stored KML files, loading default map-dki.kml...');
+        try {
+          const response = await fetch('/data/map-dki.kml');
+          if (response.ok) {
+            const kmlText = await response.text();
+            
+            // Convert KML to GeoJSON
+            const { convertKmlToGeoJson } = await import('./services/EnhancedKmlConverter');
+            const geoJsonData = convertKmlToGeoJson(kmlText);
+            
+            const defaultFile: KMLFileData = {
+              id: `kml-default-${Date.now()}`,
+              fileName: 'map-dki.kml',
+              fileSize: new Blob([kmlText]).size,
+              data: geoJsonData,
+              uploadDate: new Date().toISOString()
+            };
+            
+            setKmlFiles([defaultFile]);
+            setSelectedKmlId(defaultFile.id);
+            
+            // Save to localStorage
+            localStorage.setItem('kmlFiles', JSON.stringify([defaultFile]));
+            console.log('✓ Default map-dki.kml loaded successfully');
+          }
+        } catch (error) {
+          console.warn('Failed to load default map-dki.kml:', error);
         }
       }
     } catch (error) {
@@ -85,12 +171,25 @@ function App() {
       const storedBoq = localStorage.getItem('boqFiles');
       if (storedBoq) {
         const files: BoQFileData[] = JSON.parse(storedBoq);
-        setBoqFiles(files);
-        if (files.length > 0) {
-          setSelectedBoqId(files[0].id);
+        
+        // Remove duplicates based on fileName (keep only the first occurrence)
+        const uniqueFiles = files.filter((file, index, self) => 
+          index === self.findIndex(f => f.fileName === file.fileName)
+        );
+        
+        // If duplicates were found, clean them up
+        if (uniqueFiles.length !== files.length) {
+          console.log(`🧹 Cleaned up ${files.length - uniqueFiles.length} duplicate BOQ files`);
+          localStorage.setItem('boqFiles', JSON.stringify(uniqueFiles));
         }
-        console.log('Loaded', files.length, 'BOQ files from localStorage');
+        
+        setBoqFiles(uniqueFiles);
+        if (uniqueFiles.length > 0) {
+          setSelectedBoqId(uniqueFiles[0].id);
+        }
+        console.log('✓ Loaded', uniqueFiles.length, 'BOQ files from localStorage');
       }
+      // Note: BOQ files are NOT auto-loaded - user must upload manually
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
       console.error('Error loading BOQ data:', errorMsg);
