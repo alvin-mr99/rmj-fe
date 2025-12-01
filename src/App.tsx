@@ -2,16 +2,17 @@ import { createSignal, onMount, Show } from 'solid-js';
 import { MapView } from './components/MapView';
 import { PopupComponent } from './components/PopupComponent';
 import { DrawingTools } from './components/DrawingTools';
-import { Sidebar } from './components/Sidebar';
+import { Sidebar as SidebarNew } from './components/SidebarNew';
 import { RightSidebar } from './components/RightSidebar';
-import { UploadModal } from './components/UploadModal';
-import { BoQUploadModal } from './components/BoQUploadModal';
+import { ProjectUploadModal } from './components/ProjectUploadModal';
+import { ProjectDetailPanel } from './components/ProjectDetailPanel';
 import { LoginForm } from './components/LoginForm';
 import { ProfileDropdown } from './components/ProfileDropdown';
 import { TopSearchInput } from './components/TopSearchInput';
 import { AnalysisTab } from './components/AnalysisTab';
 import { FilterTab } from './components/FilterTab';
-import type { KMLFileData, MapViewMethods, SoilType, BoQFileData } from './types';
+import { loadDefaultProjects, saveProjectsToStorage } from './services/ProjectLoader';
+import type { KMLFileData, MapViewMethods, SoilType, ProjectData } from './types';
 import type { Feature, LineString, Point } from 'geojson';
 import type { CableProperties, MarkerProperties } from './types';
 import maplibregl from 'maplibre-gl';
@@ -21,8 +22,14 @@ import './App.css';
 function App() {
   const [isLoggedIn, setIsLoggedIn] = createSignal(false);
   const [userEmail, setUserEmail] = createSignal('');
-  const [kmlFiles, setKmlFiles] = createSignal<KMLFileData[]>([]);
-  const [selectedKmlId, setSelectedKmlId] = createSignal<string | null>(null);
+  
+  // New unified project state
+  const [projects, setProjects] = createSignal<ProjectData[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = createSignal<string | null>(null);
+  const [isProjectUploadModalOpen, setIsProjectUploadModalOpen] = createSignal(false);
+  const [showProjectDetail, setShowProjectDetail] = createSignal(false);
+  const [detailProject, setDetailProject] = createSignal<ProjectData | null>(null);
+  
   const [filteredKmlFiles, setFilteredKmlFiles] = createSignal<KMLFileData[]>([]); // Filtered version of kmlFiles
   const [isFilterActive, setIsFilterActive] = createSignal(false); // Track if filter is active
   const [selectedFeature, setSelectedFeature] = createSignal<Feature<LineString | Point, CableProperties | MarkerProperties> | null>(null);
@@ -32,15 +39,26 @@ function App() {
   const [isDrawingMode, setIsDrawingMode] = createSignal(false);
   const [drawnFeature, setDrawnFeature] = createSignal<Feature<LineString> | null>(null);
   const [showInputForm, setShowInputForm] = createSignal(false);
-  const [isUploadModalOpen, setIsUploadModalOpen] = createSignal(false);
-  const [isBoQUploadModalOpen, setIsBoQUploadModalOpen] = createSignal(false);
-  const [boqFiles, setBoqFiles] = createSignal<BoQFileData[]>([]); // Changed from single BoQData to array
-  const [selectedBoqId, setSelectedBoqId] = createSignal<string | null>(null); // Track selected BOQ
   const [mapZoom, setMapZoom] = createSignal(12); // Default zoom level
   const [showRightSidebar, setShowRightSidebar] = createSignal(false);
   const [mapInstance, setMapInstance] = createSignal<maplibregl.Map | null>(null);
   const [showAnalysisTab, setShowAnalysisTab] = createSignal(false);
   const [showFilterTab, setShowFilterTab] = createSignal(false);
+
+  // Helper functions to work with projects
+  const getKmlFilesForMap = (): KMLFileData[] => {
+    return projects().map(project => ({
+      id: project.id,
+      fileName: project.kml.fileName,
+      fileSize: project.kml.fileSize,
+      data: project.kml.data,
+      uploadDate: project.uploadDate
+    }));
+  };
+
+  const getSelectedProject = (): ProjectData | undefined => {
+    return projects().find(p => p.id === selectedProjectId());
+  };
 
   // Load cable data on mount (from local storage or sample data)
   // Requirements: 8.2, 8.4, 8.5
@@ -58,142 +76,26 @@ function App() {
     }
 
     try {
-      // Load KML files from local storage
-      const stored = localStorage.getItem('kmlFiles');
-      if (stored) {
-        const files: KMLFileData[] = JSON.parse(stored);
-        
-        // Remove duplicates based on fileName (keep only the first occurrence)
-        const uniqueFiles = files.filter((file, index, self) => 
-          index === self.findIndex(f => f.fileName === file.fileName)
-        );
-        
-        // If duplicates were found, clean them up
-        if (uniqueFiles.length !== files.length) {
-          console.log(`🧹 Cleaned up ${files.length - uniqueFiles.length} duplicate files`);
-          localStorage.setItem('kmlFiles', JSON.stringify(uniqueFiles));
-        }
-        
-        // Check if map-dki.kml already exists to prevent duplicates
-        const hasDefaultKml = uniqueFiles.some(f => f.fileName === 'map-dki.kml');
-        
-        if (hasDefaultKml) {
-          // map-dki.kml already exists, just load from storage
-          setKmlFiles(uniqueFiles);
-          if (uniqueFiles.length > 0) {
-            setSelectedKmlId(uniqueFiles[0].id);
-          }
-          console.log('✓ Loaded', uniqueFiles.length, 'KML files from localStorage');
-        } else {
-          // map-dki.kml doesn't exist yet, load it and add to existing files
-          console.log('Loading default map-dki.kml and merging with existing files...');
-          try {
-            const response = await fetch('/data/map-dki.kml');
-            if (response.ok) {
-              const kmlText = await response.text();
-              
-              // Convert KML to GeoJSON
-              const { convertKmlToGeoJson } = await import('./services/EnhancedKmlConverter');
-              const geoJsonData = convertKmlToGeoJson(kmlText);
-              
-              const defaultFile: KMLFileData = {
-                id: `kml-default-${Date.now()}`,
-                fileName: 'map-dki.kml',
-                fileSize: new Blob([kmlText]).size,
-                data: geoJsonData,
-                uploadDate: new Date().toISOString()
-              };
-              
-              // Add to beginning of array
-              const allFiles = [defaultFile, ...uniqueFiles];
-              setKmlFiles(allFiles);
-              setSelectedKmlId(defaultFile.id);
-              
-              // Save to localStorage
-              localStorage.setItem('kmlFiles', JSON.stringify(allFiles));
-              console.log('✓ Default map-dki.kml loaded and merged with', uniqueFiles.length, 'existing files');
-            }
-          } catch (error) {
-            console.warn('Failed to load default map-dki.kml:', error);
-            // Still load existing files even if default load fails
-            setKmlFiles(uniqueFiles);
-            if (uniqueFiles.length > 0) {
-              setSelectedKmlId(uniqueFiles[0].id);
-            }
-          }
-        }
-      } else {
-        // If no stored KML files at all, load default map-dki.kml
-        console.log('No stored KML files, loading default map-dki.kml...');
-        try {
-          const response = await fetch('/data/map-dki.kml');
-          if (response.ok) {
-            const kmlText = await response.text();
-            
-            // Convert KML to GeoJSON
-            const { convertKmlToGeoJson } = await import('./services/EnhancedKmlConverter');
-            const geoJsonData = convertKmlToGeoJson(kmlText);
-            
-            const defaultFile: KMLFileData = {
-              id: `kml-default-${Date.now()}`,
-              fileName: 'map-dki.kml',
-              fileSize: new Blob([kmlText]).size,
-              data: geoJsonData,
-              uploadDate: new Date().toISOString()
-            };
-            
-            setKmlFiles([defaultFile]);
-            setSelectedKmlId(defaultFile.id);
-            
-            // Save to localStorage
-            localStorage.setItem('kmlFiles', JSON.stringify([defaultFile]));
-            console.log('✓ Default map-dki.kml loaded successfully');
-          }
-        } catch (error) {
-          console.warn('Failed to load default map-dki.kml:', error);
-        }
+      // TEMPORARY: Clear old localStorage data and force reload from actual files
+      // This ensures we load the new structure from KML/BOQ files instead of old JSON data
+      console.log('Clearing old localStorage data and loading fresh data from files...');
+      localStorage.removeItem('projects'); // Clear old data
+      
+      // Load default projects from actual KML and BOQ files
+      const loadedProjects = await loadDefaultProjects();
+      saveProjectsToStorage(loadedProjects);
+      
+      setProjects(loadedProjects);
+      if (loadedProjects.length > 0) {
+        setSelectedProjectId(loadedProjects[0].id);
       }
+      console.log('✓ Loaded', loadedProjects.length, 'projects');
     } catch (error) {
       // Handle errors gracefully - Requirement 8.5
-      // Log errors to console for debugging
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-      console.error('Error loading KML data:', errorMsg);
-      
-      // Display user-friendly error message
-      console.warn('Unable to load KML data. The map will be displayed without cable routes.');
-      
-      // Fallback to empty array - graceful degradation
-      setKmlFiles([]);
-    }
-
-    try {
-      // Load BOQ files from local storage
-      const storedBoq = localStorage.getItem('boqFiles');
-      if (storedBoq) {
-        const files: BoQFileData[] = JSON.parse(storedBoq);
-        
-        // Remove duplicates based on fileName (keep only the first occurrence)
-        const uniqueFiles = files.filter((file, index, self) => 
-          index === self.findIndex(f => f.fileName === file.fileName)
-        );
-        
-        // If duplicates were found, clean them up
-        if (uniqueFiles.length !== files.length) {
-          console.log(`🧹 Cleaned up ${files.length - uniqueFiles.length} duplicate BOQ files`);
-          localStorage.setItem('boqFiles', JSON.stringify(uniqueFiles));
-        }
-        
-        setBoqFiles(uniqueFiles);
-        if (uniqueFiles.length > 0) {
-          setSelectedBoqId(uniqueFiles[0].id);
-        }
-        console.log('✓ Loaded', uniqueFiles.length, 'BOQ files from localStorage');
-      }
-      // Note: BOQ files are NOT auto-loaded - user must upload manually
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-      console.error('Error loading BOQ data:', errorMsg);
-      setBoqFiles([]);
+      console.error('Error loading project data:', errorMsg);
+      console.warn('Unable to load project data. The map will be displayed without cable routes.');
+      setProjects([]);
     }
   });
 
@@ -264,44 +166,38 @@ function App() {
   };
 
   /**
-   * Handle upload modal success
+   * Handle project upload success
    */
-  const handleUploadSuccess = (files: KMLFileData[]) => {
-    console.log('=== UPLOAD SUCCESS ===');
-    console.log('handleUploadSuccess called with', files.length, 'files');
+  const handleProjectUploadSuccess = (newProjects: ProjectData[]) => {
+    console.log('=== PROJECT UPLOAD SUCCESS ===');
+    console.log('handleProjectUploadSuccess called with', newProjects.length, 'projects');
     
-    // Validate data before setting
-    if (!files || files.length === 0) {
-      console.error('No files received in handleUploadSuccess');
-      alert('No valid files received. Please try again.');
+    if (!newProjects || newProjects.length === 0) {
+      console.error('No projects received in handleProjectUploadSuccess');
+      alert('No valid projects received. Please try again.');
       return;
     }
     
-    // Add new files to existing files
-    setKmlFiles(prev => [...prev, ...files]);
+    // Add new projects to existing projects
+    const allProjects = [...projects(), ...newProjects];
+    setProjects(allProjects);
     
-    // Select the first newly uploaded file
-    if (files.length > 0) {
-      setSelectedKmlId(files[0].id);
+    // Select the first newly uploaded project
+    if (newProjects.length > 0) {
+      setSelectedProjectId(newProjects[0].id);
     }
     
-    // Reset filter when new files uploaded
+    // Reset filter when new projects uploaded
     setIsFilterActive(false);
     setFilteredKmlFiles([]);
     
     // Show RightSidebar
     setShowRightSidebar(true);
     
-    // Force a re-render by logging after state update
-    setTimeout(() => {
-      console.log('KML files updated, current count:', kmlFiles().length);
-    }, 100);
-    
-    // Save to local storage for persistence
+    // Save to local storage for persistence (only once!)
     try {
-      const allFiles = [...kmlFiles(), ...files];
-      localStorage.setItem('kmlFiles', JSON.stringify(allFiles));
-      console.log('Data saved to local storage');
+      saveProjectsToStorage(allProjects);
+      console.log('Projects saved to local storage');
     } catch (saveError) {
       console.warn('Failed to save to local storage:', saveError);
     }
@@ -309,49 +205,7 @@ function App() {
     // Close popup if open
     handleClosePopup();
     
-    console.log('Custom data loaded successfully - map should update now');
-  };
-
-  /**
-   * Handle BOQ upload success - now supports multiple files
-   */
-  const handleBoQUploadSuccess = (files: BoQFileData[]) => {
-    console.log('=== BOQ UPLOAD SUCCESS ===');
-    console.log('handleBoQUploadSuccess called with', files.length, 'files');
-    
-    // Validate data before setting
-    if (!files || files.length === 0) {
-      console.error('No files received in handleBoQUploadSuccess');
-      alert('No valid files received. Please try again.');
-      return;
-    }
-    
-    // Add new files to existing files
-    setBoqFiles(prev => [...prev, ...files]);
-    
-    // Select the first newly uploaded file
-    if (files.length > 0) {
-      setSelectedBoqId(files[0].id);
-    }
-    
-    // Show RightSidebar
-    setShowRightSidebar(true);
-    
-    // Force a re-render by logging after state update
-    setTimeout(() => {
-      console.log('BOQ files updated, current count:', boqFiles().length);
-    }, 100);
-    
-    // Save to local storage for persistence
-    try {
-      const allFiles = [...boqFiles(), ...files];
-      localStorage.setItem('boqFiles', JSON.stringify(allFiles));
-      console.log('BOQ data saved to local storage');
-    } catch (saveError) {
-      console.warn('Failed to save BOQ to local storage:', saveError);
-    }
-    
-    console.log('BOQ data loaded successfully');
+    console.log('Project uploaded successfully - map should update now');
   };
 
   /**
@@ -396,46 +250,23 @@ function App() {
   };
   
   /**
-   * Handle KML file deletion
+   * Handle project deletion
    */
-  const handleKmlDelete = (id: string) => {
-    console.log('Deleting KML file:', id);
-    setKmlFiles(prev => prev.filter(f => f.id !== id));
+  const handleProjectDelete = (id: string) => {
+    console.log('Deleting project:', id);
+    setProjects(prev => prev.filter(p => p.id !== id));
     
-    // If deleted file was selected, select another one or null
-    if (selectedKmlId() === id) {
-      const remainingFiles = kmlFiles().filter(f => f.id !== id);
-      setSelectedKmlId(remainingFiles.length > 0 ? remainingFiles[0].id : null);
+    // If deleted project was selected, select another one or null
+    if (selectedProjectId() === id) {
+      const remainingProjects = projects().filter(p => p.id !== id);
+      setSelectedProjectId(remainingProjects.length > 0 ? remainingProjects[0].id : null);
     }
     
     // Update local storage
     try {
-      const remainingFiles = kmlFiles().filter(f => f.id !== id);
-      localStorage.setItem('kmlFiles', JSON.stringify(remainingFiles));
-      console.log('KML file deleted and storage updated');
-    } catch (error) {
-      console.warn('Failed to update local storage:', error);
-    }
-  };
-
-  /**
-   * Handle BOQ file deletion
-   */
-  const handleBoqDelete = (id: string) => {
-    console.log('Deleting BOQ file:', id);
-    setBoqFiles(prev => prev.filter(f => f.id !== id));
-    
-    // If deleted file was selected, select another one or null
-    if (selectedBoqId() === id) {
-      const remainingFiles = boqFiles().filter(f => f.id !== id);
-      setSelectedBoqId(remainingFiles.length > 0 ? remainingFiles[0].id : null);
-    }
-    
-    // Update local storage
-    try {
-      const remainingFiles = boqFiles().filter(f => f.id !== id);
-      localStorage.setItem('boqFiles', JSON.stringify(remainingFiles));
-      console.log('BOQ file deleted and storage updated');
+      const remainingProjects = projects().filter(p => p.id !== id);
+      saveProjectsToStorage(remainingProjects);
+      console.log('Project deleted and storage updated');
     } catch (error) {
       console.warn('Failed to update local storage:', error);
     }
@@ -453,100 +284,81 @@ function App() {
         </div>
 
         {/* Sidebar Panel */}
-        <Sidebar 
-        kmlFiles={kmlFiles()}
-        selectedKmlId={selectedKmlId()}
-        onKmlSelect={(id) => {
-          setSelectedKmlId(id);
-          // Reset filter when switching files
-          setIsFilterActive(false);
-          setFilteredKmlFiles([]);
-        }}
-        onKmlDelete={handleKmlDelete}
-        boqFiles={boqFiles()}
-        selectedBoqId={selectedBoqId()}
-        onBoqSelect={setSelectedBoqId}
-        onBoqDelete={handleBoqDelete}
-        onUploadClick={() => {
-          console.log('Upload KML button clicked');
-          setIsUploadModalOpen(true);
-        }}
-        onUploadBoQClick={() => {
-          console.log('Upload BOQ button clicked');
-          setIsBoQUploadModalOpen(true);
-        }}
-        onDashboardClick={async () => {
-          console.log('Dashboard clicked - Loading test data');
-          try {
-            const response = await fetch('/data/test-output.json');
-            const data = await response.json();
-            console.log('Test data loaded:', data);
-            const testFile: KMLFileData = {
-              id: `kml-${Date.now()}`,
-              fileName: 'test-output.json',
-              fileSize: 0,
-              data: data,
-              uploadDate: new Date().toISOString()
-            };
-            handleUploadSuccess([testFile]);
-          } catch (error) {
-            console.error('Failed to load test data:', error);
-          }
-        }}
-        onAnalyticsClick={() => {
-          console.log('Analytics clicked');
-          
-          // Ensure a KML file is selected before showing analysis tab
-          if (!selectedKmlId() && kmlFiles().length > 0) {
-            setSelectedKmlId(kmlFiles()[0].id);
-          }
-          
-          // Check if there are any KML files available
-          if (kmlFiles().length === 0) {
-            alert('Please upload a KML file first to view analytics.');
-            return;
-          }
-          
-          setShowAnalysisTab(true);
-          setShowFilterTab(false);
-        }}
-        onFilteringClick={() => {
-          console.log('Filtering clicked');
-          
-          // Ensure a KML file is selected before showing filter tab
-          if (!selectedKmlId() && kmlFiles().length > 0) {
-            setSelectedKmlId(kmlFiles()[0].id);
-          }
-          
-          // Check if there are any KML files available
-          if (kmlFiles().length === 0) {
-            alert('Please upload a KML file first to filter data.');
-            return;
-          }
-          
-          setShowFilterTab(true);
-          setShowAnalysisTab(false);
-        }}
-        onTopologyClick={() => console.log('Topology clicked')}
+        <SidebarNew 
+          projects={projects()}
+          selectedProjectId={selectedProjectId()}
+          onProjectSelect={setSelectedProjectId}
+          onProjectDelete={handleProjectDelete}
+          onUploadClick={() => {
+            console.log('Upload Project button clicked');
+            setIsProjectUploadModalOpen(true);
+          }}
+          onDashboardClick={() => {
+            console.log('Dashboard clicked');
+            // Dashboard shows project list in sidebar, nothing special needed
+          }}
+          onAnalyticsClick={() => {
+            console.log('Analytics clicked');
+            
+            // Ensure a project is selected before showing analysis tab
+            if (!selectedProjectId() && projects().length > 0) {
+              setSelectedProjectId(projects()[0].id);
+            }
+            
+            // Check if there are any projects available
+            if (projects().length === 0) {
+              alert('Please upload a project first to view analytics.');
+              return;
+            }
+            
+            setShowAnalysisTab(true);
+            setShowFilterTab(false);
+          }}
+          onFilteringClick={() => {
+            console.log('Filtering clicked');
+            
+            // Ensure a project is selected before showing filter tab
+            if (!selectedProjectId() && projects().length > 0) {
+              setSelectedProjectId(projects()[0].id);
+            }
+            
+            // Check if there are any projects available
+            if (projects().length === 0) {
+              alert('Please upload a project first to filter data.');
+              return;
+            }
+            
+            setShowFilterTab(true);
+            setShowAnalysisTab(false);
+          }}
+          onTopologyClick={() => console.log('Topology clicked')}
+          onProjectDetailClick={(project) => {
+            setDetailProject(project);
+            setShowProjectDetail(true);
+          }}
+        />
+
+      {/* Project Upload Modal */}
+      <ProjectUploadModal 
+        isOpen={isProjectUploadModalOpen()}
+        onClose={() => setIsProjectUploadModalOpen(false)}
+        onUploadSuccess={handleProjectUploadSuccess}
       />
 
-      {/* Upload Modal */}
-      <UploadModal 
-        isOpen={isUploadModalOpen()}
-        onClose={() => setIsUploadModalOpen(false)}
-        onUploadSuccess={handleUploadSuccess}
-      />
-
-      {/* BOQ Upload Modal */}
-      <BoQUploadModal 
-        isOpen={isBoQUploadModalOpen()}
-        onClose={() => setIsBoQUploadModalOpen(false)}
-        onUploadSuccess={handleBoQUploadSuccess}
-      />
+      {/* Project Detail Panel */}
+      <Show when={showProjectDetail() && detailProject()}>
+        <ProjectDetailPanel 
+          project={detailProject()!}
+          onClose={() => {
+            setShowProjectDetail(false);
+            setDetailProject(null);
+          }}
+        />
+      </Show>
 
       <div class="flex-1 w-full relative">
         <MapView 
-          kmlFiles={isFilterActive() ? filteredKmlFiles() : kmlFiles()} 
+          kmlFiles={isFilterActive() ? filteredKmlFiles() : getKmlFilesForMap()} 
           onFeatureClick={handleFeatureClick}
           onMapLoad={handleMapLoad}
           onMapClick={handleMapClick}
@@ -555,7 +367,7 @@ function App() {
         
         {/* Top Search Input with Autocomplete */}
         <TopSearchInput 
-          kmlFiles={kmlFiles()}
+          kmlFiles={getKmlFilesForMap()}
           map={mapInstance()}
           onFeatureSelect={(feature, coordinates) => {
             // Convert map coordinates to screen position for popup
@@ -578,22 +390,28 @@ function App() {
       {/* Right Sidebar - Always show, but with empty state when no data */}
       <Show when={showRightSidebar()}>
         <RightSidebar 
-          kmlFiles={kmlFiles()}
-          selectedKmlId={selectedKmlId()}
+          kmlFiles={getKmlFilesForMap()}
+          selectedKmlId={selectedProjectId()}
           onKmlSelect={(id) => {
-            setSelectedKmlId(id);
-            // Reset filter when switching files
+            setSelectedProjectId(id);
+            // Reset filter when switching projects
             setIsFilterActive(false);
             setFilteredKmlFiles([]);
           }}
-          boqFiles={boqFiles()}
-          selectedBoqId={selectedBoqId()}
-          onBoqSelect={setSelectedBoqId}
+          boqFiles={projects().filter(p => p.boq !== null).map(p => ({
+            id: p.id,
+            fileName: p.boq!.fileName,
+            fileSize: p.boq!.fileSize,
+            data: p.boq!.data,
+            uploadDate: p.uploadDate
+          }))}
+          selectedBoqId={selectedProjectId()}
+          onBoqSelect={setSelectedProjectId}
           onChangeFile={() => {
-            setIsUploadModalOpen(true);
+            setIsProjectUploadModalOpen(true);
           }}
           onUploadBoQ={() => {
-            setIsBoQUploadModalOpen(true);
+            setIsProjectUploadModalOpen(true);
           }}
           onCancel={() => {
             setShowRightSidebar(false);
@@ -602,14 +420,14 @@ function App() {
       </Show>
 
       {/* Analysis Tab */}
-      <Show when={showAnalysisTab() && selectedKmlId()}>
+      <Show when={showAnalysisTab() && selectedProjectId()}>
         {(() => {
-          const selectedFile = kmlFiles().find(f => f.id === selectedKmlId());
-          if (!selectedFile) return null;
+          const selectedProject = getSelectedProject();
+          if (!selectedProject) return null;
           
           return (
             <AnalysisTab 
-              cableData={selectedFile.data}
+              cableData={selectedProject.kml.data}
               map={mapInstance()}
               onClose={() => setShowAnalysisTab(false)}
               onFeatureSelect={(feature, coordinates) => {
@@ -626,14 +444,14 @@ function App() {
       </Show>
 
       {/* Filter Tab */}
-      <Show when={showFilterTab() && selectedKmlId()}>
+      <Show when={showFilterTab() && selectedProjectId()}>
         {(() => {
-          const selectedFile = kmlFiles().find(f => f.id === selectedKmlId());
-          if (!selectedFile) return null;
+          const selectedProject = getSelectedProject();
+          if (!selectedProject) return null;
           
           return (
             <FilterTab 
-              cableData={selectedFile.data}
+              cableData={selectedProject.kml.data}
               onClose={() => {
                 setShowFilterTab(false);
                 // Reset filter when closing
@@ -643,14 +461,16 @@ function App() {
               onFilterChange={(filteredData) => {
                 console.log('Filter applied, filtered features:', filteredData.features.length);
                 
-                // Update the selected KML file with filtered data
-                const selectedId = selectedKmlId();
+                const selectedId = selectedProjectId();
                 if (!selectedId) return;
                 
                 // Create a filtered version of the KML file
                 const filteredFile: KMLFileData = {
-                  ...selectedFile,
-                  data: filteredData
+                  id: selectedId,
+                  fileName: selectedProject.kml.fileName,
+                  fileSize: selectedProject.kml.fileSize,
+                  data: filteredData,
+                  uploadDate: selectedProject.uploadDate
                 };
                 
                 // Update filteredKmlFiles with the new filtered data

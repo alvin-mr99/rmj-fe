@@ -47,6 +47,50 @@ export interface BoQFileData {
 }
 
 /**
+ * Project metadata
+ */
+export interface ProjectMetadata {
+  createdDate: string;
+  lastModified: string;
+  description?: string;
+  location?: string;
+  status?: 'planning' | 'in-progress' | 'completed';
+}
+
+/**
+ * Project statistics (derived from KML data)
+ */
+export interface ProjectStatistics {
+  totalPoints: number;
+  totalLines: number;
+  totalPolygons: number;
+  totalDistance: number; // in meters
+  totalFeatures: number;
+}
+
+/**
+ * Unified Project Data that combines KML and BOQ
+ */
+export interface ProjectData {
+  id: string;
+  projectName: string; // e.g., "RMJ-MONAS-DKI"
+  projectCode: string; // e.g., "RMJ-MONAS-001"
+  kml: {
+    fileName: string; // e.g., "kml-monas-dki.kml"
+    fileSize: number;
+    data: CableFeatureCollection;
+  };
+  boq: {
+    fileName: string; // e.g., "boq-monas-dki.xlsx"
+    fileSize: number;
+    data: BoQData;
+  } | null; // BOQ is optional
+  metadata: ProjectMetadata;
+  statistics?: ProjectStatistics; // Computed statistics
+  uploadDate: string;
+}
+
+/**
  * Style properties from KML
  */
 export interface KMLStyle {
