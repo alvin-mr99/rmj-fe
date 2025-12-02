@@ -7,6 +7,18 @@ import type { ProjectData, CableFeatureCollection } from '../types';
 import { convertKmlToGeoJson } from './EnhancedKmlConverter';
 import { BoQConverter } from './BoQConverter';
 
+// Import KML files directly from src/data/KML
+import kmlBundaranHi from '../data/KML/kml-bundaran-hi.kml?raw';
+import kmlMonasDki from '../data/KML/kml-monas-dki.kml?raw';
+import kmlSenayan from '../data/KML/kml-senayan.kml?raw';
+import kmlThamrin from '../data/KML/kml-thamrin.kml?raw';
+
+// Import BOQ files directly from src/data/BoQ
+import boqBundaranHiUrl from '../data/BoQ/boq-bundaran-hi.xlsx?url';
+import boqMonasDkiUrl from '../data/BoQ/boq-monas-dki.xlsx?url';
+import boqSenayanUrl from '../data/BoQ/boq-senayan.xlsx?url';
+import boqThamrinUrl from '../data/BoQ/boq-thamrin.xlsx?url';
+
 /**
  * Load default projects from actual KML and BOQ files in src/data/
  */
@@ -15,26 +27,34 @@ export async function loadDefaultProjects(): Promise<ProjectData[]> {
     {
       projectName: 'Bundaran HI',
       projectCode: 'RMJ-BHI-001',
-      kmlPath: '/src/data/KML/kml-bundaran-hi.kml',
-      boqPath: '/src/data/BoQ/boq-bundaran-hi.xlsx'
+      kmlText: kmlBundaranHi,
+      kmlFileName: 'kml-bundaran-hi.kml',
+      boqUrl: boqBundaranHiUrl,
+      boqFileName: 'boq-bundaran-hi.xlsx'
     },
     {
       projectName: 'Monas DKI',
       projectCode: 'RMJ-MONAS-002',
-      kmlPath: '/src/data/KML/kml-monas-dki.kml',
-      boqPath: '/src/data/BoQ/boq-monas-dki.xlsx'
+      kmlText: kmlMonasDki,
+      kmlFileName: 'kml-monas-dki.kml',
+      boqUrl: boqMonasDkiUrl,
+      boqFileName: 'boq-monas-dki.xlsx'
     },
     {
       projectName: 'Senayan',
       projectCode: 'RMJ-SENAYAN-003',
-      kmlPath: '/src/data/KML/kml-senayan.kml',
-      boqPath: '/src/data/BoQ/boq-senayan.xlsx'
+      kmlText: kmlSenayan,
+      kmlFileName: 'kml-senayan.kml',
+      boqUrl: boqSenayanUrl,
+      boqFileName: 'boq-senayan.xlsx'
     },
     {
       projectName: 'Thamrin',
       projectCode: 'RMJ-THAMRIN-004',
-      kmlPath: '/src/data/KML/kml-thamrin.kml',
-      boqPath: '/src/data/BoQ/boq-thamrin.xlsx'
+      kmlText: kmlThamrin,
+      kmlFileName: 'kml-thamrin.kml',
+      boqUrl: boqThamrinUrl,
+      boqFileName: 'boq-thamrin.xlsx'
     }
   ];
   
@@ -42,18 +62,11 @@ export async function loadDefaultProjects(): Promise<ProjectData[]> {
   
   for (const config of projectConfigs) {
     try {
-      // Load KML file
-      const kmlResponse = await fetch(config.kmlPath);
-      if (!kmlResponse.ok) {
-        console.warn(`Failed to load KML: ${config.kmlPath}`);
-        continue;
-      }
-      
-      const kmlText = await kmlResponse.text();
-      const kmlData = convertKmlToGeoJson(kmlText);
+      // Convert KML text to GeoJSON
+      const kmlData = convertKmlToGeoJson(config.kmlText);
       
       if (!kmlData || kmlData.features.length === 0) {
-        console.warn(`KML file has no features: ${config.kmlPath}`);
+        console.warn(`KML file has no features: ${config.kmlFileName}`);
         continue;
       }
       
@@ -61,15 +74,15 @@ export async function loadDefaultProjects(): Promise<ProjectData[]> {
       let boqData = null;
       let boqFileSize = 0;
       try {
-        const boqResponse = await fetch(config.boqPath);
+        const boqResponse = await fetch(config.boqUrl);
         if (boqResponse.ok) {
           const boqBlob = await boqResponse.blob();
           boqFileSize = boqBlob.size;
-          const boqFile = new File([boqBlob], config.boqPath.split('/').pop() || 'boq.xlsx');
+          const boqFile = new File([boqBlob], config.boqFileName);
           boqData = await BoQConverter.convertExcelToBoQ(boqFile);
         }
       } catch (boqError) {
-        console.warn(`Failed to load BOQ: ${config.boqPath}`, boqError);
+        console.warn(`Failed to load BOQ: ${config.boqFileName}`, boqError);
       }
       
       // Create project
@@ -79,12 +92,12 @@ export async function loadDefaultProjects(): Promise<ProjectData[]> {
         projectName: config.projectName,
         projectCode: config.projectCode,
         kml: {
-          fileName: config.kmlPath.split('/').pop() || 'unknown.kml',
-          fileSize: new Blob([kmlText]).size,
+          fileName: config.kmlFileName,
+          fileSize: new Blob([config.kmlText]).size,
           data: kmlData
         },
         boq: boqData ? {
-          fileName: config.boqPath.split('/').pop() || 'unknown.xlsx',
+          fileName: config.boqFileName,
           fileSize: boqFileSize,
           data: boqData
         } : null,

@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:kml="http://www.opengis.net/kml/2.2" xmlns:atom="http://www.w3.org/2005/Atom">
+<Document>
+	<name>Untitled map</name>
+	<gx:CascadingStyle kml:id="__managed_style_2D2A8843D33C0E47492C">
+		<Style>
+			<IconStyle>
+				<scale>1.2</scale>
+				<Icon>
+					<href>https://earth.google.com/earth/document/icon?color=1976d2&amp;id=2000&amp;scale=4</href>
+				</Icon>
+				<hotSpot x="64" y="128" xunits="pixels" yunits="insetPixels"/>
+			</IconStyle>
+			<LabelStyle>
+			</LabelStyle>
+			<LineStyle>
+				<color>ff757575</color>
+				<width>6</width>
+			</LineStyle>
+			<PolyStyle>
+				<color>40ffffff</color>
+			</PolyStyle>
+			<BalloonStyle>
+				<displayMode>hide</displayMode>
+			</BalloonStyle>
+		</Style>
+	</gx:CascadingStyle>
+	<StyleMap id="__managed_style_0ADDABB9BC3C0E47492C">
+		<Pair>
+			<key>normal</key>
+			<styleUrl>#__managed_style_11B15110DC3C0E47492C</styleUrl>
+		</Pair>
+		<Pair>
+			<key>highlight</key>
+			<styleUrl>#__managed_style_2D2A8843D33C0E47492C</styleUrl>
+		</Pair>
+	</StyleMap>
+	<gx:CascadingStyle kml:id="__managed_style_2F5AE41E2F3C0E44FEA8">
+		<Style>
+			<IconStyle>
+				<scale>1.2</scale>
+				<Icon>
+					<href>https://earth.google.com/earth/document/icon?color=1976d2&amp;id=2000&amp;scale=4</href>
+				</Icon>
+				<hotSpot x="64" y="128" xunits="pixels" yunits="insetPixels"/>
+			</IconStyle>
+			<LabelStyle>
+			</LabelStyle>
+			<LineStyle>
+				<color>ff2f2fd3</color>
+				<width>6</width>
+			</LineStyle>
+			<PolyStyle>
+				<color>40ffffff</color>
+			</PolyStyle>
+			<BalloonStyle>
+				<displayMode>hide</displayMode>
+			</BalloonStyle>
+		</Style>
+	</gx:CascadingStyle>
+	<gx:CascadingStyle kml:id="__managed_style_11B15110DC3C0E47492C">
+		<Style>
+			<IconStyle>
+				<Icon>
+					<href>https://earth.google.com/earth/document/icon?color=1976d2&amp;id=2000&amp;scale=4</href>
+				</Icon>
+				<hotSpot x="64" y="128" xunits="pixels" yunits="insetPixels"/>
+			</IconStyle>
+			<LabelStyle>
+			</LabelStyle>
+			<LineStyle>
+				<color>ff757575</color>
+				<width>4</width>
+			</LineStyle>
+			<PolyStyle>
+				<color>40ffffff</color>
+			</PolyStyle>
+			<BalloonStyle>
+				<displayMode>hide</displayMode>
+			</BalloonStyle>
+		</Style>
+	</gx:CascadingStyle>
+	<gx:CascadingStyle kml:id="__managed_style_1C7C840E5B3C0E44FEA8">
+		<Style>
+			<IconStyle>
+				<Icon>
+					<href>https://earth.google.com/earth/document/icon?color=1976d2&amp;id=2000&amp;scale=4</href>
+				</Icon>
+				<hotSpot x="64" y="128" xunits="pixels" yunits="insetPixels"/>
+			</IconStyle>
+			<LabelStyle>
+			</LabelStyle>
+			<LineStyle>
+				<color>ff2f2fd3</color>
+				<width>4</width>
+			</LineStyle>
+			<PolyStyle>
+				<color>40ffffff</color>
+			</PolyStyle>
+			<BalloonStyle>
+				<displayMode>hide</displayMode>
+			</BalloonStyle>
+		</Style>
+	</gx:CascadingStyle>
+	<StyleMap id="__managed_style_0A3C4EA1F13C0E44FEA8">
+		<Pair>
+			<key>normal</key>
+			<styleUrl>#__managed_style_1C7C840E5B3C0E44FEA8</styleUrl>
+		</Pair>
+		<Pair>
+			<key>highlight</key>
+			<styleUrl>#__managed_style_2F5AE41E2F3C0E44FEA8</styleUrl>
+		</Pair>
+	</StyleMap>
+	<Placemark id="0031B04E9B3C0E44FE9B">
+		<name>Tanah</name>
+		<LookAt>
+			<longitude>106.8104303892297</longitude>
+			<latitude>-6.230296490673084</latitude>
+			<altitude>12.78517137129632</altitude>
+			<heading>3.499666612743365</heading>
+			<tilt>3.003694837288769</tilt>
+			<gx:fovy>35</gx:fovy>
+			<range>439.7072438156465</range>
+			<altitudeMode>absolute</altitudeMode>
+		</LookAt>
+		<styleUrl>#__managed_style_0A3C4EA1F13C0E44FEA8</styleUrl>
+		<LineString>
+			<coordinates>
+				106.8106115729148,-6.225973584094932,0 106.810614314455,-6.226509768025483,0 106.8105906678935,-6.227018423458476,0 106.8105926509197,-6.227598261480712,0 106.8105639716021,-6.228285321947459,0 106.8104336812535,-6.228801929766809,0 106.810184491349,-6.229267361947591,0 106.8099719334319,-6.229605683302897,0 106.8097794086243,-6.230135521646946,0 106.8098080607456,-6.230704894860889,0 106.8097266263149,-6.231092668330677,0 106.8097169918649,-6.231361454689399,0 106.8096758673509,-6.231474046455678,0 106.8098541545538,-6.231616674750117,0 106.8100765125275,-6.231712783362558,0 106.810305288052,-6.231839692158032,0 106.8105432341647,-6.231995948195438,0 106.8107140793846,-6.2321088678574,0 
+			</coordinates>
+		</LineString>
+	</Placemark>
+	<Placemark id="0AC2076AA53C0E473159">
+		<name>Batuan</name>
+		<LookAt>
+			<longitude>106.8076720291428</longitude>
+			<latitude>-6.227016583079561</latitude>
+			<altitude>14.54169267196824</altitude>
+			<heading>20.70490943738976</heading>
+			<tilt>7.436350075460698</tilt>
+			<gx:fovy>35</gx:fovy>
+			<range>595.1154579932336</range>
+			<altitudeMode>absolute</altitudeMode>
+		</LookAt>
+		<styleUrl>#__managed_style_0ADDABB9BC3C0E47492C</styleUrl>
+		<LineString>
+			<coordinates>
+				106.8093502268177,-6.229392098931672,0 106.8091235298847,-6.229038962260705,0 106.8089878289017,-6.22863430619871,0 106.8089583831819,-6.228260352082521,0 106.808961945001,-6.227981872453177,0 106.8090183577017,-6.227620841459808,0 106.8089947689353,-6.22730785117473,0 106.8088586889578,-6.227115814144614,0 106.8082788684776,-6.227131557232151,0 106.8078306090736,-6.227179174848186,0 106.8075275637425,-6.227169843783442,0 106.8070429463213,-6.227032429574717,0 106.8066765207073,-6.22687155505851,0 106.8064301390127,-6.226743403951895,0 
+			</coordinates>
+		</LineString>
+	</Placemark>
+</Document>
+</kml>
