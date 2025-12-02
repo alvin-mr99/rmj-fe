@@ -13,10 +13,28 @@ import { BoQConverter } from './BoQConverter';
 export async function loadDefaultProjects(): Promise<ProjectData[]> {
   const projectConfigs = [
     {
-      projectName: 'RMJ-Monas',
-      projectCode: 'RMJ-Monas-001',
+      projectName: 'Bundaran HI',
+      projectCode: 'RMJ-BHI-001',
+      kmlPath: '/src/data/KML/kml-bundaran-hi.kml',
+      boqPath: '/src/data/BoQ/boq-bundaran-hi.xlsx'
+    },
+    {
+      projectName: 'Monas DKI',
+      projectCode: 'RMJ-MONAS-002',
       kmlPath: '/src/data/KML/kml-monas-dki.kml',
-      boqPath: '/src/data/BoQ-testing.xlsx'
+      boqPath: '/src/data/BoQ/boq-monas-dki.xlsx'
+    },
+    {
+      projectName: 'Senayan',
+      projectCode: 'RMJ-SENAYAN-003',
+      kmlPath: '/src/data/KML/kml-senayan.kml',
+      boqPath: '/src/data/BoQ/boq-senayan.xlsx'
+    },
+    {
+      projectName: 'Thamrin',
+      projectCode: 'RMJ-THAMRIN-004',
+      kmlPath: '/src/data/KML/kml-thamrin.kml',
+      boqPath: '/src/data/BoQ/boq-thamrin.xlsx'
     }
   ];
   
@@ -41,10 +59,12 @@ export async function loadDefaultProjects(): Promise<ProjectData[]> {
       
       // Load BOQ file
       let boqData = null;
+      let boqFileSize = 0;
       try {
         const boqResponse = await fetch(config.boqPath);
         if (boqResponse.ok) {
           const boqBlob = await boqResponse.blob();
+          boqFileSize = boqBlob.size;
           const boqFile = new File([boqBlob], config.boqPath.split('/').pop() || 'boq.xlsx');
           boqData = await BoQConverter.convertExcelToBoQ(boqFile);
         }
@@ -65,7 +85,7 @@ export async function loadDefaultProjects(): Promise<ProjectData[]> {
         },
         boq: boqData ? {
           fileName: config.boqPath.split('/').pop() || 'unknown.xlsx',
-          fileSize: 0, // Will be set when we have actual file
+          fileSize: boqFileSize,
           data: boqData
         } : null,
         metadata: {

@@ -12,7 +12,7 @@ import { TopSearchInput } from './components/TopSearchInput';
 import { AnalysisTab } from './components/AnalysisTab';
 import { FilterTab } from './components/FilterTab';
 import { RMJModal } from './components/RMJModal';
-import { loadDefaultProjects, saveProjectsToStorage } from './services/ProjectLoader';
+import { loadDefaultProjects, saveProjectsToStorage, loadProjectsFromStorage } from './services/ProjectLoader';
 import type { KMLFileData, MapViewMethods, SoilType, ProjectData } from './types';
 import type { Feature, LineString, Point } from 'geojson';
 import type { CableProperties, MarkerProperties } from './types';
@@ -78,20 +78,26 @@ function App() {
     }
 
     try {
-      // TEMPORARY: Clear old localStorage data and force reload from actual files
-      // This ensures we load the new structure from KML/BOQ files instead of old JSON data
-      console.log('Clearing old localStorage data and loading fresh data from files...');
-      localStorage.removeItem('projects'); // Clear old data
+      // Try to load projects from localStorage first
+      const storedProjects = loadProjectsFromStorage();
       
-      // Load default projects from actual KML and BOQ files
-      const loadedProjects = await loadDefaultProjects();
-      saveProjectsToStorage(loadedProjects);
-      
-      setProjects(loadedProjects);
-      if (loadedProjects.length > 0) {
-        setSelectedProjectId(loadedProjects[0].id);
+      if (storedProjects.length > 0) {
+        // Load from localStorage if available
+        setProjects(storedProjects);
+        setSelectedProjectId(storedProjects[0].id);
+        console.log('✓ Loaded', storedProjects.length, 'projects from localStorage');
+      } else {
+        // Load default projects from actual KML and BOQ files if localStorage is empty
+        console.log('Loading default projects from files...');
+        const loadedProjects = await loadDefaultProjects();
+        saveProjectsToStorage(loadedProjects);
+        
+        setProjects(loadedProjects);
+        if (loadedProjects.length > 0) {
+          setSelectedProjectId(loadedProjects[0].id);
+        }
+        console.log('✓ Loaded', loadedProjects.length, 'default projects');
       }
-      console.log('✓ Loaded', loadedProjects.length, 'projects');
     } catch (error) {
       // Handle errors gracefully - Requirement 8.5
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
@@ -558,7 +564,7 @@ function App() {
       </Show>
       
       {/* Debug button - temporary */}
-      <Show when={!showRMJModal()}>
+      {/* <Show when={!showRMJModal()}>
         <button
           class="fixed bottom-4 right-4 z-[9999] px-4 py-2 bg-red-500 text-white rounded-lg shadow-lg"
           onClick={() => {
@@ -568,7 +574,7 @@ function App() {
         >
           Test RMJ Modal
         </button>
-      </Show>
+      </Show> */}
       </div>
     </Show>
   );
