@@ -189,3 +189,43 @@ input:focus {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* AG Grid Custom Styles */
+.ag-theme-alpine {
+  --ag-font-family: 'Poppins', sans-serif;
+  --ag-font-size: 13px;
+  --ag-header-height: 48px;
+  --ag-row-height: 42px;
+  --ag-header-background-color: #f8fafc;
+  --ag-header-foreground-color: #1e293b;
+  --ag-odd-row-background-color: #ffffff;
+  --ag-row-hover-color: #f1f5f9;
+  --ag-selected-row-background-color: #dbeafe;
+  --ag-border-color: #e2e8f0;
+  --ag-row-border-color: #f1f5f9;
+}
+
+.ag-theme-alpine .ag-header-cell {
+  font-weight: 600;
+  padding: 0 12px;
+}
+
+.ag-theme-alpine .ag-cell {
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+}
+
+.ag-theme-alpine .ag-row {
+  border-bottom: 1px solid var(--ag-row-border-color);
+}
+
+.ag-theme-alpine .ag-row-selected {
+  border-color: #3b82f6;
+}
+
+.ag-theme-alpine .ag-paging-panel {
+  border-top: 2px solid #e2e8f0;
+  padding: 12px;
+  font-size: 13px;
+}

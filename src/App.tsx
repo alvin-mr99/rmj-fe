@@ -11,6 +11,7 @@ import { ProfileDropdown } from './components/ProfileDropdown';
 import { TopSearchInput } from './components/TopSearchInput';
 import { AnalysisTab } from './components/AnalysisTab';
 import { FilterTab } from './components/FilterTab';
+import { RMJModal } from './components/RMJModal';
 import { loadDefaultProjects, saveProjectsToStorage } from './services/ProjectLoader';
 import type { KMLFileData, MapViewMethods, SoilType, ProjectData } from './types';
 import type { Feature, LineString, Point } from 'geojson';
@@ -44,6 +45,7 @@ function App() {
   const [mapInstance, setMapInstance] = createSignal<maplibregl.Map | null>(null);
   const [showAnalysisTab, setShowAnalysisTab] = createSignal(false);
   const [showFilterTab, setShowFilterTab] = createSignal(false);
+  const [showRMJModal, setShowRMJModal] = createSignal(false);
 
   // Helper functions to work with projects
   const getKmlFilesForMap = (): KMLFileData[] => {
@@ -297,6 +299,12 @@ function App() {
             console.log('Dashboard clicked');
             // Dashboard shows project list in sidebar, nothing special needed
           }}
+          onRMJToolsClick={() => {
+            console.log('RMJ Tools clicked');
+            console.log('Current showRMJModal state:', showRMJModal());
+            setShowRMJModal(true);
+            console.log('After set showRMJModal state:', showRMJModal());
+          }}
           onAnalyticsClick={() => {
             console.log('Analytics clicked');
             
@@ -534,6 +542,32 @@ function App() {
           onSubmit={handleRouteSubmit}
           onCancel={handleDrawCancel}
         />
+      </Show>
+
+      {/* RMJ Tools Modal - Rendered at same level as main content */}
+      <Show when={showRMJModal()}>
+        <RMJModal 
+          isOpen={true}
+          onClose={() => {
+            console.log('RMJ Modal close clicked');
+            setShowRMJModal(false);
+          }}
+          userRole="Admin"
+          userEmail={userEmail()}
+        />
+      </Show>
+      
+      {/* Debug button - temporary */}
+      <Show when={!showRMJModal()}>
+        <button
+          class="fixed bottom-4 right-4 z-[9999] px-4 py-2 bg-red-500 text-white rounded-lg shadow-lg"
+          onClick={() => {
+            console.log('Debug button clicked');
+            setShowRMJModal(true);
+          }}
+        >
+          Test RMJ Modal
+        </button>
       </Show>
       </div>
     </Show>

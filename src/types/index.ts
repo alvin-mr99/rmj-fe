@@ -266,3 +266,167 @@ export interface DrawingToolsProps {
   onDrawComplete: (feature: Feature<LineString>) => void;
   onCancel: () => void;
 }
+
+// ============================================================================
+// RMJ Tools Types
+// ============================================================================
+
+/**
+ * User roles for RMJ system
+ */
+export type UserRole = 'Admin' | 'Internal TI' | 'Mitra';
+
+/**
+ * Access level for users
+ */
+export type AccessLevel = 'view' | 'modify' | 'full';
+
+/**
+ * User data
+ */
+export interface RMJUser {
+  id: string;
+  username: string;
+  email: string;
+  role: UserRole;
+  accessLevel: AccessLevel;
+  unit?: string;
+  division?: string;
+  regional?: string;
+  createdDate: string;
+  lastLogin?: string;
+}
+
+/**
+ * Contract/Project information
+ */
+export interface RMJContract {
+  id: string;
+  contractNumber: string;
+  contractName: string;
+  ruasKontrak: string;
+  ruasDRM: string;
+  program?: string;
+  regional?: string;
+  project?: string;
+  mitra?: string;
+  tahunProject?: string;
+  createdDate: string;
+  createdBy: string;
+}
+
+/**
+ * UnixID/DRM Ruas data row
+ */
+export interface RMJSitelistRow {
+  unixId: string; // Primary key
+  customerId: string;
+  siteId: string;
+  siteName: string;
+  deliveryRegion?: string;
+  areaName?: string;
+  installation?: string;
+  wiDnUgas?: string;
+  subcontractor?: string;
+  siteOwner?: string;
+  installationPd?: string;
+  wiWeeklyPlan?: string;
+  mosCnInstallationCompleted?: string;
+  planEndDate?: string;
+  actualEndDate?: string;
+  owner?: string;
+  action?: string;
+  // Milestone fields
+  milestone1?: string;
+  milestone2?: string;
+  milestone3?: string;
+  // Activity fields
+  activity1?: string;
+  activity2?: string;
+  activity3?: string;
+  // Properties fields
+  properties1?: string;
+  properties2?: string;
+  properties3?: string;
+  // Additional attributes (dynamic columns)
+  [key: string]: any;
+}
+
+/**
+ * Column definition for dynamic attributes
+ */
+export interface RMJColumnDefinition {
+  id: string;
+  fieldName: string;
+  displayName: string;
+  type: 'text' | 'number' | 'date' | 'select' | 'boolean';
+  category: 'default' | 'milestone' | 'activity' | 'properties' | 'custom';
+  options?: string[]; // For select type
+  required?: boolean;
+  editable?: boolean;
+  visible?: boolean;
+  order?: number;
+  createdBy?: string;
+  createdDate?: string;
+}
+
+/**
+ * View template for saving column configurations
+ */
+export interface RMJViewTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  lockedColumns: string[]; // Column IDs that are always visible
+  visibleColumns: string[]; // Column IDs that are visible in this template
+  columnOrder?: string[]; // Custom column order
+  filters?: any; // Saved filter state
+  createdBy: string;
+  createdDate: string;
+  isPublic?: boolean; // Can be used by other users
+  userRole?: UserRole; // Template specific to role
+}
+
+/**
+ * Communication/Issue entry for a row
+ */
+export interface RMJCommunication {
+  id: string;
+  unixId: string; // Reference to sitelist row
+  message: string;
+  type: 'comment' | 'issue' | 'update';
+  createdBy: string;
+  createdDate: string;
+  attachments?: string[]; // File URLs
+  resolved?: boolean;
+}
+
+/**
+ * History entry for tracking changes
+ */
+export interface RMJHistory {
+  id: string;
+  unixId: string;
+  fieldName: string;
+  oldValue: any;
+  newValue: any;
+  changedBy: string;
+  changedDate: string;
+  reason?: string;
+}
+
+/**
+ * Evidence/Document for a row
+ */
+export interface RMJEvidence {
+  id: string;
+  unixId: string;
+  fileName: string;
+  fileUrl: string;
+  fileSize: number;
+  fileType: string;
+  category?: string;
+  uploadedBy: string;
+  uploadedDate: string;
+  description?: string;
+}

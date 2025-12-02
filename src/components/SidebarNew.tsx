@@ -8,6 +8,7 @@ interface SidebarProps {
   onProjectDelete?: (id: string) => void;
   onUploadClick: () => void;
   onDashboardClick?: () => void;
+  onRMJToolsClick?: () => void;
   onAnalyticsClick?: () => void;
   onFilteringClick?: () => void;
   onTopologyClick?: () => void;
@@ -51,15 +52,23 @@ export function Sidebar(props: SidebarProps) {
   const menuItems = [
     { 
       id: 'dashboard', 
-      icon: '📊', 
+      icon: '\uD83D\uDCCA', 
       label: 'Dashboard', 
       subtitle: 'Main overview', 
       description: 'View system statistics and overview',
       onClick: props.onDashboardClick 
     },
     { 
+      id: 'rmj-tools', 
+      icon: '\uD83D\uDCCB', 
+      label: 'RMJ Tools', 
+      subtitle: 'Project delivery', 
+      description: 'Integrated work management system',
+      onClick: props.onRMJToolsClick 
+    },
+    { 
       id: 'upload', 
-      icon: '📁', 
+      icon: '\uD83D\uDCC1', 
       label: 'Upload Project', 
       subtitle: 'Import project data', 
       description: 'Upload and import KML + BOQ project',
@@ -67,7 +76,7 @@ export function Sidebar(props: SidebarProps) {
     },
     { 
       id: 'analytics', 
-      icon: '📈', 
+      icon: '\uD83D\uDCC8', 
       label: 'Analytics', 
       subtitle: 'Data analysis', 
       description: 'Analyze cable network data',
@@ -75,7 +84,7 @@ export function Sidebar(props: SidebarProps) {
     },
     { 
       id: 'filtering', 
-      icon: '🔍', 
+      icon: '\uD83D\uDD0D', 
       label: 'Filtering', 
       subtitle: 'Filter data', 
       description: 'Filter and search cable networks',
@@ -84,8 +93,12 @@ export function Sidebar(props: SidebarProps) {
   ];
 
   const handleMenuClick = (id: string, onClick?: () => void) => {
+    console.log('Menu clicked:', id, 'onClick exists:', !!onClick);
     setActiveMenu(id);
-    onClick?.();
+    if (onClick) {
+      console.log('Calling onClick handler');
+      onClick();
+    }
   };
 
   return (
@@ -104,7 +117,7 @@ export function Sidebar(props: SidebarProps) {
           onClick={() => setIsMinimized(!isMinimized())}
           title={isMinimized() ? 'Expand sidebar' : 'Minimize sidebar'}
         >
-          {isMinimized() ? '→' : '←'}
+          {isMinimized() ? '\u2192' : '\u2190'}
         </button>
       </div>
 
@@ -138,7 +151,7 @@ export function Sidebar(props: SidebarProps) {
                 when={(props.projects?.length || 0) > 0}
                 fallback={
                   <div class="text-center py-6 px-3">
-                    <div class="text-[32px] mb-2 opacity-40">📁</div>
+                    <div class="text-[32px] mb-2 opacity-40">{'\uD83D\uDCC1'}</div>
                     <p class="text-[12px] text-gray-500 m-0">No projects uploaded</p>
                     <p class="text-[11px] text-gray-400 m-0 mt-1">Click Upload Project to get started</p>
                   </div>
@@ -171,7 +184,7 @@ export function Sidebar(props: SidebarProps) {
                             }}
                           >
                             <span class="text-[10px] text-gray-600">
-                              {isExpanded() ? '−' : '+'}
+                              {isExpanded() ? '\u2212' : '+'}
                             </span>
                           </button>
                           
@@ -200,7 +213,7 @@ export function Sidebar(props: SidebarProps) {
                             }}
                             title="View project details"
                           >
-                            <span class="text-[11px]">ℹ</span>
+                            <span class="text-[11px]">{'\u2139'}</span>
                           </button>
                           
                           {/* Delete Button - show on hover */}
@@ -214,7 +227,7 @@ export function Sidebar(props: SidebarProps) {
                             }}
                             title="Delete this project"
                           >
-                            <span class="text-[12px] leading-none">×</span>
+                            <span class="text-[12px] leading-none">{'\u00D7'}</span>
                           </button>
                         </div>
                         

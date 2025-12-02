@@ -92,7 +92,7 @@ export function LoginForm(props: LoginFormProps) {
           <div class="space-y-6">
             <div>
               <h1 class="text-3xl font-bold mb-3 leading-tight">
-                RING MANAGEMENT<br />JUNCTION
+                REGIONAL METRO<br />JUNCTION
               </h1>
               <p class="text-blue-100 text-sm max-w-lg leading-relaxed">
                 Digitalisasi survey lapangan untuk instalasi kabel OSP dengan dukungan spasial, BOQ generator, dan validasi foto evidence.
