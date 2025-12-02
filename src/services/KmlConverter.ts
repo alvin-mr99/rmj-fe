@@ -50,17 +50,9 @@ function parseCoordinates(coordString: string): [number, number][] {
 }
 
 /**
- * Extract color from KML style
- */
-function extractColorFromStyle(styleContent: string): string | null {
-  const colorMatch = styleContent.match(/<color>([a-fA-F0-9]{8})<\/color>/);
-  return colorMatch ? colorMatch[1].toLowerCase() : null;
-}
-
-/**
  * Map KML color to soil type
  */
-function mapColorToSoilType(color: string | null): string {
+function mapColorToSoilType(color: string | null | undefined): string {
   if (!color) return 'Tanah Liat'; // Default
   return COLOR_TO_SOIL_TYPE[color] || 'Tanah Liat';
 }

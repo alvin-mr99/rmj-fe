@@ -496,8 +496,8 @@ export function RMJModal(props: RMJModalProps) {
   };
 
   // Enhanced context menu configuration
-  const getContextMenuItems = (params: any) => {
-    const result = [
+  const getContextMenuItems = (params: any): any[] => {
+    const result: any[] = [
       {
         name: 'Edit Row',
         icon: '<span class="ag-icon ag-icon-edit"></span>',
@@ -506,29 +506,29 @@ export function RMJModal(props: RMJModalProps) {
           alert(`Editing row: ${params.node.data.unixId}`);
         },
       },
-      'separator',
-      'copy',
-      'copyWithHeaders',
-      'copyWithGroupHeaders',
-      'paste',
-      'separator',
+      'separator' as const,
+      'copy' as const,
+      'copyWithHeaders' as const,
+      'copyWithGroupHeaders' as const,
+      'paste' as const,
+      'separator' as const,
       {
         name: 'Export',
         icon: '<span class="ag-icon ag-icon-save"></span>',
         subMenu: [
-          'csvExport',
-          'excelExport',
+          'csvExport' as const,
+          'excelExport' as const,
         ],
       },
-      'separator',
+      'separator' as const,
       {
         name: 'Chart',
         icon: '<span class="ag-icon ag-icon-chart"></span>',
         subMenu: [
-          'chartRange',
+          'chartRange' as const,
         ],
       },
-      'separator',
+      'separator' as const,
       {
         name: 'Delete Row',
         icon: '<span class="ag-icon ag-icon-cross"></span>',
@@ -1165,18 +1165,6 @@ export function RMJModal(props: RMJModalProps) {
   const handleAddUser = () => {
     setEditingUser(null);
     setShowUserForm(true);
-  };
-
-  const handleEditUser = (user: RMJUser) => {
-    setEditingUser(user);
-    setShowUserForm(true);
-  };
-
-  const handleDeleteUser = (userId: string) => {
-    if (confirm('Are you sure you want to delete this user?')) {
-      setUsers(users().filter(u => u.id !== userId));
-      alert('User deleted successfully!');
-    }
   };
 
   const handleSaveUser = (userData: Partial<RMJUser>) => {
