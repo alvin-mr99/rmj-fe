@@ -21,6 +21,9 @@ export default function ProjectGrid() {
       headerName: 'Action',
       pinned: 'right',
       width: 140,
+      editable: false,
+      filter: false,
+      floatingFilter: false,
       cellRenderer: (params: any) => {
         const el = document.createElement('div');
         el.style.display = 'flex';
@@ -45,6 +48,22 @@ export default function ProjectGrid() {
 
   const onGridReady = (params: any) => {
     setGridApi(params.api);
+    // make columns fit available width so header has no empty right space
+    try {
+      params.api.sizeColumnsToFit();
+    } catch (e) {
+      // ignore if not yet available
+    }
+
+    // resize handler to keep columns fitted on window resize
+    const onResize = () => {
+      try {
+        params.api.sizeColumnsToFit();
+      } catch (err) {
+        // ignore
+      }
+    };
+    window.addEventListener('resize', onResize);
   };
 
   // Listen for the custom event from cell renderer
@@ -86,7 +105,8 @@ export default function ProjectGrid() {
           columnDefs={columnDefs()}
           rowData={projects()}
           onGridReady={onGridReady}
-          defaultColDef={{ sortable: true, filter: true, resizable: true }}
+          defaultColDef={{ sortable: true, filter: true, floatingFilter: true, resizable: true, editable: true }}
+          stopEditingWhenCellsLoseFocus={true}
           pagination={true}
           paginationPageSize={10}
         />
