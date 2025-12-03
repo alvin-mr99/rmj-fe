@@ -8,55 +8,96 @@ import ProjectGrid from './ProjectGrid';
 import type { RMJSitelistRow, RMJUser, RMJViewTemplate, UserRole, AccessLevel } from '../types';
 import * as XLSX from 'xlsx';
 
-// Add custom styles for AG Grid
+// Add custom styles for AG Grid - Modern Design
 const customGridStyles = `
+  /* Modern Header Styling */
   .ag-theme-alpine .ag-header {
-    background: linear-gradient(135deg, #2b7fff 0%, #2b7fff 100%);
-    color: white;
+    background: #ffffff;
+    border-bottom: 2px solid #e5e7eb;
     font-weight: 600;
   }
   
+  .ag-theme-alpine .ag-header-cell {
+    padding: 12px 16px;
+  }
+  
   .ag-theme-alpine .ag-header-cell-label {
-    color: white;
+    color: #374151;
     font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
   }
   
   .ag-theme-alpine .ag-icon {
-    color: white;
+    color: #6b7280;
   }
   
+  /* Modern Row Styling */
   .ag-theme-alpine .ag-row {
     font-size: 13px;
+    border-bottom: 1px solid #f3f4f6;
   }
   
   .ag-theme-alpine .ag-cell {
     display: flex;
     align-items: center;
     line-height: 20px;
-    padding-top: 8px;
-    padding-bottom: 8px;
+    padding: 12px 16px;
+    border-right: none;
   }
   
+  /* Clean alternating rows */
   .ag-theme-alpine .ag-row-odd {
-    background-color: #f8fafc;
+    background-color: #ffffff;
   }
   
+  .ag-theme-alpine .ag-row-even {
+    background-color: #f9fafb;
+  }
+  
+  /* Modern hover effect */
   .ag-theme-alpine .ag-row-hover {
-    background-color: #e0e7ff !important;
+    background-color: #f0f9ff !important;
+    transition: background-color 0.15s ease;
   }
   
+  /* Selected row styling */
   .ag-theme-alpine .ag-row-selected {
     background-color: #dbeafe !important;
   }
   
+  /* Focus styling */
   .ag-theme-alpine .ag-cell-focus {
-    border: 2px solid #264aeaff !important;
+    border: 2px solid #3b82f6 !important;
+    outline: none;
   }
   
+  /* Remove cell borders */
   .ag-theme-alpine .ag-ltr .ag-cell {
-    border-right: 1px solid #e5e7eb;
+    border-right: none;
   }
   
+  /* Sorting icon styling */
+  .ag-theme-alpine .ag-header-cell-sortable .ag-header-cell-label {
+    cursor: pointer;
+  }
+  
+  .ag-theme-alpine .ag-icon-asc,
+  .ag-theme-alpine .ag-icon-desc {
+    color: #3b82f6;
+  }
+  
+  /* Filter icon styling */
+  .ag-theme-alpine .ag-header-cell-menu-button {
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  
+  .ag-theme-alpine .ag-header-cell:hover .ag-header-cell-menu-button {
+    opacity: 1;
+  }
+  
+  /* Menu styling */
   .ag-menu .red-item {
     color: #ef4444;
   }
@@ -65,9 +106,17 @@ const customGridStyles = `
     background-color: #fee2e2;
   }
   
+  /* Modern pagination */
+  .ag-theme-alpine .ag-paging-panel {
+    border-top: 1px solid #e5e7eb;
+    padding: 12px 16px;
+    background: #ffffff;
+  }
+  
+  /* Action button styling */
   .action-btn-edit {
     padding: 6px 14px;
-    background: linear-gradient(135deg, #814f00ff 0%, #b87311ff 100%);
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
     color: white;
     border: none;
     border-radius: 6px;
@@ -75,12 +124,59 @@ const customGridStyles = `
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
-    box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 1px 3px rgba(59, 130, 246, 0.3);
   }
   
   .action-btn-edit:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 4px 6px rgba(59, 130, 246, 0.4);
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  }
+  
+  /* Scrollbar styling */
+  .ag-theme-alpine .ag-body-horizontal-scroll-viewport::-webkit-scrollbar,
+  .ag-theme-alpine .ag-body-vertical-scroll-viewport::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  .ag-theme-alpine .ag-body-horizontal-scroll-viewport::-webkit-scrollbar-track,
+  .ag-theme-alpine .ag-body-vertical-scroll-viewport::-webkit-scrollbar-track {
+    background: #f3f4f6;
+  }
+  
+  .ag-theme-alpine .ag-body-horizontal-scroll-viewport::-webkit-scrollbar-thumb,
+  .ag-theme-alpine .ag-body-vertical-scroll-viewport::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 4px;
+  }
+  
+  .ag-theme-alpine .ag-body-horizontal-scroll-viewport::-webkit-scrollbar-thumb:hover,
+  .ag-theme-alpine .ag-body-vertical-scroll-viewport::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
+  }
+  
+  /* Checkbox styling */
+  .ag-theme-alpine .ag-checkbox-input-wrapper {
+    border-radius: 4px;
+  }
+  
+  .ag-theme-alpine .ag-checkbox-input-wrapper.ag-checked {
+    background-color: #3b82f6;
+    border-color: #3b82f6;
+  }
+  
+  /* Remove outer borders and add rounded corners */
+  .ag-theme-alpine {
+    border: none !important;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  
+  .ag-theme-alpine .ag-root-wrapper {
+    border: none;
+    border-radius: 8px;
+    overflow: hidden;
   }
 `;
 
@@ -1202,12 +1298,12 @@ export function RMJModal(props: RMJModalProps) {
       onClick={props.onClose}
     >
       <div 
-        class="bg-white rounded-2xl shadow-2xl w-[95vw] h-[95vh] flex flex-col"
+        class="bg-white rounded-2xl shadow-2xl w-[95vw] h-[95vh] flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
         style={{"font-family": "'Poppins', sans-serif"}}
       >
         {/* Header */}
-        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
           <div>
             <h2 class="text-2xl font-bold text-gray-800 m-0">RMJ Tools - Project Delivery Management</h2>
             <p class="text-sm text-gray-500 m-0 mt-1">Integrated Work Management System</p>
@@ -1221,7 +1317,7 @@ export function RMJModal(props: RMJModalProps) {
         </div>
 
         {/* Tabs */}
-        <div class="flex gap-2 px-6 py-3 border-b border-gray-200 bg-gray-50">
+        <div class="flex gap-2 px-6 py-3 border-b border-gray-200 bg-gray-50 flex-shrink-0">
           <button
             class={`px-4 py-2 rounded-lg font-medium transition-all ${
               activeTab() === 'sitelist'
@@ -1255,11 +1351,11 @@ export function RMJModal(props: RMJModalProps) {
         </div>
 
         {/* Content */}
-        <div class="flex-1 overflow-hidden">
+        <div class="flex-1 overflow-hidden flex flex-col">
           <Show when={activeTab() === 'sitelist'}>
-            <div class="h-full flex flex-col">
+            <div class="h-full flex flex-col overflow-hidden">
               {/* Project Selector */}
-              <div class="px-6 py-3 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+              <div class="px-6 py-3 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50 flex-shrink-0">
                 <div class="flex items-center gap-4">
                   <label class="text-sm font-semibold text-gray-700">Project:</label>
                   <select
@@ -1283,7 +1379,7 @@ export function RMJModal(props: RMJModalProps) {
               </div>
 
               {/* Toolbar */}
-              <div class="px-6 py-3 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100">
+              <div class="px-6 py-3 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100 flex-shrink-0">
                 <div class="flex items-center gap-3 flex-wrap">
                   {/* Search */}
                   <div class="flex-1 min-w-[200px] relative">
@@ -1399,16 +1495,16 @@ export function RMJModal(props: RMJModalProps) {
               </div>
 
               {/* Project grid with hierarchical detail */}
-              <div class="flex-1 px-6 py-4">
+              <div class="flex-1 px-6 py-4 overflow-auto">
                 <ProjectGrid />
               </div>
             </div>
           </Show>
 
           <Show when={activeTab() === 'settings'}>
-            <div class="h-full flex flex-col">
+            <div class="h-full flex flex-col overflow-hidden">
               {/* Header */}
-              <div class="px-6 py-4 border-b border-gray-200">
+              <div class="px-6 py-4 border-b border-gray-200 flex-shrink-0">
                 <div class="flex items-center justify-between">
                   <div>
                     <h3 class="text-xl font-bold text-gray-800">View Template Settings</h3>
@@ -1668,9 +1764,9 @@ export function RMJModal(props: RMJModalProps) {
           </Show>
 
           <Show when={activeTab() === 'users'}>
-            <div class="h-full flex flex-col bg-gray-50">
+            <div class="h-full flex flex-col bg-gray-50 overflow-hidden">
               {/* Header */}
-              <div class="px-6 py-4 bg-white border-b border-gray-200">
+              <div class="px-6 py-4 bg-white border-b border-gray-200 flex-shrink-0">
                 <div class="flex items-center justify-between">
                   <div>
                     <h3 class="text-xl font-bold text-gray-800">Personal and Group</h3>
@@ -1688,7 +1784,7 @@ export function RMJModal(props: RMJModalProps) {
               </div>
 
               {/* Tab Navigation */}
-              <div class="px-6 py-3 bg-white border-b border-gray-200">
+              <div class="px-6 py-3 bg-white border-b border-gray-200 flex-shrink-0">
                 <div class="flex items-center gap-1">
                   <button
                     class={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
@@ -1704,7 +1800,7 @@ export function RMJModal(props: RMJModalProps) {
               </div>
 
               {/* Filter Section */}
-              <div class="px-6 py-4 bg-white border-b border-gray-200">
+              <div class="px-6 py-4 bg-white border-b border-gray-200 flex-shrink-0">
                 <div class="flex items-center gap-3 flex-wrap">
                   <input
                     type="text"
@@ -1777,7 +1873,7 @@ export function RMJModal(props: RMJModalProps) {
                         Total: {users().length}
                       </span>
                     </div>
-                    <div class="flex-1 ag-theme-alpine bg-white rounded-lg shadow-md border-2 border-gray-200">
+                    <div class="flex-1 ag-theme-alpine bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                       <AgGridSolid
                         columnDefs={userColumnDefs()}
                         rowData={users()}
@@ -1806,7 +1902,7 @@ export function RMJModal(props: RMJModalProps) {
                         Selected: {selectedUsers().length}
                       </span>
                     </div>
-                    <div class="flex-1 ag-theme-alpine bg-white rounded-lg shadow-md border-2 border-green-200">
+                    <div class="flex-1 ag-theme-alpine bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                       <AgGridSolid
                         columnDefs={selectedUserColumnDefs()}
                         rowData={selectedUsers()}
