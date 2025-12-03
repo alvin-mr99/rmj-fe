@@ -430,3 +430,80 @@ export interface RMJEvidence {
   uploadedDate: string;
   description?: string;
 }
+
+// ============================================================================
+// Hierarchical Project Interfaces (for Project -> PaketArea -> Lokasi -> Ruas)
+// ============================================================================
+
+export interface ProjectHierarchyProject {
+  id: string;
+  noKontrak: string;
+  namaKontrak: string;
+  treg: string;
+  area?: string;
+  tahunProject: string;
+  program: string;
+  regional: string;
+  planRFS?: string;
+  currentMilestone?: string;
+  paketAreas: PaketArea[];
+}
+
+export interface PaketArea {
+  id: string;
+  areaId: string;
+  namaArea: string;
+  lokasis: Lokasi[];
+}
+
+export interface Lokasi {
+  id: string;
+  kode: string;
+  mitra: string;
+  witel: string;
+  siteName: string;
+  ruasKontraks: RuasKontrak[];
+}
+
+export interface RuasKontrak {
+  id: string;
+  noRuas: string;
+  namaRuas: string;
+  panjangKM: number;
+  volumeMeter: number;
+  progressGalian: number; // percent
+  progressHDPE: number; // percent
+  nilaiDRM: number;
+  nilaiRekon: number;
+  boqCustomers: BOQItem[];
+  boqIndikatifs: BOQItem[];
+}
+
+export interface BOQItem {
+  id: string;
+  boqId: string;
+  category: string;
+  designator: string;
+  uraian: string;
+  satuan: string;
+  type: 'Material' | 'Jasa';
+  hargaSatuan: number;
+  qty: number;
+  totalHarga: number;
+  segmentasi?: Segmentasi[];
+}
+
+export interface Segmentasi {
+  id: string;
+  panjang: number; // meters
+  startPoint: string;
+  endPoint: string;
+  cells: Cell[];
+}
+
+export interface Cell {
+  id: string;
+  lat: number;
+  long: number;
+  status: 'DONE' | 'IN_PROGRESS' | 'PENDING';
+}

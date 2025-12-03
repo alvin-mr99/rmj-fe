@@ -4,6 +4,7 @@ import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { LicenseManager } from 'ag-grid-enterprise';
 import type { ColDef, GridOptions, GridApi } from 'ag-grid-community';
+import ProjectGrid from './ProjectGrid';
 import type { RMJSitelistRow, RMJUser, RMJViewTemplate, UserRole, AccessLevel } from '../types';
 import * as XLSX from 'xlsx';
 
@@ -1397,71 +1398,9 @@ export function RMJModal(props: RMJModalProps) {
                 </div>
               </div>
 
-              {/* AG Grid */}
+              {/* Project grid with hierarchical detail */}
               <div class="flex-1 px-6 py-4">
-                <div class="ag-theme-alpine h-full w-full" style="--ag-header-background-color: linear-gradient(135deg, #667eea 0%, #764ba2 100%); --ag-header-foreground-color: white; --ag-odd-row-background-color: #f8fafc; --ag-row-hover-color: #e0e7ff;">
-                  <AgGridSolid
-                    columnDefs={columnDefs()}
-                    rowData={rowData()}
-                    defaultColDef={gridOptions.defaultColDef}
-                    rowSelection={gridOptions.rowSelection}
-                    pagination={gridOptions.pagination}
-                    paginationPageSize={gridOptions.paginationPageSize}
-                    paginationPageSizeSelector={gridOptions.paginationPageSizeSelector}
-                    enableCellTextSelection={gridOptions.enableCellTextSelection}
-                    suppressRowClickSelection={gridOptions.suppressRowClickSelection}
-                    onGridReady={onGridReady}
-                    enableRangeSelection={gridOptions.enableRangeSelection}
-                    enableCharts={gridOptions.enableCharts}
-                    enableAdvancedFilter={gridOptions.enableAdvancedFilter}
-                    rowGroupPanelShow={gridOptions.rowGroupPanelShow}
-                    pivotPanelShow={gridOptions.pivotPanelShow}
-                    animateRows={gridOptions.animateRows}
-                    enableFillHandle={gridOptions.enableFillHandle}
-                    undoRedoCellEditing={gridOptions.undoRedoCellEditing}
-                    undoRedoCellEditingLimit={gridOptions.undoRedoCellEditingLimit}
-                    allowContextMenuWithControlKey={true}
-                    getContextMenuItems={getContextMenuItems}
-                    sideBar={{
-                      toolPanels: [
-                        {
-                          id: 'columns',
-                          labelDefault: 'Columns',
-                          labelKey: 'columns',
-                          iconKey: 'columns',
-                          toolPanel: 'agColumnsToolPanel',
-                          toolPanelParams: {
-                            suppressRowGroups: false,
-                            suppressValues: false,
-                            suppressPivots: false,
-                            suppressPivotMode: false,
-                            suppressColumnFilter: false,
-                            suppressColumnSelectAll: false,
-                            suppressColumnExpandAll: false,
-                          },
-                        },
-                        {
-                          id: 'filters',
-                          labelDefault: 'Filters',
-                          labelKey: 'filters',
-                          iconKey: 'filter',
-                          toolPanel: 'agFiltersToolPanel',
-                        },
-                      ],
-                      defaultToolPanel: '',
-                      position: 'right',
-                    }}
-                    statusBar={{
-                      statusPanels: [
-                        { statusPanel: 'agTotalAndFilteredRowCountComponent', align: 'left' },
-                        { statusPanel: 'agTotalRowCountComponent', align: 'center' },
-                        { statusPanel: 'agFilteredRowCountComponent', align: 'center' },
-                        { statusPanel: 'agSelectedRowCountComponent', align: 'center' },
-                        { statusPanel: 'agAggregationComponent', align: 'right' },
-                      ],
-                    }}
-                  />
-                </div>
+                <ProjectGrid />
               </div>
             </div>
           </Show>
