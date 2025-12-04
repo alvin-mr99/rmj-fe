@@ -5,7 +5,7 @@ import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { LicenseManager } from 'ag-grid-enterprise';
 import type { ColDef, GridOptions, GridApi } from 'ag-grid-community';
 import ProjectGrid from './ProjectGrid';
-import type { RMJSitelistRow, RMJUser, RMJViewTemplate, UserRole, AccessLevel } from '../types';
+import type { RMJSitelistRow, RMJUser, RMJViewTemplate, UserRole, AccessLevel, RMJReportRow } from '../types';
 import * as XLSX from 'xlsx';
 
 // Add custom styles for AG Grid
@@ -138,6 +138,10 @@ export function RMJModal(props: RMJModalProps) {
   const [templateName, setTemplateName] = createSignal('');
   const [templateDescription, setTemplateDescription] = createSignal('');
   const [expandedTemplate, setExpandedTemplate] = createSignal<string | null>(null);
+
+  // Report RMJ State
+  const [showReportRMJ, setShowReportRMJ] = createSignal(false);
+  const [reportGridApi, setReportGridApi] = createSignal<GridApi | null>(null);
 
   // Projects data
   const projects: Project[] = [
@@ -686,6 +690,73 @@ export function RMJModal(props: RMJModalProps) {
     },
   ];
 
+  // Sample RMJ Report Data
+  const sampleReportData: RMJReportRow[] = [
+    {
+      no: 1,
+      area: 'TRBR',
+      ktrl: '5422',
+      mitraPelaksana: 'ABC',
+      linkRuas: '5FK4.1 STO LEBAK LAKSONO - TIBL L1.LO.04',
+      volumePhm: 76.983,
+      progresGalianBoringManual: { plan: 73.013, actual: 73.013, sisa: 0, percentage: 100 },
+      penambahanHdpe: { plan: 73.013, actual: 73.013, sisa: 0, percentage: 100 },
+      penambahanTiang: { plan: 0, actual: 0, sisa: 0, percentage: 0 },
+      konstruksiAlurJembatan: { plan: 76.963, actual: 76.963, sisa: 0, percentage: 100 },
+      handhole: { plan: '42', actual: '42', sisa: '0', percentage: 100 },
+      jointingTerminasi: { plan: '31', actual: '31', sisa: '0', percentage: 100 },
+      nocApft: 'DONE',
+      persentaseRealisasiKonstruksi: 100,
+      planTargetTi: 'BAST',
+      nilaiOdm: 'Rp. 10,782',
+      volumeRekon: 25.558,
+      nilaiRekon: 'Rp. 14,897',
+      deviasi: 127,
+    },
+    {
+      no: 2,
+      area: 'TRBR',
+      ktrl: '5422',
+      mitraPelaksana: 'DEF',
+      linkRuas: '5FK4.2 Griya Ciracas - Cilacap - JLMR L2.EB.02',
+      volumePhm: 96.353,
+      progresGalianBoringManual: { plan: 86.086, actual: 86.086, sisa: 0, percentage: 100 },
+      penambahanHdpe: { plan: 86.086, actual: 86.086, sisa: 0, percentage: 100 },
+      penambahanTiang: { plan: 0, actual: 0, sisa: 0, percentage: 0 },
+      konstruksiAlurJembatan: { plan: 86.753, actual: 86.753, sisa: 0, percentage: 100 },
+      handhole: { plan: 'LWC', actual: 'LWC', sisa: '0', percentage: 100 },
+      jointingTerminasi: { plan: '33', actual: '33', sisa: '0', percentage: 100 },
+      nocApft: 'DONE',
+      persentaseRealisasiKonstruksi: 100,
+      planTargetTi: 'BAST',
+      nilaiOdm: 'Rp. 9,479',
+      volumeRekon: 0,
+      nilaiRekon: 'Rp. 8,413',
+      deviasi: -100,
+    },
+    {
+      no: 3,
+      area: 'TRBR',
+      ktrl: '5422',
+      mitraPelaksana: 'GHI',
+      linkRuas: '5FK4.3 Bojonegoro Utara - ODF JGR L3.CO.07',
+      volumePhm: 39.216,
+      progresGalianBoringManual: { plan: 35.085, actual: 35.085, sisa: 0, percentage: 100 },
+      penambahanHdpe: { plan: 35.085, actual: 35.085, sisa: 0, percentage: 100 },
+      penambahanTiang: { plan: 0, actual: 0, sisa: 0, percentage: 0 },
+      konstruksiAlurJembatan: { plan: 39.216, actual: 39.216, sisa: 0, percentage: 100 },
+      handhole: { plan: 'LWC', actual: 'LWC', sisa: '0', percentage: 100 },
+      jointingTerminasi: { plan: '13', actual: '13', sisa: '0', percentage: 100 },
+      nocApft: 'DONE',
+      persentaseRealisasiKonstruksi: 100,
+      planTargetTi: 'BAST',
+      nilaiOdm: 'Rp. 4,127',
+      volumeRekon: 0,
+      nilaiRekon: 'Rp. 3,434',
+      deviasi: -90,
+    },
+  ];
+
   // Initialize data immediately when component is created
   const [users, setUsers] = createSignal<RMJUser[]>(sampleUsers);
   const [templates, setTemplates] = createSignal<RMJViewTemplate[]>(sampleTemplates);
@@ -1195,11 +1266,12 @@ export function RMJModal(props: RMJModalProps) {
 
 
   return (
-    <Show when={props.isOpen}>
-      <div
-        class="fixed inset-0 bg-black/50 z-[2000] flex items-center justify-center p-4"
-        onClick={props.onClose}
-      >
+    <>
+      <Show when={props.isOpen}>
+        <div
+          class="fixed inset-0 bg-black/50 z-[2000] flex items-center justify-center p-4"
+          onClick={props.onClose}
+        >
         <div
           class="bg-white rounded-2xl shadow-2xl w-[95vw] h-[95vh] flex flex-col overflow-hidden"
           onClick={(e) => e.stopPropagation()}
@@ -1212,7 +1284,7 @@ export function RMJModal(props: RMJModalProps) {
               <p class="text-xs text-gray-500 m-0 mt-0.5">Integrated Work Management System</p>
             </div>
             {/* Tabs */}
-            <div class="flex gap-2">
+            <div class="flex gap-2 items-center">
               <button
                 class={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${activeTab() === 'sitelist'
                     ? 'bg-blue-500 text-white shadow-md'
@@ -1222,15 +1294,30 @@ export function RMJModal(props: RMJModalProps) {
               >
                 📊 Sitelist Project
               </button>
-              <button
-                class={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${activeTab() === 'settings'
-                    ? 'bg-blue-500 text-white shadow-md'
-                    : 'bg-white text-gray-600 hover:bg-gray-100'
-                  }`}
-                onClick={() => setActiveTab('settings')}
-              >
-                ⚙️ Template Settings
-              </button>
+              <Show when={activeTab() === 'sitelist'}>
+                <button
+                  class="px-4 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors font-medium text-sm shadow-sm flex items-center gap-2"
+                  onClick={() => {
+                    // Trigger Column Settings
+                    const event = new CustomEvent('open-column-settings');
+                    window.dispatchEvent(event);
+                  }}
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                  </svg>
+                  Column Settings
+                </button>
+                <button
+                  class="px-4 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors font-medium text-sm shadow-sm flex items-center gap-2"
+                  onClick={() => setShowReportRMJ(true)}
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Report RMJ
+                </button>
+              </Show>
               <button
                 class={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${activeTab() === 'users'
                     ? 'bg-blue-500 text-white shadow-md'
@@ -1938,5 +2025,195 @@ export function RMJModal(props: RMJModalProps) {
         </div>
       </div>
     </Show>
+
+    {/* Report RMJ Modal */}
+    <Show when={showReportRMJ()}>
+      <div
+        class="fixed inset-0 bg-black/50 z-[3000] flex items-center justify-center p-4"
+        onClick={() => setShowReportRMJ(false)}
+      >
+        <div
+          class="bg-white rounded-2xl shadow-2xl w-[98vw] h-[95vh] flex flex-col overflow-hidden"
+          onClick={(e) => e.stopPropagation()}
+          style={{ "font-family": "'Poppins', sans-serif" }}
+        >
+          {/* Header */}
+          <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-orange-50 to-orange-100">
+            <div>
+              <h2 class="text-2xl font-bold text-gray-800 m-0">📊 PROGRES REVENUE OSP DKI TELKOMINFRA 2025</h2>
+              <p class="text-sm text-gray-600 m-0 mt-1">Report RMJ - Progress Monitoring Dashboard</p>
+            </div>
+            <button
+              class="w-10 h-10 rounded-full bg-white hover:bg-gray-100 flex items-center justify-center transition-colors shadow-sm border border-gray-200"
+              onClick={() => setShowReportRMJ(false)}
+            >
+              <span class="text-2xl text-gray-600">×</span>
+            </button>
+          </div>
+
+          {/* Toolbar */}
+          <div class="px-6 py-3 border-b border-gray-200 bg-white flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <button
+                class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors font-medium text-sm shadow-sm flex items-center gap-2"
+                onClick={() => {
+                  const ws = XLSX.utils.json_to_sheet(sampleReportData);
+                  const wb = XLSX.utils.book_new();
+                  XLSX.utils.book_append_sheet(wb, ws, 'RMJ Report');
+                  XLSX.writeFile(wb, `RMJ_Report_${new Date().toISOString().split('T')[0]}.xlsx`);
+                }}
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                </svg>
+                Export to Excel
+              </button>
+              <button
+                class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors font-medium text-sm shadow-sm flex items-center gap-2"
+                onClick={() => {
+                  const api = reportGridApi();
+                  if (api) {
+                    api.openToolPanel('filters');
+                  }
+                }}
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                </svg>
+                Open Filters
+              </button>
+            </div>
+            <div class="text-sm text-gray-600">
+              Total Records: <span class="font-semibold text-gray-800">{sampleReportData.length}</span>
+            </div>
+          </div>
+
+          {/* AG Grid */}
+          <div class="flex-1 px-6 py-4 overflow-hidden">
+            <div class="ag-theme-alpine h-full w-full">
+              <AgGridSolid
+                columnDefs={[
+                  { field: 'no', headerName: 'NO', width: 70, pinned: 'left', filter: 'agNumberColumnFilter' },
+                  { field: 'area', headerName: 'AREA', width: 90, pinned: 'left', filter: 'agTextColumnFilter' },
+                  { field: 'ktrl', headerName: 'KTRL', width: 90, filter: 'agTextColumnFilter' },
+                  { field: 'mitraPelaksana', headerName: 'MITRA PELAKSANA', width: 150, filter: 'agTextColumnFilter' },
+                  { field: 'linkRuas', headerName: 'LINK/RUAS', width: 300, filter: 'agTextColumnFilter' },
+                  { field: 'volumePhm', headerName: 'VOLUME (PHM)', width: 130, filter: 'agNumberColumnFilter', valueFormatter: (params: any) => params.value?.toLocaleString() },
+                  
+                  // Progres Galian/Boring Manual (BO/DG) & Roding
+                  { 
+                    headerName: 'PROGRES GALIAN/BORING MANUAL (BO/DG) & RODING', 
+                    children: [
+                      { field: 'progresGalianBoringManual.plan', headerName: 'PLAN', width: 110, filter: 'agNumberColumnFilter', valueFormatter: (params: any) => params.value?.toLocaleString() },
+                      { field: 'progresGalianBoringManual.actual', headerName: 'ACTUAL', width: 110, filter: 'agNumberColumnFilter', valueFormatter: (params: any) => params.value?.toLocaleString() },
+                      { field: 'progresGalianBoringManual.sisa', headerName: 'SISA', width: 110, filter: 'agNumberColumnFilter', valueFormatter: (params: any) => params.value?.toLocaleString() },
+                      { field: 'progresGalianBoringManual.percentage', headerName: '%', width: 80, filter: 'agNumberColumnFilter', valueFormatter: (params: any) => `${params.value}%` },
+                    ]
+                  },
+
+                  // Penanaman HDPE
+                  { 
+                    headerName: 'PENANAMAN HDPE', 
+                    children: [
+                      { field: 'penambahanHdpe.plan', headerName: 'PLAN', width: 110, filter: 'agNumberColumnFilter', valueFormatter: (params: any) => params.value?.toLocaleString() },
+                      { field: 'penambahanHdpe.actual', headerName: 'ACTUAL', width: 110, filter: 'agNumberColumnFilter', valueFormatter: (params: any) => params.value?.toLocaleString() },
+                      { field: 'penambahanHdpe.sisa', headerName: 'SISA', width: 110, filter: 'agNumberColumnFilter', valueFormatter: (params: any) => params.value?.toLocaleString() },
+                      { field: 'penambahanHdpe.percentage', headerName: '%', width: 80, filter: 'agNumberColumnFilter', valueFormatter: (params: any) => `${params.value}%` },
+                    ]
+                  },
+
+                  // Penambahan Tiang
+                  { 
+                    headerName: 'PENAMBAHAN TIANG', 
+                    children: [
+                      { field: 'penambahanTiang.plan', headerName: 'PLAN', width: 110, filter: 'agNumberColumnFilter', valueFormatter: (params: any) => params.value?.toLocaleString() },
+                      { field: 'penambahanTiang.actual', headerName: 'ACTUAL (SBT)', width: 130, filter: 'agNumberColumnFilter', valueFormatter: (params: any) => params.value?.toLocaleString() },
+                      { field: 'penambahanTiang.sisa', headerName: 'SISA', width: 110, filter: 'agNumberColumnFilter', valueFormatter: (params: any) => params.value?.toLocaleString() },
+                      { field: 'penambahanTiang.percentage', headerName: '%', width: 80, filter: 'agNumberColumnFilter', valueFormatter: (params: any) => `${params.value}%` },
+                    ]
+                  },
+
+                  // Konstruksi Alur Jembatan
+                  { 
+                    headerName: 'KONSTRUKSI ALUR JEMBATAN', 
+                    children: [
+                      { field: 'konstruksiAlurJembatan.plan', headerName: 'PLAN', width: 110, filter: 'agNumberColumnFilter', valueFormatter: (params: any) => params.value?.toLocaleString() },
+                      { field: 'konstruksiAlurJembatan.actual', headerName: 'ACTUAL (SBT)', width: 130, filter: 'agNumberColumnFilter', valueFormatter: (params: any) => params.value?.toLocaleString() },
+                      { field: 'konstruksiAlurJembatan.sisa', headerName: 'SISA', width: 110, filter: 'agNumberColumnFilter', valueFormatter: (params: any) => params.value?.toLocaleString() },
+                      { field: 'konstruksiAlurJembatan.percentage', headerName: '%', width: 80, filter: 'agNumberColumnFilter', valueFormatter: (params: any) => `${params.value}%` },
+                    ]
+                  },
+
+                  // Handhole
+                  { 
+                    headerName: 'HANDHOLE', 
+                    children: [
+                      { field: 'handhole.plan', headerName: 'PLAN (UNIT)', width: 120, filter: 'agTextColumnFilter' },
+                      { field: 'handhole.actual', headerName: 'ACTUAL (SBT)', width: 130, filter: 'agTextColumnFilter' },
+                      { field: 'handhole.sisa', headerName: 'SISA', width: 110, filter: 'agTextColumnFilter' },
+                      { field: 'handhole.percentage', headerName: '%', width: 80, filter: 'agNumberColumnFilter', valueFormatter: (params: any) => `${params.value}%` },
+                    ]
+                  },
+
+                  // Jointing & Terminasi
+                  { 
+                    headerName: 'JOINTING & TERMINASI', 
+                    children: [
+                      { field: 'jointingTerminasi.plan', headerName: 'PLAN (UNIT)', width: 120, filter: 'agTextColumnFilter' },
+                      { field: 'jointingTerminasi.actual', headerName: 'ACTUAL (SBT)', width: 130, filter: 'agTextColumnFilter' },
+                      { field: 'jointingTerminasi.sisa', headerName: 'SISA', width: 110, filter: 'agTextColumnFilter' },
+                      { field: 'jointingTerminasi.percentage', headerName: '%', width: 80, filter: 'agNumberColumnFilter', valueFormatter: (params: any) => `${params.value}%` },
+                    ]
+                  },
+
+                  { field: 'nocApft', headerName: 'NOC APFT', width: 110, filter: 'agTextColumnFilter' },
+                  { field: 'persentaseRealisasiKonstruksi', headerName: 'PERSENTASE REALISASI KONSTRUKSI (%)', width: 180, filter: 'agNumberColumnFilter', valueFormatter: (params: any) => `${params.value}%` },
+                  { field: 'planTargetTi', headerName: 'PLAN TARGET TI', width: 140, filter: 'agTextColumnFilter' },
+                  { field: 'nilaiOdm', headerName: 'NILAI ODM', width: 120, filter: 'agTextColumnFilter' },
+                  { field: 'volumeRekon', headerName: 'VOLUME REKON', width: 130, filter: 'agNumberColumnFilter', valueFormatter: (params: any) => params.value?.toLocaleString() },
+                  { field: 'nilaiRekon', headerName: 'NILAI REKON', width: 120, filter: 'agTextColumnFilter' },
+                  { field: 'deviasi', headerName: 'DEVIASI', width: 110, pinned: 'right', filter: 'agNumberColumnFilter', valueFormatter: (params: any) => params.value?.toLocaleString() },
+                ]}
+                rowData={sampleReportData}
+                onGridReady={(params: any) => setReportGridApi(params.api)}
+                defaultColDef={{
+                  sortable: true,
+                  filter: true,
+                  resizable: true,
+                  floatingFilter: true,
+                }}
+                pagination={true}
+                paginationPageSize={20}
+                paginationPageSizeSelector={[10, 20, 50, 100]}
+                enableCellTextSelection={true}
+                suppressRowClickSelection={true}
+                enableRangeSelection={true}
+                rowHeight={45}
+                headerHeight={56}
+                sideBar={{
+                  toolPanels: [
+                    {
+                      id: 'filters',
+                      labelDefault: 'Filters',
+                      labelKey: 'filters',
+                      iconKey: 'filter',
+                      toolPanel: 'agFiltersToolPanel',
+                    },
+                    {
+                      id: 'columns',
+                      labelDefault: 'Columns',
+                      labelKey: 'columns',
+                      iconKey: 'columns',
+                      toolPanel: 'agColumnsToolPanel',
+                    },
+                  ],
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </Show>
+    </>
   );
 }
