@@ -1,5 +1,7 @@
 import { createSignal, For, Show } from 'solid-js';
-import type { ProjectHierarchyProject,  Lokasi } from '../types';
+import AgGridSolid from 'ag-grid-solid';
+import type { ColDef } from 'ag-grid-community';
+import type { ProjectHierarchyProject, Lokasi } from '../types';
 import LokasiDetailModal from '../components/LokasiDetailModal';
 
 interface Props {
@@ -25,6 +27,116 @@ export default function ProjectDetail(props: Props) {
     setSelectedLokasi(l);
     setShowLokasiModal(true);
   }
+
+  // Column definitions untuk lokasi table
+  const lokasiColumnDefs: ColDef[] = [
+    { field: 'kode', headerName: 'Kode', width: 120, filter: true, floatingFilter: true },
+    { field: 'mitra', headerName: 'Mitra', flex: 1, minWidth: 180, filter: true, floatingFilter: true },
+    { field: 'witel', headerName: 'Witel', width: 130, filter: true, floatingFilter: true },
+    { field: 'siteName', headerName: 'Site Name', flex: 1, minWidth: 180, filter: true, floatingFilter: true },
+    { 
+      field: 'ruasCount', 
+      headerName: 'Jumlah Ruas', 
+      width: 130,
+      valueGetter: (params: any) => params.data.ruasKontraks?.length || 0,
+      cellRenderer: (params: any) => {
+        const count = params.value || 0;
+        const el = document.createElement('span');
+        el.className = 'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800';
+        el.textContent = `${count} Ruas`;
+        return el;
+      }
+    },
+    {
+      field: 'action',
+      headerName: 'Action',
+      width: 120,
+      pinned: 'right',
+      filter: false,
+      cellRenderer: (params: any) => {
+        const el = document.createElement('div');
+        el.className = 'flex justify-center';
+        const btn = document.createElement('button');
+        btn.className = 'px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs rounded-lg transition-colors shadow-sm font-medium';
+        btn.textContent = 'View Detail';
+        btn.onclick = () => {
+          const ev = new CustomEvent('lokasi-view-detail', { detail: params.data });
+          window.dispatchEvent(ev);
+        };
+        el.appendChild(btn);
+        return el;
+      }
+    }
+  ];
+
+  // Listen for lokasi detail event
+  window.addEventListener('lokasi-view-detail', (e: any) => {
+    openLokasi(e.detail);
+  });
+
+  // Milestone data sample
+  const milestoneData = [
+    {
+      id: 1,
+      no: 1,
+      milestone: 'Mobilisasi',
+      level: 'High',
+      activity: 'Persiapan',
+      remark: 'OK',
+      eventPoint: '2024-10-01'
+    },
+    {
+      id: 2,
+      no: 2,
+      milestone: 'Penggalian',
+      level: 'Medium',
+      activity: 'On Going',
+      remark: 'Delay',
+      eventPoint: '2024-11-15'
+    }
+  ];
+
+  // Column definitions untuk milestone table
+  const milestoneColumnDefs: ColDef[] = [
+    { field: 'no', headerName: 'No', width: 80 },
+    { field: 'milestone', headerName: 'Milestone', width: 150, filter: true },
+    { 
+      field: 'level', 
+      headerName: 'Level', 
+      width: 120,
+      cellRenderer: (params: any) => {
+        const level = params.value;
+        const el = document.createElement('span');
+        el.className = `inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
+          level === 'High' 
+            ? 'bg-red-100 text-red-800' 
+            : level === 'Medium'
+            ? 'bg-yellow-100 text-yellow-800'
+            : 'bg-green-100 text-green-800'
+        }`;
+        el.textContent = level;
+        return el;
+      }
+    },
+    { field: 'activity', headerName: 'Activity', width: 150, filter: true },
+    { 
+      field: 'remark', 
+      headerName: 'Remark', 
+      width: 120,
+      cellRenderer: (params: any) => {
+        const remark = params.value;
+        const el = document.createElement('span');
+        el.className = `inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
+          remark === 'OK' 
+            ? 'bg-green-100 text-green-800' 
+            : 'bg-orange-100 text-orange-800'
+        }`;
+        el.textContent = remark;
+        return el;
+      }
+    },
+    { field: 'eventPoint', headerName: 'Event Point', width: 130 }
+  ];
 
   return (
     <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
@@ -121,44 +233,17 @@ export default function ProjectDetail(props: Props) {
 
                       <Show when={expandedAreaIds().includes(pa.id)}>
                         <div class="p-4">
-                          <div class="rounded-lg border border-gray-200 overflow-hidden">
-                            <table class="w-full border-collapse">
-                              <thead>
-                                <tr class="bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-200">
-                                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Kode</th>
-                                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Mitra</th>
-                                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Witel</th>
-                                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Site Name</th>
-                                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Jumlah Ruas</th>
-                                  <th class="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Action</th>
-                                </tr>
-                              </thead>
-                              <tbody class="bg-white divide-y divide-gray-200">
-                                <For each={pa.lokasis}>
-                                  {(l) => (
-                                    <tr class="hover:bg-blue-50 transition-colors">
-                                      <td class="px-4 py-3 text-sm text-gray-900 font-medium">{l.kode}</td>
-                                      <td class="px-4 py-3 text-sm text-gray-900">{l.mitra}</td>
-                                      <td class="px-4 py-3 text-sm text-gray-900">{l.witel}</td>
-                                      <td class="px-4 py-3 text-sm text-gray-900">{l.siteName}</td>
-                                      <td class="px-4 py-3 text-sm">
-                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
-                                          {l.ruasKontraks.length} Ruas
-                                        </span>
-                                      </td>
-                                      <td class="px-4 py-3 text-center">
-                                        <button 
-                                          class="px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-sm rounded-lg transition-colors shadow-sm font-medium"
-                                          onClick={() => openLokasi(l)}
-                                        >
-                                          View Detail
-                                        </button>
-                                      </td>
-                                    </tr>
-                                  )}
-                                </For>
-                              </tbody>
-                            </table>
+                          <div class="ag-theme-alpine" style="height: 300px; width: 100%;">
+                            <AgGridSolid
+                              columnDefs={lokasiColumnDefs}
+                              rowData={pa.lokasis}
+                              defaultColDef={{
+                                sortable: true,
+                                resizable: true,
+                              }}
+                              pagination={true}
+                              paginationPageSize={10}
+                            />
                           </div>
                         </div>
                       </Show>
@@ -172,53 +257,16 @@ export default function ProjectDetail(props: Props) {
 
         <Show when={activeTab() === 'milestone'}>
           <div>
-            <div class="rounded-lg border border-gray-200 overflow-hidden shadow-sm">
-              <table class="w-full border-collapse">
-                <thead>
-                  <tr class="bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-200">
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">No</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Milestone</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Level</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Activity</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Remark</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Event Point</th>
-                  </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                  <tr class="hover:bg-blue-50 transition-colors">
-                    <td class="px-4 py-3 text-sm text-gray-900 font-medium">1</td>
-                    <td class="px-4 py-3 text-sm text-gray-900">Mobilisasi</td>
-                    <td class="px-4 py-3 text-sm">
-                      <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800">
-                        High
-                      </span>
-                    </td>
-                    <td class="px-4 py-3 text-sm text-gray-900">Persiapan</td>
-                    <td class="px-4 py-3 text-sm">
-                      <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
-                        OK
-                      </span>
-                    </td>
-                    <td class="px-4 py-3 text-sm text-gray-900">2024-10-01</td>
-                  </tr>
-                  <tr class="hover:bg-blue-50 transition-colors">
-                    <td class="px-4 py-3 text-sm text-gray-900 font-medium">2</td>
-                    <td class="px-4 py-3 text-sm text-gray-900">Penggalian</td>
-                    <td class="px-4 py-3 text-sm">
-                      <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">
-                        Medium
-                      </span>
-                    </td>
-                    <td class="px-4 py-3 text-sm text-gray-900">On Going</td>
-                    <td class="px-4 py-3 text-sm">
-                      <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-800">
-                        Delay
-                      </span>
-                    </td>
-                    <td class="px-4 py-3 text-sm text-gray-900">2024-11-15</td>
-                  </tr>
-                </tbody>
-              </table>
+            <div class="ag-theme-alpine" style="height: 200px; width: 100%;">
+              <AgGridSolid
+                columnDefs={milestoneColumnDefs}
+                rowData={milestoneData}
+                defaultColDef={{
+                  sortable: true,
+                  resizable: true,
+                }}
+                domLayout="autoHeight"
+              />
             </div>
           </div>
         </Show>
