@@ -1,18 +1,26 @@
 import { createSignal, For, Show } from 'solid-js';
 import AgGridSolid from 'ag-grid-solid';
-import type { ColDef } from 'ag-grid-community';
+import type { ColDef, GridApi } from 'ag-grid-community';
 import type { Lokasi } from '../types';
 import BOQTree from '../components/BOQTree';
 
 interface Props {
   lokasi: Lokasi | null | undefined;
   onClose: () => void;
+  onRuasGridReady?: (api: GridApi) => void;
 }
 
 export default function LokasiDetailModal(props: Props) {
   const [expandedRuas, setExpandedRuas] = createSignal<string | null>(null);
 
   if (!props.lokasi) return null as any;
+
+  // Grid API ready handler
+  const onRuasGridReady = (params: any) => {
+    if (props.onRuasGridReady) {
+      props.onRuasGridReady(params.api);
+    }
+  };
 
   // Column definitions untuk ruas kontrak table
   const ruasColumnDefs: ColDef[] = [
@@ -142,6 +150,7 @@ export default function LokasiDetailModal(props: Props) {
                 resizable: true,
               }}
               domLayout="autoHeight"
+              onGridReady={onRuasGridReady}
             />
           </div>
 

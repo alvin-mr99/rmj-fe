@@ -1347,24 +1347,6 @@ export function RMJModal(props: RMJModalProps) {
                           Open Filters
                         </span>
                       </button>
-
-                      <button
-                        class="group relative p-2 rounded-lg bg-white border-2 border-gray-300 hover:bg-gray-50 hover:border-gray-400 transition-all shadow-sm"
-                        onClick={() => {
-                          const api = gridApi();
-                          if (api) {
-                            api.openToolPanel('columns');
-                          }
-                        }}
-                        title="Columns"
-                      >
-                        <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
-                        </svg>
-                        <span class="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
-                          Manage Columns
-                        </span>
-                      </button>
                     </div>
                   </div>
                 </div>

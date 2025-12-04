@@ -4,7 +4,7 @@ import type { ColDef, GridApi } from 'ag-grid-community';
 import mockProjects from '../data/mockProjects';
 import type { ProjectHierarchyProject } from '../types';
 import ProjectDetail from '../components/ProjectDetail';
-import * as XLSX from 'xlsx';
+import { ColumnTemplateManager } from './ColumnTemplateManager';
 
 export default function ProjectGrid() {
   const [projects] = createSignal<ProjectHierarchyProject[]>(mockProjects);
@@ -43,11 +43,13 @@ export default function ProjectGrid() {
     },
   ]);
 
-  const [ setGridApi] = createSignal<GridApi | null>(null);
+  const [gridApi, setGridApi] = createSignal<GridApi | null>(null);
   const [selectedProjectId, setSelectedProjectId] = createSignal<string | null>(null);
+  const [showColumnSettings, setShowColumnSettings] = createSignal(false);
 
   const onGridReady = (params: any) => {
-    setGridApi();
+    setGridApi(params.api);
+    
     // make columns fit available width so header has no empty right space
     try {
       params.api.sizeColumnsToFit();
@@ -71,28 +73,22 @@ export default function ProjectGrid() {
     setSelectedProjectId(e.detail);
   });
 
-  // const handleExport = () => {
-  //   const data = projects().map(p => ({
-  //     id: p.id,
-  //     noKontrak: p.noKontrak,
-  //     namaKontrak: p.namaKontrak,
-  //     treg: p.treg,
-  //     tahunProject: p.tahunProject,
-  //     program: p.program,
-  //     regional: p.regional,
-  //     planRFS: p.planRFS,
-  //     currentMilestone: p.currentMilestone,
-  //   }));
-  //   const ws = XLSX.utils.json_to_sheet(data);
-  //   const wb = XLSX.utils.book_new();
-  //   XLSX.utils.book_append_sheet(wb, ws, 'Projects');
-  //   XLSX.writeFile(wb, `RMJ_Projects_${new Date().toISOString().split('T')[0]}.xlsx`);
-  // };
-
   const selectedProject = () => projects().find(p => p.id === selectedProjectId());
 
   return (
     <div class="w-full">
+      {/* Column Settings Button */}
+      <div class="mb-3 flex justify-end">
+        <button
+          onClick={() => setShowColumnSettings(true)}
+          class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors font-medium text-sm shadow-sm flex items-center gap-2"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+          </svg>
+          Column Settings
+        </button>
+      </div>
 
       <div class="ag-theme-alpine h-64 w-full">
         <AgGridSolid
@@ -110,6 +106,20 @@ export default function ProjectGrid() {
       <Show when={selectedProjectId()}>
         <div class="mt-4">
           <ProjectDetail project={selectedProject()!} onClose={() => setSelectedProjectId(null)} />
+        </div>
+      </Show>
+
+      {/* Column Settings Modal */}
+      <Show when={showColumnSettings()}>
+        <div class="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4">
+          <div class="bg-white rounded-xl w-[90vw] max-w-4xl h-[85vh] flex flex-col overflow-hidden shadow-2xl">
+            <ColumnTemplateManager
+              gridApi={gridApi()}
+              tableType="project"
+              tableLabel="Tabel Project"
+              onClose={() => setShowColumnSettings(false)}
+            />
+          </div>
         </div>
       </Show>
     </div>
