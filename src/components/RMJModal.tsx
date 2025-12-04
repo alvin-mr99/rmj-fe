@@ -101,25 +101,16 @@ interface RMJModalProps {
   userEmail?: string;
 }
 
-// Project data type
-interface Project {
-  id: string;
-  name: string;
-  year: string;
-  program: string;
-  description: string;
-}
-
 export function RMJModal(props: RMJModalProps) {
   console.log('RMJModal rendered, isOpen:', props.isOpen);
 
   const [activeTab, setActiveTab] = createSignal<'sitelist' | 'settings' | 'users'>('sitelist');
   const [searchQuery, setSearchQuery] = createSignal('');
-  const [gridApi, setGridApi] = createSignal<GridApi | null>(null);
-  const [isGridReady, setIsGridReady] = createSignal(false);
+  const [gridApi] = createSignal<GridApi | null>(null);
+  const [isGridReady] = createSignal(false);
 
   // Project Selection State
-  const [selectedProject, setSelectedProject] = createSignal<string>('project1');
+  const [selectedProject] = createSignal<string>('project1');
 
   // User Management State
   const [showUserForm, setShowUserForm] = createSignal(false);
@@ -142,31 +133,6 @@ export function RMJModal(props: RMJModalProps) {
   // Report RMJ State
   const [showReportRMJ, setShowReportRMJ] = createSignal(false);
   const [reportGridApi, setReportGridApi] = createSignal<GridApi | null>(null);
-
-  // Projects data
-  const projects: Project[] = [
-    {
-      id: 'project1',
-      name: 'PROJECT_SITELIST / UNIXID',
-      year: '2023',
-      program: 'Ant_leveling',
-      description: 'COAD12-Ant_leveling-2023',
-    },
-    {
-      id: 'project2',
-      name: 'New_Combat',
-      year: '2024',
-      program: 'CD036',
-      description: 'New_Combat-CD036-2024',
-    },
-    {
-      id: 'project3',
-      name: 'Infrastructure_Upgrade',
-      year: '2024',
-      program: 'INF_UPG',
-      description: 'Infrastructure-Upgrade-2024',
-    },
-  ];
 
   // Sample data for Project 1
   const sampleDataProject1: RMJSitelistRow[] = [
