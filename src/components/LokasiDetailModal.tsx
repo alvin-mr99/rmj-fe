@@ -1,5 +1,5 @@
 import { createSignal, For, Show } from 'solid-js';
-import type { Lokasi, RuasKontrak } from '../types';
+import type { Lokasi } from '../types';
 import BOQTree from '../components/BOQTree';
 
 interface Props {

@@ -1,4 +1,4 @@
-import { createSignal, For, Show } from 'solid-js';
+import { createSignal,  Show } from 'solid-js';
 import AgGridSolid from 'ag-grid-solid';
 import type { ColDef, GridApi } from 'ag-grid-community';
 import mockProjects from '../data/mockProjects';
@@ -43,11 +43,11 @@ export default function ProjectGrid() {
     },
   ]);
 
-  const [gridApi, setGridApi] = createSignal<GridApi | null>(null);
+  const [ setGridApi] = createSignal<GridApi | null>(null);
   const [selectedProjectId, setSelectedProjectId] = createSignal<string | null>(null);
 
   const onGridReady = (params: any) => {
-    setGridApi(params.api);
+    setGridApi();
     // make columns fit available width so header has no empty right space
     try {
       params.api.sizeColumnsToFit();
