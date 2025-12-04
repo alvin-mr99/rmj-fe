@@ -1,5 +1,5 @@
 import { createSignal, For, Show } from 'solid-js';
-import type { BOQItem, Segmentasi } from '../types';
+import type { BOQItem } from '../types';
 
 interface Props {
   boqCustomers: BOQItem[];

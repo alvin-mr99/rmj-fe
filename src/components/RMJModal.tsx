@@ -115,8 +115,8 @@ export function RMJModal(props: RMJModalProps) {
   
   const [activeTab, setActiveTab] = createSignal<'sitelist' | 'settings' | 'users'>('sitelist');
   const [searchQuery, setSearchQuery] = createSignal('');
-  const [gridApi, setGridApi] = createSignal<GridApi | null>(null);
-  const [isGridReady, setIsGridReady] = createSignal(false);
+  const [gridApi] = createSignal<GridApi | null>(null);
+  const [isGridReady] = createSignal(false);
   
   // Project Selection State
   const [selectedProject, setSelectedProject] = createSignal<string>('project1');
@@ -465,88 +465,88 @@ export function RMJModal(props: RMJModalProps) {
     },
   ]);
 
-  const gridOptions: GridOptions = {
-    defaultColDef: {
-      sortable: true,
-      filter: true,
-      resizable: true,
-      editable: true,
-      floatingFilter: true,
-      enableRowGroup: true,
-      enablePivot: true,
-      enableValue: true,
-      minWidth: 100,
-    },
-    rowSelection: 'multiple',
-    pagination: true,
-    paginationPageSize: 15,
-    paginationPageSizeSelector: [15, 50, 100, 500],
-    enableCellTextSelection: true,
-    suppressRowClickSelection: true,
-    enableRangeSelection: true,
-    enableCharts: true,
-    enableAdvancedFilter: true,
-    rowGroupPanelShow: 'always',
-    pivotPanelShow: 'always',
-    animateRows: true,
-    enableFillHandle: true,
-    undoRedoCellEditing: true,
-    undoRedoCellEditingLimit: 20,
-    rowHeight: 50,
-    headerHeight: 56,
-  };
+  // const gridOptions: GridOptions = {
+  //   defaultColDef: {
+  //     sortable: true,
+  //     filter: true,
+  //     resizable: true,
+  //     editable: true,
+  //     floatingFilter: true,
+  //     enableRowGroup: true,
+  //     enablePivot: true,
+  //     enableValue: true,
+  //     minWidth: 100,
+  //   },
+  //   rowSelection: 'multiple',
+  //   pagination: true,
+  //   paginationPageSize: 15,
+  //   paginationPageSizeSelector: [15, 50, 100, 500],
+  //   enableCellTextSelection: true,
+  //   suppressRowClickSelection: true,
+  //   enableRangeSelection: true,
+  //   enableCharts: true,
+  //   enableAdvancedFilter: true,
+  //   rowGroupPanelShow: 'always',
+  //   pivotPanelShow: 'always',
+  //   animateRows: true,
+  //   enableFillHandle: true,
+  //   undoRedoCellEditing: true,
+  //   undoRedoCellEditingLimit: 20,
+  //   rowHeight: 50,
+  //   headerHeight: 56,
+  // };
 
   // Enhanced context menu configuration
-  const getContextMenuItems = (params: any): any[] => {
-    const result: any[] = [
-      {
-        name: 'Edit Row',
-        icon: '<span class="ag-icon ag-icon-edit"></span>',
-        action: () => {
-          console.log('Edit row:', params.node.data);
-          alert(`Editing row: ${params.node.data.unixId}`);
-        },
-      },
-      'separator' as const,
-      'copy' as const,
-      'copyWithHeaders' as const,
-      'copyWithGroupHeaders' as const,
-      'paste' as const,
-      'separator' as const,
-      {
-        name: 'Export',
-        icon: '<span class="ag-icon ag-icon-save"></span>',
-        subMenu: [
-          'csvExport' as const,
-          'excelExport' as const,
-        ],
-      },
-      'separator' as const,
-      {
-        name: 'Chart',
-        icon: '<span class="ag-icon ag-icon-chart"></span>',
-        subMenu: [
-          'chartRange' as const,
-        ],
-      },
-      'separator' as const,
-      {
-        name: 'Delete Row',
-        icon: '<span class="ag-icon ag-icon-cross"></span>',
-        cssClasses: ['red-item'],
-        action: () => {
-          if (confirm('Delete this row?')) {
-            const api = gridApi();
-            if (api) {
-              api.applyTransaction({ remove: [params.node.data] });
-              setRowData(rowData().filter(row => row.unixId !== params.node.data.unixId));
-            }
-          }
-        },
-      },
-    ];
-    return result;
-  };
+  // const getContextMenuItems = (params: any): any[] => {
+  //   const result: any[] = [
+  //     {
+  //       name: 'Edit Row',
+  //       icon: '<span class="ag-icon ag-icon-edit"></span>',
+  //       action: () => {
+  //         console.log('Edit row:', params.node.data);
+  //         alert(`Editing row: ${params.node.data.unixId}`);
+  //       },
+  //     },
+  //     'separator' as const,
+  //     'copy' as const,
+  //     'copyWithHeaders' as const,
+  //     'copyWithGroupHeaders' as const,
+  //     'paste' as const,
+  //     'separator' as const,
+  //     {
+  //       name: 'Export',
+  //       icon: '<span class="ag-icon ag-icon-save"></span>',
+  //       subMenu: [
+  //         'csvExport' as const,
+  //         'excelExport' as const,
+  //       ],
+  //     },
+  //     'separator' as const,
+  //     {
+  //       name: 'Chart',
+  //       icon: '<span class="ag-icon ag-icon-chart"></span>',
+  //       subMenu: [
+  //         'chartRange' as const,
+  //       ],
+  //     },
+  //     'separator' as const,
+  //     {
+  //       name: 'Delete Row',
+  //       icon: '<span class="ag-icon ag-icon-cross"></span>',
+  //       cssClasses: ['red-item'],
+  //       action: () => {
+  //         if (confirm('Delete this row?')) {
+  //           const api = gridApi();
+  //           if (api) {
+  //             api.applyTransaction({ remove: [params.node.data] });
+  //             setRowData(rowData().filter(row => row.unixId !== params.node.data.unixId));
+  //           }
+  //         }
+  //       },
+  //     },
+  //   ];
+  //   return result;
+  // };
 
   // Sample users data - expanded for better demo
   const sampleUsers: RMJUser[] = [
@@ -754,19 +754,18 @@ export function RMJModal(props: RMJModalProps) {
   });
 
   // Grid event handlers
-  const onGridReady = (params: any) => {
-    console.log('=== Grid Ready Event ===');
-    console.log('Row data count:', rowData().length);
-    console.log('Sample data:', rowData());
+  // const onGridReady = (params: any) => {
+  //   console.log('=== Grid Ready Event ===');
+  //   console.log('Row data count:', rowData().length);
+  //   console.log('Sample data:', rowData());
     
-    setGridApi(params.api);
-    setIsGridReady(true);
+  //   setGridApi(params.api);
+  //   setIsGridReady(true);
+     
+  //   params.api.setGridOption('rowData', rowData());
     
-    // Set data immediately
-    params.api.setGridOption('rowData', rowData());
-    
-    console.log('Grid initialized successfully');
-  };
+  //   console.log('Grid initialized successfully');
+  // };
 
   // Export to Excel
   const handleExport = () => {

@@ -1,5 +1,5 @@
 import { createSignal, For, Show } from 'solid-js';
-import type { ProjectHierarchyProject, PaketArea, Lokasi } from '../types';
+import type { ProjectHierarchyProject,  Lokasi } from '../types';
 import LokasiDetailModal from '../components/LokasiDetailModal';
 
 interface Props {
