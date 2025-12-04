@@ -29,17 +29,17 @@ export default function ProjectDetail(props: Props) {
   return (
     <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
       {/* Header */}
-      <div class="flex items-start justify-between px-6 py-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200">
+      <div class="flex items-start justify-between px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200">
         <div>
-          <h4 class="text-xl font-bold text-gray-800">Detail Kontrak: {props.project.namaKontrak}</h4>
-          <p class="text-sm text-gray-600 mt-1">
+          <h4 class="text-lg font-bold text-gray-800">Detail Kontrak: {props.project.namaKontrak}</h4>
+          <p class="text-xs text-gray-600 mt-0.5">
             <span class="font-medium">No Kontrak:</span> {props.project.noKontrak} • 
             <span class="font-medium ml-2">TREG:</span> {props.project.treg} • 
             <span class="font-medium ml-2">Area:</span> {props.project.area}
           </p>
         </div>
         <button 
-          class="px-4 py-2 bg-white hover:bg-gray-100 text-gray-700 rounded-lg transition-colors shadow-sm border border-gray-200 font-medium"
+          class="px-3 py-1.5 text-sm bg-white hover:bg-gray-100 text-gray-700 rounded-lg transition-colors shadow-sm border border-gray-200 font-medium"
           onClick={props.onClose}
         >
           Close
@@ -47,10 +47,10 @@ export default function ProjectDetail(props: Props) {
       </div>
 
       {/* Tabs */}
-      <div class="px-6 pt-4">
+      <div class="px-4 pt-3">
         <div class="flex gap-2 border-b border-gray-200">
           <button 
-            class={`px-4 py-2.5 text-sm font-medium rounded-t-lg transition-all ${
+            class={`px-3 py-1.5 text-xs font-medium rounded-t-lg transition-all ${
               activeTab() === 'detail' 
                 ? 'bg-blue-500 text-white shadow-sm' 
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -60,7 +60,7 @@ export default function ProjectDetail(props: Props) {
             📋 Detail Kontrak
           </button>
           <button 
-            class={`px-4 py-2.5 text-sm font-medium rounded-t-lg transition-all ${
+            class={`px-3 py-1.5 text-xs font-medium rounded-t-lg transition-all ${
               activeTab() === 'milestone' 
                 ? 'bg-blue-500 text-white shadow-sm' 
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -73,27 +73,27 @@ export default function ProjectDetail(props: Props) {
       </div>
 
       {/* Content */}
-      <div class="px-6 py-4">
+      <div class="px-4 py-3">
         <Show when={activeTab() === 'detail'}>
           <div>
-            <div class="grid grid-cols-3 gap-4 mb-6">
-              <div class="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200">
+            <div class="grid grid-cols-3 gap-3 mb-4">
+              <div class="bg-gradient-to-br from-blue-50 to-blue-100 p-3 rounded-lg border border-blue-200">
                 <div class="text-xs text-blue-600 font-semibold mb-1">Nama Kontrak</div>
-                <div class="text-sm font-bold text-gray-800">{props.project.namaKontrak}</div>
+                <div class="text-xs font-bold text-gray-800">{props.project.namaKontrak}</div>
               </div>
-              <div class="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-lg border border-purple-200">
+              <div class="bg-gradient-to-br from-purple-50 to-purple-100 p-3 rounded-lg border border-purple-200">
                 <div class="text-xs text-purple-600 font-semibold mb-1">Program</div>
-                <div class="text-sm font-bold text-gray-800">{props.project.program}</div>
+                <div class="text-xs font-bold text-gray-800">{props.project.program}</div>
               </div>
-              <div class="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-lg border border-green-200">
+              <div class="bg-gradient-to-br from-green-50 to-green-100 p-3 rounded-lg border border-green-200">
                 <div class="text-xs text-green-600 font-semibold mb-1">Plan RFS</div>
-                <div class="text-sm font-bold text-gray-800">{props.project.planRFS}</div>
+                <div class="text-xs font-bold text-gray-800">{props.project.planRFS}</div>
               </div>
             </div>
 
             <div>
-              <h5 class="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <h5 class="text-sm font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                 </svg>
                 Paket Area

@@ -9,18 +9,18 @@ import * as XLSX from 'xlsx';
 export default function ProjectGrid() {
   const [projects] = createSignal<ProjectHierarchyProject[]>(mockProjects);
   const [columnDefs] = createSignal<ColDef[]>([
-    { field: 'tahunProject', headerName: 'Tahun Project', width: 130 },
-    { field: 'program', headerName: 'Program', width: 160 },
-    { field: 'noKontrak', headerName: 'No Kontrak', width: 180 },
-    { field: 'regional', headerName: 'Regional', width: 140 },
-    { field: 'treg', headerName: 'TREG', width: 120 },
-    { field: 'planRFS', headerName: 'Plan RFS', width: 130 },
-    { field: 'currentMilestone', headerName: 'Current Milestone', width: 160 },
+    { field: 'tahunProject', headerName: 'Tahun Proj...', width: 110 },
+    { field: 'program', headerName: 'Program', width: 150 },
+    { field: 'noKontrak', headerName: 'No Kontrak', width: 140 },
+    { field: 'regional', headerName: 'Regional', width: 130 },
+    { field: 'treg', headerName: 'TREG', width: 90 },
+    { field: 'planRFS', headerName: 'Plan RFS', width: 120 },
+    { field: 'currentMilestone', headerName: 'Current Milestone', flex: 1, minWidth: 150 },
     {
       field: 'action',
       headerName: 'Action',
       pinned: 'right',
-      width: 140,
+      width: 120,
       editable: false,
       filter: false,
       floatingFilter: false,
@@ -71,34 +71,28 @@ export default function ProjectGrid() {
     setSelectedProjectId(e.detail);
   });
 
-  const handleExport = () => {
-    const data = projects().map(p => ({
-      id: p.id,
-      noKontrak: p.noKontrak,
-      namaKontrak: p.namaKontrak,
-      treg: p.treg,
-      tahunProject: p.tahunProject,
-      program: p.program,
-      regional: p.regional,
-      planRFS: p.planRFS,
-      currentMilestone: p.currentMilestone,
-    }));
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Projects');
-    XLSX.writeFile(wb, `RMJ_Projects_${new Date().toISOString().split('T')[0]}.xlsx`);
-  };
+  // const handleExport = () => {
+  //   const data = projects().map(p => ({
+  //     id: p.id,
+  //     noKontrak: p.noKontrak,
+  //     namaKontrak: p.namaKontrak,
+  //     treg: p.treg,
+  //     tahunProject: p.tahunProject,
+  //     program: p.program,
+  //     regional: p.regional,
+  //     planRFS: p.planRFS,
+  //     currentMilestone: p.currentMilestone,
+  //   }));
+  //   const ws = XLSX.utils.json_to_sheet(data);
+  //   const wb = XLSX.utils.book_new();
+  //   XLSX.utils.book_append_sheet(wb, ws, 'Projects');
+  //   XLSX.writeFile(wb, `RMJ_Projects_${new Date().toISOString().split('T')[0]}.xlsx`);
+  // };
 
   const selectedProject = () => projects().find(p => p.id === selectedProjectId());
 
   return (
     <div class="w-full">
-      <div class="flex items-center justify-between mb-3">
-        <h3 class="text-lg font-bold">Projects</h3>
-        <div class="flex gap-2">
-          <button class="px-3 py-1 bg-white border rounded" onClick={handleExport}>Export Excel</button>
-        </div>
-      </div>
 
       <div class="ag-theme-alpine h-64 w-full">
         <AgGridSolid
@@ -109,6 +103,7 @@ export default function ProjectGrid() {
           stopEditingWhenCellsLoseFocus={true}
           pagination={true}
           paginationPageSize={10}
+          paginationPageSizeSelector={[10, 20, 50, 100]}
         />
       </div>
 

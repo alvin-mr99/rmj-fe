@@ -112,33 +112,33 @@ interface Project {
 
 export function RMJModal(props: RMJModalProps) {
   console.log('RMJModal rendered, isOpen:', props.isOpen);
-  
+
   const [activeTab, setActiveTab] = createSignal<'sitelist' | 'settings' | 'users'>('sitelist');
   const [searchQuery, setSearchQuery] = createSignal('');
-  const [gridApi] = createSignal<GridApi | null>(null);
-  const [isGridReady] = createSignal(false);
-  
+  const [gridApi, setGridApi] = createSignal<GridApi | null>(null);
+  const [isGridReady, setIsGridReady] = createSignal(false);
+
   // Project Selection State
   const [selectedProject, setSelectedProject] = createSignal<string>('project1');
-  
+
   // User Management State
   const [showUserForm, setShowUserForm] = createSignal(false);
   const [editingUser, setEditingUser] = createSignal<RMJUser | null>(null);
   const [userGridApi, setUserGridApi] = createSignal<GridApi | null>(null);
   const [userDataTab, setUserDataTab] = createSignal<'all' | 'selected'>('all');
   const [selectedUsers, setSelectedUsers] = createSignal<RMJUser[]>([]);
-  
+
   // User filter state
   const [userNameFilter, setUserNameFilter] = createSignal('');
   const [userRoleFilter, setUserRoleFilter] = createSignal('');
   const [userUnitFilter, setUserUnitFilter] = createSignal('');
-  
+
   // Template Settings State
   const [showTemplateForm, setShowTemplateForm] = createSignal(false);
   const [templateName, setTemplateName] = createSignal('');
   const [templateDescription, setTemplateDescription] = createSignal('');
   const [expandedTemplate, setExpandedTemplate] = createSignal<string | null>(null);
-  
+
   // Projects data
   const projects: Project[] = [
     {
@@ -412,9 +412,9 @@ export function RMJModal(props: RMJModalProps) {
 
   // Column definitions
   const [columnDefs] = createSignal<ColDef[]>([
-    { 
-      field: 'unixId', 
-      headerName: 'Unix ID', 
+    {
+      field: 'unixId',
+      headerName: 'Unix ID',
       pinned: 'left',
       checkboxSelection: true,
       headerCheckboxSelection: true,
@@ -439,9 +439,9 @@ export function RMJModal(props: RMJModalProps) {
     { field: 'milestone1', headerName: 'Milestone 1', width: 120 },
     { field: 'milestone2', headerName: 'Milestone 2', width: 120 },
     { field: 'milestone3', headerName: 'Milestone 3', width: 120 },
-    { 
-      field: 'action', 
-      headerName: 'Action', 
+    {
+      field: 'action',
+      headerName: 'Action',
       pinned: 'right',
       width: 120,
       sortable: false,
@@ -450,7 +450,7 @@ export function RMJModal(props: RMJModalProps) {
       cellRenderer: (params: any) => {
         const container = document.createElement('div');
         container.style.cssText = 'display: flex; gap: 4px; align-items: center; height: 100%; justify-content: center;';
-        
+
         const button = document.createElement('button');
         button.className = 'action-btn-edit';
         button.innerHTML = '✏️ Edit';
@@ -458,7 +458,7 @@ export function RMJModal(props: RMJModalProps) {
           console.log('Edit clicked for:', params.data);
           alert(`Editing row: ${params.data.unixId}\nSite: ${params.data.siteName}`);
         };
-        
+
         container.appendChild(button);
         return container;
       }
@@ -700,7 +700,7 @@ export function RMJModal(props: RMJModalProps) {
   createEffect(() => {
     if (props.isOpen) {
       console.log('Modal opened, grid ready:', isGridReady());
-      
+
       // Force grid refresh when modal opens and grid is ready
       if (isGridReady()) {
         setTimeout(() => {
@@ -719,7 +719,7 @@ export function RMJModal(props: RMJModalProps) {
   createEffect(() => {
     const tab = activeTab();
     console.log('Active tab changed to:', tab);
-    
+
     if (tab === 'sitelist' && isGridReady()) {
       // Refresh grid when switching back to sitelist tab
       setTimeout(() => {
@@ -737,10 +737,10 @@ export function RMJModal(props: RMJModalProps) {
   createEffect(() => {
     const project = selectedProject();
     console.log('Selected project changed to:', project);
-    
+
     const newData = getProjectData();
     setRowData(newData);
-    
+
     if (isGridReady()) {
       setTimeout(() => {
         const api = gridApi();
@@ -795,7 +795,7 @@ export function RMJModal(props: RMJModalProps) {
         const workbook = XLSX.read(data, { type: 'array' });
         const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
         const jsonData = XLSX.utils.sheet_to_json(firstSheet) as RMJSitelistRow[];
-        
+
         setRowData([...rowData(), ...jsonData]);
         console.log('Imported', jsonData.length, 'rows');
         alert(`Successfully imported ${jsonData.length} rows`);
@@ -882,7 +882,7 @@ export function RMJModal(props: RMJModalProps) {
 
     const allColumns = api.getColumns();
     const visibleColumns = allColumns?.filter((col: any) => col.isVisible()).map((col: any) => col.getColId()) || [];
-    
+
     const newTemplate: RMJViewTemplate = {
       id: Date.now().toString(),
       name,
@@ -909,11 +909,11 @@ export function RMJModal(props: RMJModalProps) {
     if (!template || !api) return;
 
     const allColumns = api.getColumns();
-    
+
     // Hide all columns first, then show only the ones in template
     const columnsToHide = allColumns?.filter((col: any) => !template.visibleColumns.includes(col.getColId())).map((col: any) => col.getColId()) || [];
     const columnsToShow = allColumns?.filter((col: any) => template.visibleColumns.includes(col.getColId())).map((col: any) => col.getColId()) || [];
-    
+
     api.setColumnsVisible(columnsToHide, false);
     api.setColumnsVisible(columnsToShow, true);
 
@@ -922,8 +922,8 @@ export function RMJModal(props: RMJModalProps) {
 
   // User column definitions for All Data table
   const [userColumnDefs] = createSignal<ColDef[]>([
-    { 
-      field: 'username', 
+    {
+      field: 'username',
       headerName: 'Name',
       checkboxSelection: true,
       headerCheckboxSelection: true,
@@ -931,27 +931,27 @@ export function RMJModal(props: RMJModalProps) {
       filter: 'agTextColumnFilter',
       pinned: 'left',
     },
-    { 
-      field: 'id', 
-      headerName: 'ID', 
+    {
+      field: 'id',
+      headerName: 'ID',
       width: 80,
       filter: 'agTextColumnFilter',
     },
-    { 
-      field: 'unit', 
-      headerName: 'Subcontractor', 
+    {
+      field: 'unit',
+      headerName: 'Subcontractor',
       width: 220,
       filter: 'agTextColumnFilter',
     },
-    { 
-      field: 'email', 
-      headerName: 'Subcontractor Name', 
+    {
+      field: 'email',
+      headerName: 'Subcontractor Name',
       width: 240,
       filter: 'agTextColumnFilter',
     },
-    { 
-      field: 'action', 
-      headerName: 'Action', 
+    {
+      field: 'action',
+      headerName: 'Action',
       width: 100,
       pinned: 'right',
       sortable: false,
@@ -981,17 +981,17 @@ export function RMJModal(props: RMJModalProps) {
           align-items: center;
           gap: 4px;
         `;
-        
+
         button.addEventListener('mouseenter', () => {
           button.style.transform = 'translateY(-1px)';
           button.style.boxShadow = '0 4px 8px rgba(16, 185, 129, 0.4)';
         });
-        
+
         button.addEventListener('mouseleave', () => {
           button.style.transform = 'translateY(0)';
           button.style.boxShadow = '0 2px 4px rgba(16, 185, 129, 0.3)';
         });
-        
+
         button.addEventListener('click', () => {
           const userId = params.data.id;
           const user = users().find(u => u.id === userId);
@@ -999,7 +999,7 @@ export function RMJModal(props: RMJModalProps) {
             setSelectedUsers([...selectedUsers(), user]);
           }
         });
-        
+
         return button;
       }
     },
@@ -1007,34 +1007,34 @@ export function RMJModal(props: RMJModalProps) {
 
   // User column definitions for Selected Data table
   const [selectedUserColumnDefs] = createSignal<ColDef[]>([
-    { 
-      field: 'username', 
-      headerName: 'Name', 
+    {
+      field: 'username',
+      headerName: 'Name',
       width: 200,
       filter: 'agTextColumnFilter',
       pinned: 'left',
     },
-    { 
-      field: 'id', 
-      headerName: 'ID', 
+    {
+      field: 'id',
+      headerName: 'ID',
       width: 80,
       filter: 'agTextColumnFilter',
     },
-    { 
-      field: 'unit', 
-      headerName: 'Subcontractor', 
+    {
+      field: 'unit',
+      headerName: 'Subcontractor',
       width: 220,
       filter: 'agTextColumnFilter',
     },
-    { 
-      field: 'email', 
-      headerName: 'Subcontractor Name', 
+    {
+      field: 'email',
+      headerName: 'Subcontractor Name',
       width: 240,
       filter: 'agTextColumnFilter',
     },
-    { 
-      field: 'action', 
-      headerName: 'Action', 
+    {
+      field: 'action',
+      headerName: 'Action',
       width: 120,
       pinned: 'right',
       sortable: false,
@@ -1064,22 +1064,22 @@ export function RMJModal(props: RMJModalProps) {
           align-items: center;
           gap: 4px;
         `;
-        
+
         button.addEventListener('mouseenter', () => {
           button.style.transform = 'translateY(-1px)';
           button.style.boxShadow = '0 4px 8px rgba(239, 68, 68, 0.4)';
         });
-        
+
         button.addEventListener('mouseleave', () => {
           button.style.transform = 'translateY(0)';
           button.style.boxShadow = '0 2px 4px rgba(239, 68, 68, 0.3)';
         });
-        
+
         button.addEventListener('click', () => {
           const userId = params.data.id;
           setSelectedUsers(selectedUsers().filter(u => u.id !== userId));
         });
-        
+
         return button;
       }
     },
@@ -1196,794 +1196,765 @@ export function RMJModal(props: RMJModalProps) {
 
   return (
     <Show when={props.isOpen}>
-    <div 
-      class="fixed inset-0 bg-black/50 z-[2000] flex items-center justify-center p-4"
-      onClick={props.onClose}
-    >
-      <div 
-        class="bg-white rounded-2xl shadow-2xl w-[95vw] h-[95vh] flex flex-col"
-        onClick={(e) => e.stopPropagation()}
-        style={{"font-family": "'Poppins', sans-serif"}}
+      <div
+        class="fixed inset-0 bg-black/50 z-[2000] flex items-center justify-center p-4"
+        onClick={props.onClose}
       >
-        {/* Header */}
-        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <div>
-            <h2 class="text-2xl font-bold text-gray-800 m-0">RMJ Tools - Project Delivery Management</h2>
-            <p class="text-sm text-gray-500 m-0 mt-1">Integrated Work Management System</p>
+        <div
+          class="bg-white rounded-2xl shadow-2xl w-[95vw] h-[95vh] flex flex-col overflow-hidden"
+          onClick={(e) => e.stopPropagation()}
+          style={{ "font-family": "'Poppins', sans-serif" }}
+        >
+          {/* Header */}
+          <div class="flex items-center justify-between px-6 py-3 border-b border-gray-200 flex-shrink-0">
+            <div>
+              <h2 class="text-xl font-bold text-gray-800 m-0">RMJ Tools - Project Delivery Management</h2>
+              <p class="text-xs text-gray-500 m-0 mt-0.5">Integrated Work Management System</p>
+            </div>
+            {/* Tabs */}
+            <div class="flex gap-2">
+              <button
+                class={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${activeTab() === 'sitelist'
+                    ? 'bg-blue-500 text-white shadow-md'
+                    : 'bg-white text-gray-600 hover:bg-gray-100'
+                  }`}
+                onClick={() => setActiveTab('sitelist')}
+              >
+                📊 Sitelist Project
+              </button>
+              <button
+                class={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${activeTab() === 'settings'
+                    ? 'bg-blue-500 text-white shadow-md'
+                    : 'bg-white text-gray-600 hover:bg-gray-100'
+                  }`}
+                onClick={() => setActiveTab('settings')}
+              >
+                ⚙️ Template Settings
+              </button>
+              <button
+                class={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${activeTab() === 'users'
+                    ? 'bg-blue-500 text-white shadow-md'
+                    : 'bg-white text-gray-600 hover:bg-gray-100'
+                  }`}
+                onClick={() => setActiveTab('users')}
+              >
+                👥 User Management
+              </button>
+            </div>
+            <button
+              class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+              onClick={props.onClose}
+            >
+              <span class="text-lg text-gray-600">×</span>
+            </button>
           </div>
-          <button
-            class="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
-            onClick={props.onClose}
-          >
-            <span class="text-xl text-gray-600">×</span>
-          </button>
-        </div>
 
-        {/* Tabs */}
-        <div class="flex gap-2 px-6 py-3 border-b border-gray-200 bg-gray-50">
-          <button
-            class={`px-4 py-2 rounded-lg font-medium transition-all ${
-              activeTab() === 'sitelist'
-                ? 'bg-blue-500 text-white shadow-md'
-                : 'bg-white text-gray-600 hover:bg-gray-100'
-            }`}
-            onClick={() => setActiveTab('sitelist')}
-          >
-            📊 Sitelist Project
-          </button>
-          <button
-            class={`px-4 py-2 rounded-lg font-medium transition-all ${
-              activeTab() === 'settings'
-                ? 'bg-blue-500 text-white shadow-md'
-                : 'bg-white text-gray-600 hover:bg-gray-100'
-            }`}
-            onClick={() => setActiveTab('settings')}
-          >
-            ⚙️ Template Settings
-          </button>
-          <button
-            class={`px-4 py-2 rounded-lg font-medium transition-all ${
-              activeTab() === 'users'
-                ? 'bg-blue-500 text-white shadow-md'
-                : 'bg-white text-gray-600 hover:bg-gray-100'
-            }`}
-            onClick={() => setActiveTab('users')}
-          >
-            👥 User Management
-          </button>
-        </div>
-
-        {/* Content */}
-        <div class="flex-1 overflow-hidden">
-          <Show when={activeTab() === 'sitelist'}>
-            <div class="h-full flex flex-col">
-              {/* Project Selector */}
-              <div class="px-6 py-3 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
-                <div class="flex items-center gap-4">
-                  <label class="text-sm font-semibold text-gray-700">Project:</label>
-                  <select
-                    value={selectedProject()}
-                    onChange={(e) => setSelectedProject(e.currentTarget.value)}
-                    class="flex-1 max-w-md px-4 py-2 border-2 border-blue-300 rounded-lg focus:outline-none focus:border-blue-500 bg-white font-medium text-gray-800 shadow-sm hover:border-blue-400 transition-colors"
-                  >
-                    <For each={projects}>
-                      {(project) => (
-                        <option value={project.id}>
-                          {project.year} - {project.program} - {project.description}
-                        </option>
-                      )}
-                    </For>
-                  </select>
-                  <div class="flex items-center gap-2 px-4 py-2 bg-white rounded-lg border border-gray-200 shadow-sm">
-                    <span class="text-xs font-medium text-gray-500">Total Sites:</span>
-                    <span class="text-sm font-bold text-blue-600">{rowData().length}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Toolbar */}
-              <div class="px-6 py-3 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100">
-                <div class="flex items-center gap-3 flex-wrap">
-                  {/* Search */}
-                  <div class="flex-1 min-w-[200px] relative">
-                    <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                    <input
-                      type="text"
-                      placeholder="Search Unix ID, Site Name, Region..."
-                      value={searchQuery()}
-                      onInput={(e) => {
-                        setSearchQuery(e.currentTarget.value);
-                        handleSearch();
-                      }}
-                      class="w-full pl-10 pr-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 text-sm shadow-sm hover:border-gray-400 transition-colors text-gray-900 placeholder-gray-400"
-                      style="color: #111827;"
-                    />
-                  </div>
-                  
-                  {/* Action Buttons */}
-                  <div class="flex items-center gap-2">
-                    <button
-                      class="group relative p-2 rounded-lg bg-white border-2 border-blue-200 hover:bg-blue-50 hover:border-blue-400 transition-all shadow-sm"
-                      onClick={handleImport}
-                      title="Import"
-                    >
-                      <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+          {/* Content */}
+          <div class="flex-1 overflow-hidden flex flex-col">
+            <Show when={activeTab() === 'sitelist'}>
+              <div class="h-full flex flex-col overflow-hidden">
+                {/* Toolbar */}
+                <div class="px-6 py-3 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100 flex-shrink-0">
+                  <div class="flex items-center gap-3 flex-wrap">
+                    {/* Search */}
+                    <div class="flex-1 min-w-[200px] relative">
+                      <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                       </svg>
-                      <span class="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
-                        Import Excel/CSV
-                      </span>
-                    </button>
-
-                    <button
-                      class="group relative p-2 rounded-lg bg-white border-2 border-green-200 hover:bg-green-50 hover:border-green-400 transition-all shadow-sm"
-                      onClick={handleExport}
-                      title="Export"
-                    >
-                      <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
-                      </svg>
-                      <span class="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
-                        Export to Excel
-                      </span>
-                    </button>
-
-                    <button
-                      class="group relative p-2 rounded-lg bg-white border-2 border-purple-200 hover:bg-purple-50 hover:border-purple-400 transition-all shadow-sm"
-                      onClick={handleGenerateTemplate}
-                      title="Template"
-                    >
-                      <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      <span class="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
-                        Download Template
-                      </span>
-                    </button>
-
-                    <button
-                      class="group relative p-2 rounded-lg bg-white border-2 border-orange-200 hover:bg-orange-50 hover:border-orange-400 transition-all shadow-sm"
-                      onClick={handleBatchUpdate}
-                      title="Batch Update"
-                    >
-                      <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
-                      <span class="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
-                        Batch Update
-                      </span>
-                    </button>
-
-                    <div class="w-px h-6 bg-gray-300"></div>
-
-                    <button
-                      class="group relative p-2 rounded-lg bg-white border-2 border-gray-300 hover:bg-gray-50 hover:border-gray-400 transition-all shadow-sm"
-                      onClick={() => {
-                        const api = gridApi();
-                        if (api) {
-                          api.openToolPanel('filters');
-                        }
-                      }}
-                      title="Filter"
-                    >
-                      <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                      </svg>
-                      <span class="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
-                        Open Filters
-                      </span>
-                    </button>
-
-                    <button
-                      class="group relative p-2 rounded-lg bg-white border-2 border-gray-300 hover:bg-gray-50 hover:border-gray-400 transition-all shadow-sm"
-                      onClick={() => {
-                        const api = gridApi();
-                        if (api) {
-                          api.openToolPanel('columns');
-                        }
-                      }}
-                      title="Columns"
-                    >
-                      <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
-                      </svg>
-                      <span class="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
-                        Manage Columns
-                      </span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Project grid with hierarchical detail */}
-              <div class="flex-1 px-6 py-4">
-                <ProjectGrid />
-              </div>
-            </div>
-          </Show>
-
-          <Show when={activeTab() === 'settings'}>
-            <div class="h-full flex flex-col">
-              {/* Header */}
-              <div class="px-6 py-4 border-b border-gray-200">
-                <div class="flex items-center justify-between">
-                  <div>
-                    <h3 class="text-xl font-bold text-gray-800">View Template Settings</h3>
-                    <p class="text-sm text-gray-600 mt-1">Save and manage custom column views for different use cases</p>
-                  </div>
-                  <button
-                    class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium"
-                    onClick={() => setShowTemplateForm(true)}
-                  >
-                    + Create Template
-                  </button>
-                </div>
-              </div>
-
-              {/* Template List */}
-              <div class="flex-1 overflow-auto p-6">
-                <div class="space-y-4">
-                  <For each={templates()}>
-                    {(template) => (
-                      <div class="border-2 border-gray-200 rounded-xl overflow-hidden hover:border-blue-300 transition-all bg-white shadow-sm">
-                        {/* Template Header */}
-                        <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4">
-                          <div class="flex items-start justify-between mb-3">
-                            <div class="flex-1">
-                              <div class="flex items-center gap-3">
-                                <h4 class="text-lg font-bold text-gray-800">{template.name}</h4>
-                                <Show when={template.isPublic}>
-                                  <span class="px-3 py-1 bg-green-500 text-white text-xs rounded-full font-semibold shadow-sm">
-                                    🌐 Public
-                                  </span>
-                                </Show>
-                              </div>
-                              <p class="text-sm text-gray-600 mt-1">{template.description}</p>
-                            </div>
-                          </div>
-                          
-                          <div class="flex items-center gap-6 mb-3">
-                            <div class="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg shadow-sm">
-                              <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
-                              </svg>
-                              <span class="text-xs font-semibold text-gray-700">{template.visibleColumns.length} Columns</span>
-                            </div>
-                            <div class="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg shadow-sm">
-                              <svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                              </svg>
-                              <span class="text-xs font-semibold text-gray-700">{template.userRole || 'All Roles'}</span>
-                            </div>
-                            <div class="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg shadow-sm">
-                              <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                              </svg>
-                              <span class="text-xs font-semibold text-gray-700">{new Date(template.createdDate).toLocaleDateString()}</span>
-                            </div>
-                          </div>
-
-                          <div class="flex gap-2">
-                            <button
-                              class="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg text-sm font-semibold hover:from-blue-600 hover:to-blue-700 transition-all shadow-md hover:shadow-lg"
-                              onClick={() => handleApplyTemplate(template.id)}
-                            >
-                              ✓ Apply Template
-                            </button>
-                            <button
-                              class="px-4 py-2 bg-white border-2 border-blue-300 text-blue-600 rounded-lg text-sm font-semibold hover:bg-blue-50 transition-all"
-                              onClick={() => setExpandedTemplate(expandedTemplate() === template.id ? null : template.id)}
-                            >
-                              {expandedTemplate() === template.id ? '▲ Hide Columns' : '▼ View Columns'}
-                            </button>
-                            <button
-                              class="px-4 py-2 bg-white border-2 border-red-300 text-red-600 rounded-lg text-sm font-semibold hover:bg-red-50 transition-all"
-                              onClick={() => {
-                                if (confirm('Delete this template?')) {
-                                  setTemplates(templates().filter(t => t.id !== template.id));
-                                }
-                              }}
-                            >
-                              🗑️ Delete
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Expandable Column Table */}
-                        <Show when={expandedTemplate() === template.id}>
-                          <div class="p-4 bg-gray-50 border-t-2 border-gray-200">
-                            <div class="mb-3 flex items-center justify-between">
-                              <h5 class="text-sm font-bold text-gray-700 flex items-center gap-2">
-                                <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                                </svg>
-                                Column Configuration
-                              </h5>
-                              <div class="flex items-center gap-2">
-                                <span class="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">
-                                  {template.lockedColumns.length} Locked
-                                </span>
-                                <span class="px-3 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full">
-                                  {template.visibleColumns.length} Visible
-                                </span>
-                              </div>
-                            </div>
-                            
-                            <div class="bg-white rounded-lg border-2 border-gray-200 overflow-hidden shadow-sm">
-                              <div class="overflow-x-auto max-h-96">
-                                <table class="w-full">
-                                  <thead class="bg-gradient-to-r from-gray-700 to-gray-800 text-white sticky top-0">
-                                    <tr>
-                                      <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">
-                                        #
-                                      </th>
-                                      <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">
-                                        Column Name
-                                      </th>
-                                      <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">
-                                        Field ID
-                                      </th>
-                                      <th class="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider">
-                                        Status
-                                      </th>
-                                      <th class="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider">
-                                        Lock Status
-                                      </th>
-                                    </tr>
-                                  </thead>
-                                  <tbody class="divide-y divide-gray-200">
-                                    <For each={template.visibleColumns}>
-                                      {(colId, index) => {
-                                        const colDef = columnDefs().find(c => c.field === colId);
-                                        const isLocked = template.lockedColumns.includes(colId);
-                                        return (
-                                          <tr class="hover:bg-blue-50 transition-colors">
-                                            <td class="px-4 py-3 text-sm font-bold text-gray-500">
-                                              {index() + 1}
-                                            </td>
-                                            <td class="px-4 py-3 text-sm font-semibold text-gray-800">
-                                              {colDef?.headerName || colId}
-                                            </td>
-                                            <td class="px-4 py-3 text-sm text-gray-600 font-mono bg-gray-50">
-                                              {colId}
-                                            </td>
-                                            <td class="px-4 py-3 text-center">
-                                              <span class="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full">
-                                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                                                </svg>
-                                                Visible
-                                              </span>
-                                            </td>
-                                            <td class="px-4 py-3 text-center">
-                                              <Show when={isLocked} fallback={
-                                                <span class="inline-flex items-center gap-1 px-3 py-1 bg-gray-100 text-gray-600 text-xs font-bold rounded-full">
-                                                  <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
-                                                  </svg>
-                                                  Unlocked
-                                                </span>
-                                              }>
-                                                <span class="inline-flex items-center gap-1 px-3 py-1 bg-orange-100 text-orange-700 text-xs font-bold rounded-full">
-                                                  <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
-                                                  </svg>
-                                                  Locked
-                                                </span>
-                                              </Show>
-                                            </td>
-                                          </tr>
-                                        );
-                                      }}
-                                    </For>
-                                  </tbody>
-                                </table>
-                              </div>
-                            </div>
-
-                            {/* Summary Stats */}
-                            <div class="mt-4 grid grid-cols-3 gap-3">
-                              <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-3 text-white shadow-md">
-                                <div class="text-xs font-semibold opacity-90">Total Columns</div>
-                                <div class="text-2xl font-bold mt-1">{template.visibleColumns.length}</div>
-                              </div>
-                              <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg p-3 text-white shadow-md">
-                                <div class="text-xs font-semibold opacity-90">Locked Columns</div>
-                                <div class="text-2xl font-bold mt-1">{template.lockedColumns.length}</div>
-                              </div>
-                              <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-3 text-white shadow-md">
-                                <div class="text-xs font-semibold opacity-90">Editable Columns</div>
-                                <div class="text-2xl font-bold mt-1">{template.visibleColumns.length - template.lockedColumns.length}</div>
-                              </div>
-                            </div>
-                          </div>
-                        </Show>
-                      </div>
-                    )}
-                  </For>
-                </div>
-              </div>
-
-              {/* Create Template Form Modal */}
-              <Show when={showTemplateForm()}>
-                <div class="fixed inset-0 bg-black/50 z-[2100] flex items-center justify-center p-4">
-                  <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
-                    <h3 class="text-lg font-bold text-gray-800 mb-4">Create New Template</h3>
-                    
-                    <div class="space-y-4">
-                      <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Template Name</label>
-                        <input
-                          type="text"
-                          value={templateName()}
-                          onInput={(e) => setTemplateName(e.currentTarget.value)}
-                          placeholder="e.g., My Custom View"
-                          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                        />
-                      </div>
-
-                      <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                        <textarea
-                          value={templateDescription()}
-                          onInput={(e) => setTemplateDescription(e.currentTarget.value)}
-                          placeholder="Describe this template..."
-                          rows="3"
-                          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                        />
-                      </div>
-
-                      <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                        <p class="text-xs text-blue-800">
-                          💡 The current visible columns in the grid will be saved to this template.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div class="flex gap-3 mt-6">
-                      <button
-                        class="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                        onClick={handleSaveTemplate}
-                      >
-                        Save Template
-                      </button>
-                      <button
-                        class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                        onClick={() => {
-                          setShowTemplateForm(false);
-                          setTemplateName('');
-                          setTemplateDescription('');
+                      <input
+                        type="text"
+                        placeholder="Search Unix ID, Site Name, Region..."
+                        value={searchQuery()}
+                        onInput={(e) => {
+                          setSearchQuery(e.currentTarget.value);
+                          handleSearch();
                         }}
+                        class="w-full pl-10 pr-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 text-sm shadow-sm hover:border-gray-400 transition-colors text-gray-900 placeholder-gray-400"
+                        style="color: #111827;"
+                      />
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div class="flex items-center gap-2">
+                      <button
+                        class="group relative p-2 rounded-lg bg-white border-2 border-blue-200 hover:bg-blue-50 hover:border-blue-400 transition-all shadow-sm"
+                        onClick={handleImport}
+                        title="Import"
                       >
-                        Cancel
+                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                        </svg>
+                        <span class="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
+                          Import Excel/CSV
+                        </span>
+                      </button>
+
+                      <button
+                        class="group relative p-2 rounded-lg bg-white border-2 border-green-200 hover:bg-green-50 hover:border-green-400 transition-all shadow-sm"
+                        onClick={handleExport}
+                        title="Export"
+                      >
+                        <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                        </svg>
+                        <span class="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
+                          Export to Excel
+                        </span>
+                      </button>
+
+                      <button
+                        class="group relative p-2 rounded-lg bg-white border-2 border-purple-200 hover:bg-purple-50 hover:border-purple-400 transition-all shadow-sm"
+                        onClick={handleGenerateTemplate}
+                        title="Template"
+                      >
+                        <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <span class="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
+                          Download Template
+                        </span>
+                      </button>
+
+                      <button
+                        class="group relative p-2 rounded-lg bg-white border-2 border-orange-200 hover:bg-orange-50 hover:border-orange-400 transition-all shadow-sm"
+                        onClick={handleBatchUpdate}
+                        title="Batch Update"
+                      >
+                        <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        <span class="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
+                          Batch Update
+                        </span>
+                      </button>
+
+                      <div class="w-px h-6 bg-gray-300"></div>
+
+                      <button
+                        class="group relative p-2 rounded-lg bg-white border-2 border-gray-300 hover:bg-gray-50 hover:border-gray-400 transition-all shadow-sm"
+                        onClick={() => {
+                          const api = gridApi();
+                          if (api) {
+                            api.openToolPanel('filters');
+                          }
+                        }}
+                        title="Filter"
+                      >
+                        <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                        </svg>
+                        <span class="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
+                          Open Filters
+                        </span>
+                      </button>
+
+                      <button
+                        class="group relative p-2 rounded-lg bg-white border-2 border-gray-300 hover:bg-gray-50 hover:border-gray-400 transition-all shadow-sm"
+                        onClick={() => {
+                          const api = gridApi();
+                          if (api) {
+                            api.openToolPanel('columns');
+                          }
+                        }}
+                        title="Columns"
+                      >
+                        <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+                        </svg>
+                        <span class="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
+                          Manage Columns
+                        </span>
                       </button>
                     </div>
                   </div>
                 </div>
-              </Show>
-            </div>
-          </Show>
 
-          <Show when={activeTab() === 'users'}>
-            <div class="h-full flex flex-col bg-gray-50">
-              {/* Header */}
-              <div class="px-6 py-4 bg-white border-b border-gray-200">
-                <div class="flex items-center justify-between">
-                  <div>
-                    <h3 class="text-xl font-bold text-gray-800">Personal and Group</h3>
-                    <p class="text-sm text-gray-600 mt-1">Manage users, roles, and access levels</p>
-                  </div>
-                  <Show when={props.userRole === 'Admin'}>
+                {/* Project grid with hierarchical detail */}
+                <div class="flex-1 px-6 py-4 overflow-auto">
+                  <ProjectGrid />
+                </div>
+              </div>
+            </Show>
+
+            <Show when={activeTab() === 'settings'}>
+              <div class="h-full flex flex-col overflow-hidden">
+                {/* Header */}
+                <div class="px-6 py-4 border-b border-gray-200 flex-shrink-0">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <h3 class="text-xl font-bold text-gray-800">View Template Settings</h3>
+                      <p class="text-sm text-gray-600 mt-1">Save and manage custom column views for different use cases</p>
+                    </div>
                     <button
                       class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium"
-                      onClick={handleAddUser}
+                      onClick={() => setShowTemplateForm(true)}
                     >
-                      + Add User
+                      + Create Template
                     </button>
-                  </Show>
-                </div>
-              </div>
-
-              {/* Tab Navigation */}
-              <div class="px-6 py-3 bg-white border-b border-gray-200">
-                <div class="flex items-center gap-1">
-                  <button
-                    class={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
-                      userDataTab() === 'all'
-                        ? 'bg-blue-500 text-white'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
-                    onClick={() => setUserDataTab('all')}
-                  >
-                    Personal and Group
-                  </button>
-                </div>
-              </div>
-
-              {/* Filter Section */}
-              <div class="px-6 py-4 bg-white border-b border-gray-200">
-                <div class="flex items-center gap-3 flex-wrap">
-                  <input
-                    type="text"
-                    placeholder="Name/Employee No."
-                    value={userNameFilter()}
-                    onInput={(e) => setUserNameFilter(e.currentTarget.value)}
-                    class="px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-500 w-48"
-                  />
-                  
-                  <select
-                    value={userRoleFilter()}
-                    onChange={(e) => setUserRoleFilter(e.currentTarget.value)}
-                    class="px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-500 w-40"
-                  >
-                    <option value="">Resource Type</option>
-                    <option value="Admin">Admin</option>
-                    <option value="Internal TI">Internal TI</option>
-                    <option value="Mitra">Mitra</option>
-                  </select>
-
-                  <select
-                    class="px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-500 w-40"
-                  >
-                    <option value="">Resource</option>
-                  </select>
-
-                  <input
-                    type="text"
-                    placeholder="Subcontractor"
-                    value={userUnitFilter()}
-                    onInput={(e) => setUserUnitFilter(e.currentTarget.value)}
-                    class="px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-500 w-48"
-                  />
-
-                  <input
-                    type="text"
-                    placeholder="Subcontractor Name"
-                    class="px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-500 w-48"
-                  />
-
-                  <button
-                    class="px-6 py-2 bg-blue-500 text-white rounded text-sm font-medium hover:bg-blue-600 transition-colors"
-                    onClick={applyUserFilters}
-                  >
-                    Search
-                  </button>
-
-                  <button
-                    class="px-6 py-2 bg-gray-200 text-gray-700 rounded text-sm font-medium hover:bg-gray-300 transition-colors"
-                    onClick={resetUserFilters}
-                  >
-                    Reset
-                  </button>
-                </div>
-              </div>
-
-              {/* Two Tables Side by Side */}
-              <div class="flex-1 px-6 py-4 overflow-hidden">
-                <div class="h-full flex gap-4">
-                  {/* All Data Table */}
-                  <div class="flex-1 flex flex-col">
-                    <div class="mb-2 flex items-center justify-between">
-                      <h4 class="text-sm font-bold text-gray-700 flex items-center gap-2">
-                        <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-                        </svg>
-                        All Data
-                      </h4>
-                      <span class="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">
-                        Total: {users().length}
-                      </span>
-                    </div>
-                    <div class="flex-1 ag-theme-alpine bg-white rounded-lg shadow-md border-2 border-gray-200">
-                      <AgGridSolid
-                        columnDefs={userColumnDefs()}
-                        rowData={users()}
-                        defaultColDef={userGridOptions.defaultColDef}
-                        rowSelection={userGridOptions.rowSelection}
-                        pagination={userGridOptions.pagination}
-                        paginationPageSize={userGridOptions.paginationPageSize}
-                        paginationPageSizeSelector={userGridOptions.paginationPageSizeSelector}
-                        enableCellTextSelection={userGridOptions.enableCellTextSelection}
-                        suppressRowClickSelection={userGridOptions.suppressRowClickSelection}
-                        onGridReady={onUserGridReady}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Select Data Table */}
-                  <div class="flex-1 flex flex-col">
-                    <div class="mb-2 flex items-center justify-between">
-                      <h4 class="text-sm font-bold text-gray-700 flex items-center gap-2">
-                        <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                        </svg>
-                        Select Data
-                      </h4>
-                      <span class="px-3 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full">
-                        Selected: {selectedUsers().length}
-                      </span>
-                    </div>
-                    <div class="flex-1 ag-theme-alpine bg-white rounded-lg shadow-md border-2 border-green-200">
-                      <AgGridSolid
-                        columnDefs={selectedUserColumnDefs()}
-                        rowData={selectedUsers()}
-                        defaultColDef={userGridOptions.defaultColDef}
-                        pagination={userGridOptions.pagination}
-                        paginationPageSize={userGridOptions.paginationPageSize}
-                        paginationPageSizeSelector={userGridOptions.paginationPageSizeSelector}
-                        enableCellTextSelection={userGridOptions.enableCellTextSelection}
-                        suppressRowClickSelection={userGridOptions.suppressRowClickSelection}
-                        onGridReady={onSelectedUserGridReady}
-                      />
-                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Action Buttons */}
-              <div class="px-6 py-4 bg-white border-t-2 border-gray-200">
-                <div class="flex items-center justify-center gap-3">
-                  <button
-                    class="px-10 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg font-semibold hover:from-blue-600 hover:to-blue-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2"
-                    onClick={() => {
-                      if (selectedUsers().length > 0) {
-                        alert(`✓ Confirmed ${selectedUsers().length} selected users`);
-                      } else {
-                        alert('⚠️ Please select users first');
-                      }
-                    }}
-                  >
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                    </svg>
-                    OK
-                  </button>
-                  <button
-                    class="px-10 py-2.5 bg-gradient-to-r from-gray-300 to-gray-400 text-gray-700 rounded-lg font-semibold hover:from-gray-400 hover:to-gray-500 transition-all shadow-md hover:shadow-lg flex items-center gap-2"
-                    onClick={() => {
-                      setSelectedUsers([]);
-                    }}
-                  >
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
-                    </svg>
-                    Cancel
-                  </button>
+                {/* Template List */}
+                <div class="flex-1 overflow-auto p-6">
+                  <div class="space-y-4">
+                    <For each={templates()}>
+                      {(template) => (
+                        <div class="border-2 border-gray-200 rounded-xl overflow-hidden hover:border-blue-300 transition-all bg-white shadow-sm">
+                          {/* Template Header */}
+                          <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4">
+                            <div class="flex items-start justify-between mb-3">
+                              <div class="flex-1">
+                                <div class="flex items-center gap-3">
+                                  <h4 class="text-lg font-bold text-gray-800">{template.name}</h4>
+                                  <Show when={template.isPublic}>
+                                    <span class="px-3 py-1 bg-green-500 text-white text-xs rounded-full font-semibold shadow-sm">
+                                      🌐 Public
+                                    </span>
+                                  </Show>
+                                </div>
+                                <p class="text-sm text-gray-600 mt-1">{template.description}</p>
+                              </div>
+                            </div>
+
+                            <div class="flex items-center gap-6 mb-3">
+                              <div class="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg shadow-sm">
+                                <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+                                </svg>
+                                <span class="text-xs font-semibold text-gray-700">{template.visibleColumns.length} Columns</span>
+                              </div>
+                              <div class="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg shadow-sm">
+                                <svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                                <span class="text-xs font-semibold text-gray-700">{template.userRole || 'All Roles'}</span>
+                              </div>
+                              <div class="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg shadow-sm">
+                                <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                <span class="text-xs font-semibold text-gray-700">{new Date(template.createdDate).toLocaleDateString()}</span>
+                              </div>
+                            </div>
+
+                            <div class="flex gap-2">
+                              <button
+                                class="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg text-sm font-semibold hover:from-blue-600 hover:to-blue-700 transition-all shadow-md hover:shadow-lg"
+                                onClick={() => handleApplyTemplate(template.id)}
+                              >
+                                ✓ Apply Template
+                              </button>
+                              <button
+                                class="px-4 py-2 bg-white border-2 border-blue-300 text-blue-600 rounded-lg text-sm font-semibold hover:bg-blue-50 transition-all"
+                                onClick={() => setExpandedTemplate(expandedTemplate() === template.id ? null : template.id)}
+                              >
+                                {expandedTemplate() === template.id ? '▲ Hide Columns' : '▼ View Columns'}
+                              </button>
+                              <button
+                                class="px-4 py-2 bg-white border-2 border-red-300 text-red-600 rounded-lg text-sm font-semibold hover:bg-red-50 transition-all"
+                                onClick={() => {
+                                  if (confirm('Delete this template?')) {
+                                    setTemplates(templates().filter(t => t.id !== template.id));
+                                  }
+                                }}
+                              >
+                                🗑️ Delete
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Expandable Column Table */}
+                          <Show when={expandedTemplate() === template.id}>
+                            <div class="p-4 bg-gray-50 border-t-2 border-gray-200">
+                              <div class="mb-3 flex items-center justify-between">
+                                <h5 class="text-sm font-bold text-gray-700 flex items-center gap-2">
+                                  <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                  </svg>
+                                  Column Configuration
+                                </h5>
+                                <div class="flex items-center gap-2">
+                                  <span class="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">
+                                    {template.lockedColumns.length} Locked
+                                  </span>
+                                  <span class="px-3 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full">
+                                    {template.visibleColumns.length} Visible
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div class="bg-white rounded-lg border-2 border-gray-200 overflow-hidden shadow-sm">
+                                <div class="overflow-x-auto max-h-96">
+                                  <table class="w-full">
+                                    <thead class="bg-gradient-to-r from-gray-700 to-gray-800 text-white sticky top-0">
+                                      <tr>
+                                        <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">
+                                          #
+                                        </th>
+                                        <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">
+                                          Column Name
+                                        </th>
+                                        <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">
+                                          Field ID
+                                        </th>
+                                        <th class="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider">
+                                          Status
+                                        </th>
+                                        <th class="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider">
+                                          Lock Status
+                                        </th>
+                                      </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-200">
+                                      <For each={template.visibleColumns}>
+                                        {(colId, index) => {
+                                          const colDef = columnDefs().find(c => c.field === colId);
+                                          const isLocked = template.lockedColumns.includes(colId);
+                                          return (
+                                            <tr class="hover:bg-blue-50 transition-colors">
+                                              <td class="px-4 py-3 text-sm font-bold text-gray-500">
+                                                {index() + 1}
+                                              </td>
+                                              <td class="px-4 py-3 text-sm font-semibold text-gray-800">
+                                                {colDef?.headerName || colId}
+                                              </td>
+                                              <td class="px-4 py-3 text-sm text-gray-600 font-mono bg-gray-50">
+                                                {colId}
+                                              </td>
+                                              <td class="px-4 py-3 text-center">
+                                                <span class="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full">
+                                                  <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                                  </svg>
+                                                  Visible
+                                                </span>
+                                              </td>
+                                              <td class="px-4 py-3 text-center">
+                                                <Show when={isLocked} fallback={
+                                                  <span class="inline-flex items-center gap-1 px-3 py-1 bg-gray-100 text-gray-600 text-xs font-bold rounded-full">
+                                                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                      <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
+                                                    </svg>
+                                                    Unlocked
+                                                  </span>
+                                                }>
+                                                  <span class="inline-flex items-center gap-1 px-3 py-1 bg-orange-100 text-orange-700 text-xs font-bold rounded-full">
+                                                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                      <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
+                                                    </svg>
+                                                    Locked
+                                                  </span>
+                                                </Show>
+                                              </td>
+                                            </tr>
+                                          );
+                                        }}
+                                      </For>
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
+
+                              {/* Summary Stats */}
+                              <div class="mt-4 grid grid-cols-3 gap-3">
+                                <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-3 text-white shadow-md">
+                                  <div class="text-xs font-semibold opacity-90">Total Columns</div>
+                                  <div class="text-2xl font-bold mt-1">{template.visibleColumns.length}</div>
+                                </div>
+                                <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg p-3 text-white shadow-md">
+                                  <div class="text-xs font-semibold opacity-90">Locked Columns</div>
+                                  <div class="text-2xl font-bold mt-1">{template.lockedColumns.length}</div>
+                                </div>
+                                <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-3 text-white shadow-md">
+                                  <div class="text-xs font-semibold opacity-90">Editable Columns</div>
+                                  <div class="text-2xl font-bold mt-1">{template.visibleColumns.length - template.lockedColumns.length}</div>
+                                </div>
+                              </div>
+                            </div>
+                          </Show>
+                        </div>
+                      )}
+                    </For>
+                  </div>
                 </div>
-              </div>
 
-              {/* User Form Modal */}
-              <Show when={showUserForm()}>
-                <div class="fixed inset-0 bg-black/50 z-[2100] flex items-center justify-center p-4">
-                  <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6">
-                    <h3 class="text-lg font-bold text-gray-800 mb-4">
-                      {editingUser() ? 'Edit User' : 'Add New User'}
-                    </h3>
-                    
-                    <form onSubmit={(e) => {
-                      e.preventDefault();
-                      const formData = new FormData(e.currentTarget);
-                      handleSaveUser({
-                        username: formData.get('username') as string,
-                        email: formData.get('email') as string,
-                        role: formData.get('role') as UserRole,
-                        accessLevel: formData.get('accessLevel') as AccessLevel,
-                        unit: formData.get('unit') as string,
-                        division: formData.get('division') as string,
-                        regional: formData.get('regional') as string,
-                      });
-                    }}>
-                      <div class="grid grid-cols-2 gap-4">
+                {/* Create Template Form Modal */}
+                <Show when={showTemplateForm()}>
+                  <div class="fixed inset-0 bg-black/50 z-[2100] flex items-center justify-center p-4">
+                    <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+                      <h3 class="text-lg font-bold text-gray-800 mb-4">Create New Template</h3>
+
+                      <div class="space-y-4">
                         <div>
-                          <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                          <label class="block text-sm font-medium text-gray-700 mb-1">Template Name</label>
                           <input
                             type="text"
-                            name="username"
-                            value={editingUser()?.username || ''}
-                            required
+                            value={templateName()}
+                            onInput={(e) => setTemplateName(e.currentTarget.value)}
+                            placeholder="e.g., My Custom View"
                             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
                           />
                         </div>
 
                         <div>
-                          <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                          <input
-                            type="email"
-                            name="email"
-                            value={editingUser()?.email || ''}
-                            required
+                          <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                          <textarea
+                            value={templateDescription()}
+                            onInput={(e) => setTemplateDescription(e.currentTarget.value)}
+                            placeholder="Describe this template..."
+                            rows="3"
                             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
                           />
                         </div>
 
-                        <div>
-                          <label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
-                          <select
-                            name="role"
-                            value={editingUser()?.role || 'Mitra'}
-                            required
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                          >
-                            <option value="Admin">Admin</option>
-                            <option value="Internal TI">Internal TI</option>
-                            <option value="Mitra">Mitra</option>
-                          </select>
-                        </div>
-
-                        <div>
-                          <label class="block text-sm font-medium text-gray-700 mb-1">Access Level</label>
-                          <select
-                            name="accessLevel"
-                            value={editingUser()?.accessLevel || 'view'}
-                            required
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                          >
-                            <option value="view">View Only</option>
-                            <option value="modify">Modify</option>
-                            <option value="full">Full Access</option>
-                          </select>
-                        </div>
-
-                        <div>
-                          <label class="block text-sm font-medium text-gray-700 mb-1">Unit</label>
-                          <input
-                            type="text"
-                            name="unit"
-                            value={editingUser()?.unit || ''}
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                          />
-                        </div>
-
-                        <div>
-                          <label class="block text-sm font-medium text-gray-700 mb-1">Division</label>
-                          <input
-                            type="text"
-                            name="division"
-                            value={editingUser()?.division || ''}
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                          />
-                        </div>
-
-                        <div class="col-span-2">
-                          <label class="block text-sm font-medium text-gray-700 mb-1">Regional</label>
-                          <input
-                            type="text"
-                            name="regional"
-                            value={editingUser()?.regional || ''}
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                          />
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                          <p class="text-xs text-blue-800">
+                            💡 The current visible columns in the grid will be saved to this template.
+                          </p>
                         </div>
                       </div>
 
                       <div class="flex gap-3 mt-6">
                         <button
-                          type="submit"
                           class="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                          onClick={handleSaveTemplate}
                         >
-                          {editingUser() ? 'Update User' : 'Create User'}
+                          Save Template
                         </button>
                         <button
-                          type="button"
                           class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                           onClick={() => {
-                            setShowUserForm(false);
-                            setEditingUser(null);
+                            setShowTemplateForm(false);
+                            setTemplateName('');
+                            setTemplateDescription('');
                           }}
                         >
                           Cancel
                         </button>
                       </div>
-                    </form>
+                    </div>
+                  </div>
+                </Show>
+              </div>
+            </Show>
+
+            <Show when={activeTab() === 'users'}>
+              <div class="h-full flex flex-col bg-gray-50 overflow-hidden">
+                {/* Header */}
+                <div class="px-6 py-4 bg-white border-b border-gray-200 flex-shrink-0">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <h3 class="text-xl font-bold text-gray-800">Personal and Group</h3>
+                      <p class="text-sm text-gray-600 mt-1">Manage users, roles, and access levels</p>
+                    </div>
+                    <Show when={props.userRole === 'Admin'}>
+                      <button
+                        class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium"
+                        onClick={handleAddUser}
+                      >
+                        + Add User
+                      </button>
+                    </Show>
                   </div>
                 </div>
-              </Show>
-            </div>
-          </Show>
+
+                {/* Tab Navigation */}
+                <div class="px-6 py-3 bg-white border-b border-gray-200 flex-shrink-0">
+                  <div class="flex items-center gap-1">
+                    <button
+                      class={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${userDataTab() === 'all'
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      onClick={() => setUserDataTab('all')}
+                    >
+                      Personal and Group
+                    </button>
+                  </div>
+                </div>
+
+                {/* Filter Section */}
+                <div class="px-6 py-4 bg-white border-b border-gray-200 flex-shrink-0">
+                  <div class="flex items-center gap-3 flex-wrap">
+                    <input
+                      type="text"
+                      placeholder="Name/Employee No."
+                      value={userNameFilter()}
+                      onInput={(e) => setUserNameFilter(e.currentTarget.value)}
+                      class="px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-500 w-48"
+                    />
+
+                    <select
+                      value={userRoleFilter()}
+                      onChange={(e) => setUserRoleFilter(e.currentTarget.value)}
+                      class="px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-500 w-40"
+                    >
+                      <option value="">Resource Type</option>
+                      <option value="Admin">Admin</option>
+                      <option value="Internal TI">Internal TI</option>
+                      <option value="Mitra">Mitra</option>
+                    </select>
+
+                    <select
+                      class="px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-500 w-40"
+                    >
+                      <option value="">Resource</option>
+                    </select>
+
+                    <input
+                      type="text"
+                      placeholder="Subcontractor"
+                      value={userUnitFilter()}
+                      onInput={(e) => setUserUnitFilter(e.currentTarget.value)}
+                      class="px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-500 w-48"
+                    />
+
+                    <input
+                      type="text"
+                      placeholder="Subcontractor Name"
+                      class="px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-500 w-48"
+                    />
+
+                    <button
+                      class="px-6 py-2 bg-blue-500 text-white rounded text-sm font-medium hover:bg-blue-600 transition-colors"
+                      onClick={applyUserFilters}
+                    >
+                      Search
+                    </button>
+
+                    <button
+                      class="px-6 py-2 bg-gray-200 text-gray-700 rounded text-sm font-medium hover:bg-gray-300 transition-colors"
+                      onClick={resetUserFilters}
+                    >
+                      Reset
+                    </button>
+                  </div>
+                </div>
+
+                {/* Two Tables Side by Side */}
+                <div class="flex-1 px-6 py-4 overflow-hidden">
+                  <div class="h-full flex gap-4">
+                    {/* All Data Table */}
+                    <div class="flex-1 flex flex-col">
+                      <div class="mb-2 flex items-center justify-between">
+                        <h4 class="text-sm font-bold text-gray-700 flex items-center gap-2">
+                          <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                          </svg>
+                          All Data
+                        </h4>
+                        <span class="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">
+                          Total: {users().length}
+                        </span>
+                      </div>
+                      <div class="flex-1 ag-theme-alpine bg-white rounded-lg shadow-md border-2 border-gray-200">
+                        <AgGridSolid
+                          columnDefs={userColumnDefs()}
+                          rowData={users()}
+                          defaultColDef={userGridOptions.defaultColDef}
+                          rowSelection={userGridOptions.rowSelection}
+                          pagination={userGridOptions.pagination}
+                          paginationPageSize={userGridOptions.paginationPageSize}
+                          paginationPageSizeSelector={userGridOptions.paginationPageSizeSelector}
+                          enableCellTextSelection={userGridOptions.enableCellTextSelection}
+                          suppressRowClickSelection={userGridOptions.suppressRowClickSelection}
+                          onGridReady={onUserGridReady}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Select Data Table */}
+                    <div class="flex-1 flex flex-col">
+                      <div class="mb-2 flex items-center justify-between">
+                        <h4 class="text-sm font-bold text-gray-700 flex items-center gap-2">
+                          <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                          </svg>
+                          Select Data
+                        </h4>
+                        <span class="px-3 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full">
+                          Selected: {selectedUsers().length}
+                        </span>
+                      </div>
+                      <div class="flex-1 ag-theme-alpine bg-white rounded-lg shadow-md border-2 border-green-200">
+                        <AgGridSolid
+                          columnDefs={selectedUserColumnDefs()}
+                          rowData={selectedUsers()}
+                          defaultColDef={userGridOptions.defaultColDef}
+                          pagination={userGridOptions.pagination}
+                          paginationPageSize={userGridOptions.paginationPageSize}
+                          paginationPageSizeSelector={userGridOptions.paginationPageSizeSelector}
+                          enableCellTextSelection={userGridOptions.enableCellTextSelection}
+                          suppressRowClickSelection={userGridOptions.suppressRowClickSelection}
+                          onGridReady={onSelectedUserGridReady}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div class="px-6 py-4 bg-white border-t-2 border-gray-200">
+                  <div class="flex items-center justify-center gap-3">
+                    <button
+                      class="px-10 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg font-semibold hover:from-blue-600 hover:to-blue-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2"
+                      onClick={() => {
+                        if (selectedUsers().length > 0) {
+                          alert(`✓ Confirmed ${selectedUsers().length} selected users`);
+                        } else {
+                          alert('⚠️ Please select users first');
+                        }
+                      }}
+                    >
+                      <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                      </svg>
+                      OK
+                    </button>
+                    <button
+                      class="px-10 py-2.5 bg-gradient-to-r from-gray-300 to-gray-400 text-gray-700 rounded-lg font-semibold hover:from-gray-400 hover:to-gray-500 transition-all shadow-md hover:shadow-lg flex items-center gap-2"
+                      onClick={() => {
+                        setSelectedUsers([]);
+                      }}
+                    >
+                      <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                      </svg>
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+
+                {/* User Form Modal */}
+                <Show when={showUserForm()}>
+                  <div class="fixed inset-0 bg-black/50 z-[2100] flex items-center justify-center p-4">
+                    <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6">
+                      <h3 class="text-lg font-bold text-gray-800 mb-4">
+                        {editingUser() ? 'Edit User' : 'Add New User'}
+                      </h3>
+
+                      <form onSubmit={(e) => {
+                        e.preventDefault();
+                        const formData = new FormData(e.currentTarget);
+                        handleSaveUser({
+                          username: formData.get('username') as string,
+                          email: formData.get('email') as string,
+                          role: formData.get('role') as UserRole,
+                          accessLevel: formData.get('accessLevel') as AccessLevel,
+                          unit: formData.get('unit') as string,
+                          division: formData.get('division') as string,
+                          regional: formData.get('regional') as string,
+                        });
+                      }}>
+                        <div class="grid grid-cols-2 gap-4">
+                          <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                            <input
+                              type="text"
+                              name="username"
+                              value={editingUser()?.username || ''}
+                              required
+                              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                            />
+                          </div>
+
+                          <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                            <input
+                              type="email"
+                              name="email"
+                              value={editingUser()?.email || ''}
+                              required
+                              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                            />
+                          </div>
+
+                          <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                            <select
+                              name="role"
+                              value={editingUser()?.role || 'Mitra'}
+                              required
+                              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                            >
+                              <option value="Admin">Admin</option>
+                              <option value="Internal TI">Internal TI</option>
+                              <option value="Mitra">Mitra</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Access Level</label>
+                            <select
+                              name="accessLevel"
+                              value={editingUser()?.accessLevel || 'view'}
+                              required
+                              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                            >
+                              <option value="view">View Only</option>
+                              <option value="modify">Modify</option>
+                              <option value="full">Full Access</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Unit</label>
+                            <input
+                              type="text"
+                              name="unit"
+                              value={editingUser()?.unit || ''}
+                              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                            />
+                          </div>
+
+                          <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Division</label>
+                            <input
+                              type="text"
+                              name="division"
+                              value={editingUser()?.division || ''}
+                              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                            />
+                          </div>
+
+                          <div class="col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Regional</label>
+                            <input
+                              type="text"
+                              name="regional"
+                              value={editingUser()?.regional || ''}
+                              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                            />
+                          </div>
+                        </div>
+
+                        <div class="flex gap-3 mt-6">
+                          <button
+                            type="submit"
+                            class="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                          >
+                            {editingUser() ? 'Update User' : 'Create User'}
+                          </button>
+                          <button
+                            type="button"
+                            class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                            onClick={() => {
+                              setShowUserForm(false);
+                              setEditingUser(null);
+                            }}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </Show>
+              </div>
+            </Show>
+          </div>
         </div>
       </div>
-    </div>
     </Show>
   );
 }
