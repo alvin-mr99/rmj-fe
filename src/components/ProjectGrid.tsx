@@ -105,6 +105,11 @@ export default function ProjectGrid() {
   // Listen for the custom event from cell renderer
   const handleViewDetail = (e: any) => {
     setSelectedProjectId(e.detail);
+    // Force grid to redraw rows to apply the new styling
+    const api = gridApi();
+    if (api) {
+      api.redrawRows();
+    }
   };
 
   // Listen for BoQ event
@@ -248,7 +253,7 @@ export default function ProjectGrid() {
 
   return (
     <div class="w-full">
-      <div class="ag-theme-alpine h-64 w-full">
+      <div class="ag-theme-alpine h-96 w-full">
         <AgGridSolid
           columnDefs={columnDefs()}
           rowData={projects()}
@@ -258,12 +263,25 @@ export default function ProjectGrid() {
           pagination={true}
           paginationPageSize={10}
           paginationPageSizeSelector={[10, 20, 50, 100]}
+          rowClassRules={{
+            'ag-row-selected-custom': (params: any) => params.data.id === selectedProjectId()
+          }}
         />
       </div>
 
       <Show when={selectedProjectId()}>
         <div class="mt-4">
-          <ProjectDetail project={selectedProject()!} onClose={() => setSelectedProjectId(null)} />
+          <ProjectDetail 
+            project={selectedProject()!} 
+            onClose={() => {
+              setSelectedProjectId(null);
+              // Force grid to redraw rows to remove styling
+              const api = gridApi();
+              if (api) {
+                api.redrawRows();
+              }
+            }} 
+          />
         </div>
       </Show>
 

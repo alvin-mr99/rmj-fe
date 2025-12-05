@@ -74,36 +74,31 @@ export default function ProjectDetail(props: Props) {
     openLokasi(e.detail);
   });
 
-  // Milestone data sample
+  // Milestone data sample - expanded based on PDF
   const milestoneData = [
-    {
-      id: 1,
-      no: 1,
-      milestone: 'Mobilisasi',
-      level: 'High',
-      activity: 'Persiapan',
-      remark: 'OK',
-      eventPoint: '2024-10-01'
-    },
-    {
-      id: 2,
-      no: 2,
-      milestone: 'Penggalian',
-      level: 'Medium',
-      activity: 'On Going',
-      remark: 'Delay',
-      eventPoint: '2024-11-15'
-    }
+    { id: 1, no: 1, milestone: 'Approval Kontrak', level: 'High', activity: 'Contract Signing', remark: 'OK', eventPoint: '2024-01-15' },
+    { id: 2, no: 2, milestone: 'Mobilisasi', level: 'High', activity: 'Site Mobilization', remark: 'OK', eventPoint: '2024-02-01' },
+    { id: 3, no: 3, milestone: 'Survey & Design', level: 'Medium', activity: 'Site Survey', remark: 'OK', eventPoint: '2024-02-15' },
+    { id: 4, no: 4, milestone: 'Perizinan', level: 'High', activity: 'Permit Processing', remark: 'On Progress', eventPoint: '2024-03-01' },
+    { id: 5, no: 5, milestone: 'Pengadaan Material', level: 'Medium', activity: 'Material Procurement', remark: 'OK', eventPoint: '2024-03-15' },
+    { id: 6, no: 6, milestone: 'Civil Work', level: 'High', activity: 'Construction', remark: 'On Progress', eventPoint: '2024-04-01' },
+    { id: 7, no: 7, milestone: 'Cable Installation', level: 'High', activity: 'Cable Laying', remark: 'On Progress', eventPoint: '2024-05-01' },
+    { id: 8, no: 8, milestone: 'Splicing & Termination', level: 'Medium', activity: 'Joint Work', remark: 'Pending', eventPoint: '2024-06-01' },
+    { id: 9, no: 9, milestone: 'Testing & Commissioning', level: 'High', activity: 'System Testing', remark: 'Pending', eventPoint: '2024-07-01' },
+    { id: 10, no: 10, milestone: 'Handover', level: 'High', activity: 'Project Handover', remark: 'Pending', eventPoint: '2024-08-01' },
+    { id: 11, no: 11, milestone: 'As Built Drawing', level: 'Medium', activity: 'Documentation', remark: 'Pending', eventPoint: '2024-08-15' },
+    { id: 12, no: 12, milestone: 'BAP 100%', level: 'High', activity: 'Final Acceptance', remark: 'Pending', eventPoint: '2024-09-01' }
   ];
 
   // Column definitions untuk milestone table
   const milestoneColumnDefs: ColDef[] = [
-    { field: 'no', headerName: 'No', width: 80 },
-    { field: 'milestone', headerName: 'Milestone', width: 150, filter: true },
+    { field: 'no', headerName: 'No', width: 70, pinned: 'left' },
+    { field: 'milestone', headerName: 'Milestone', width: 200, filter: true, floatingFilter: true },
     { 
       field: 'level', 
       headerName: 'Level', 
-      width: 120,
+      width: 110,
+      filter: true,
       cellRenderer: (params: any) => {
         const level = params.value;
         const el = document.createElement('span');
@@ -118,24 +113,27 @@ export default function ProjectDetail(props: Props) {
         return el;
       }
     },
-    { field: 'activity', headerName: 'Activity', width: 150, filter: true },
+    { field: 'activity', headerName: 'Activity', flex: 1, minWidth: 180, filter: true, floatingFilter: true },
     { 
       field: 'remark', 
       headerName: 'Remark', 
-      width: 120,
+      width: 130,
+      filter: true,
       cellRenderer: (params: any) => {
         const remark = params.value;
         const el = document.createElement('span');
-        el.className = `inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
-          remark === 'OK' 
-            ? 'bg-green-100 text-green-800' 
-            : 'bg-orange-100 text-orange-800'
-        }`;
+        const colors = {
+          'OK': 'bg-green-100 text-green-800',
+          'On Progress': 'bg-blue-100 text-blue-800',
+          'Pending': 'bg-gray-100 text-gray-800',
+          'Delay': 'bg-orange-100 text-orange-800'
+        };
+        el.className = `inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${colors[remark as keyof typeof colors] || 'bg-gray-100 text-gray-800'}`;
         el.textContent = remark;
         return el;
       }
     },
-    { field: 'eventPoint', headerName: 'Event Point', width: 130 }
+    { field: 'eventPoint', headerName: 'Event Point', width: 130, filter: true }
   ];
 
   return (
@@ -256,8 +254,8 @@ export default function ProjectDetail(props: Props) {
         </Show>
 
         <Show when={activeTab() === 'milestone'}>
-          <div>
-            <div class="ag-theme-alpine" style="height: 200px; width: 100%;">
+          <div class="bg-white rounded-lg border border-gray-200 shadow-sm">
+            <div class="ag-theme-alpine h-[500px] w-full">
               <AgGridSolid
                 columnDefs={milestoneColumnDefs}
                 rowData={milestoneData}
@@ -265,7 +263,11 @@ export default function ProjectDetail(props: Props) {
                   sortable: true,
                   resizable: true,
                 }}
-                domLayout="autoHeight"
+                pagination={true}
+                paginationPageSize={20}
+                paginationPageSizeSelector={[10, 20, 50]}
+                rowHeight={48}
+                headerHeight={56}
               />
             </div>
           </div>

@@ -5,6 +5,7 @@ import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { LicenseManager } from 'ag-grid-enterprise';
 import type { ColDef, GridOptions, GridApi } from 'ag-grid-community';
 import ProjectGrid from './ProjectGrid';
+import { ReportRMJModal } from './ReportRMJModal';
 import type { RMJSitelistRow, RMJUser, RMJViewTemplate, UserRole, AccessLevel, RMJReportRow } from '../types';
 import * as XLSX from 'xlsx';
 
@@ -82,6 +83,31 @@ const customGridStyles = `
     transform: translateY(-1px);
     box-shadow: 0 4px 8px rgba(102, 126, 234, 0.4);
   }
+
+  /* Custom styles for RMJ Report with gray header */
+  .ag-theme-alpine.report-rmj-grid .ag-header {
+    background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+    color: white;
+    font-weight: 600;
+  }
+  
+  .ag-theme-alpine.report-rmj-grid .ag-header-cell-label {
+    color: white;
+    font-size: 13px;
+  }
+  
+  .ag-theme-alpine.report-rmj-grid .ag-icon {
+    color: white;
+  }
+
+  .ag-theme-alpine.report-rmj-grid .ag-header-group-cell-label {
+    color: white;
+    font-weight: 600;
+  }
+
+  .ag-theme-alpine.report-rmj-grid .ag-header-cell-text {
+    color: white;
+  }
 `;
 
 // Inject styles
@@ -132,7 +158,6 @@ export function RMJModal(props: RMJModalProps) {
 
   // Report RMJ State
   const [showReportRMJ, setShowReportRMJ] = createSignal(false);
-  const [reportGridApi, setReportGridApi] = createSignal<GridApi | null>(null);
 
   // Sample data for Project 1
   const sampleDataProject1: RMJSitelistRow[] = [
@@ -1244,13 +1269,14 @@ export function RMJModal(props: RMJModalProps) {
           style={{ "font-family": "'Poppins', sans-serif" }}
         >
           {/* Header */}
-          <div class="flex items-center justify-between px-6 py-3 border-b border-gray-200 flex-shrink-0">
-            <div>
+          <div class="flex items-center px-6 py-3 border-b border-gray-200 flex-shrink-0">
+            <div class="flex-shrink-0">
               <h2 class="text-xl font-bold text-gray-800 m-0">RMJ Tools - Project Delivery Management</h2>
               <p class="text-xs text-gray-500 m-0 mt-0.5">Integrated Work Management System</p>
             </div>
-            {/* Tabs */}
-            <div class="flex gap-2 items-center">
+            
+            {/* Tabs and Actions */}
+            <div class="flex-1 flex items-center justify-center gap-2">
               <button
                 class={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${activeTab() === 'sitelist'
                     ? 'bg-blue-500 text-white shadow-md'
@@ -1260,7 +1286,22 @@ export function RMJModal(props: RMJModalProps) {
               >
                 📊 Sitelist Project
               </button>
+              <button
+                class={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${activeTab() === 'users'
+                    ? 'bg-blue-500 text-white shadow-md'
+                    : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+                  }`}
+                onClick={() => setActiveTab('users')}
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+                User Management
+              </button>
+              
+              {/* Action Buttons - Conditional */}
               <Show when={activeTab() === 'sitelist'}>
+                <div class="h-6 w-px bg-gray-300 mx-2"></div>
                 <button
                   class="px-4 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors font-medium text-sm shadow-sm flex items-center gap-2"
                   onClick={() => {
@@ -1284,18 +1325,10 @@ export function RMJModal(props: RMJModalProps) {
                   Report RMJ
                 </button>
               </Show>
-              <button
-                class={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${activeTab() === 'users'
-                    ? 'bg-blue-500 text-white shadow-md'
-                    : 'bg-white text-gray-600 hover:bg-gray-100'
-                  }`}
-                onClick={() => setActiveTab('users')}
-              >
-                👥 User Management
-              </button>
             </div>
+            
             <button
-              class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+              class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors flex-shrink-0 ml-4"
               onClick={props.onClose}
             >
               <span class="text-lg text-gray-600">×</span>
@@ -1408,268 +1441,6 @@ export function RMJModal(props: RMJModalProps) {
                 <div class="flex-1 px-6 py-4 overflow-auto">
                   <ProjectGrid />
                 </div>
-              </div>
-            </Show>
-
-            <Show when={activeTab() === 'settings'}>
-              <div class="h-full flex flex-col overflow-hidden">
-                {/* Header */}
-                <div class="px-6 py-4 border-b border-gray-200 flex-shrink-0">
-                  <div class="flex items-center justify-between">
-                    <div>
-                      <h3 class="text-xl font-bold text-gray-800">View Template Settings</h3>
-                      <p class="text-sm text-gray-600 mt-1">Save and manage custom column views for different use cases</p>
-                    </div>
-                    <button
-                      class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium"
-                      onClick={() => setShowTemplateForm(true)}
-                    >
-                      + Create Template
-                    </button>
-                  </div>
-                </div>
-
-                {/* Template List */}
-                <div class="flex-1 overflow-auto p-6">
-                  <div class="space-y-4">
-                    <For each={templates()}>
-                      {(template) => (
-                        <div class="border-2 border-gray-200 rounded-xl overflow-hidden hover:border-blue-300 transition-all bg-white shadow-sm">
-                          {/* Template Header */}
-                          <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4">
-                            <div class="flex items-start justify-between mb-3">
-                              <div class="flex-1">
-                                <div class="flex items-center gap-3">
-                                  <h4 class="text-lg font-bold text-gray-800">{template.name}</h4>
-                                  <Show when={template.isPublic}>
-                                    <span class="px-3 py-1 bg-green-500 text-white text-xs rounded-full font-semibold shadow-sm">
-                                      🌐 Public
-                                    </span>
-                                  </Show>
-                                </div>
-                                <p class="text-sm text-gray-600 mt-1">{template.description}</p>
-                              </div>
-                            </div>
-
-                            <div class="flex items-center gap-6 mb-3">
-                              <div class="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg shadow-sm">
-                                <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
-                                </svg>
-                                <span class="text-xs font-semibold text-gray-700">{template.visibleColumns.length} Columns</span>
-                              </div>
-                              <div class="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg shadow-sm">
-                                <svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                </svg>
-                                <span class="text-xs font-semibold text-gray-700">{template.userRole || 'All Roles'}</span>
-                              </div>
-                              <div class="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg shadow-sm">
-                                <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                </svg>
-                                <span class="text-xs font-semibold text-gray-700">{new Date(template.createdDate).toLocaleDateString()}</span>
-                              </div>
-                            </div>
-
-                            <div class="flex gap-2">
-                              <button
-                                class="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg text-sm font-semibold hover:from-blue-600 hover:to-blue-700 transition-all shadow-md hover:shadow-lg"
-                                onClick={() => handleApplyTemplate(template.id)}
-                              >
-                                ✓ Apply Template
-                              </button>
-                              <button
-                                class="px-4 py-2 bg-white border-2 border-blue-300 text-blue-600 rounded-lg text-sm font-semibold hover:bg-blue-50 transition-all"
-                                onClick={() => setExpandedTemplate(expandedTemplate() === template.id ? null : template.id)}
-                              >
-                                {expandedTemplate() === template.id ? '▲ Hide Columns' : '▼ View Columns'}
-                              </button>
-                              <button
-                                class="px-4 py-2 bg-white border-2 border-red-300 text-red-600 rounded-lg text-sm font-semibold hover:bg-red-50 transition-all"
-                                onClick={() => {
-                                  if (confirm('Delete this template?')) {
-                                    setTemplates(templates().filter(t => t.id !== template.id));
-                                  }
-                                }}
-                              >
-                                🗑️ Delete
-                              </button>
-                            </div>
-                          </div>
-
-                          {/* Expandable Column Table */}
-                          <Show when={expandedTemplate() === template.id}>
-                            <div class="p-4 bg-gray-50 border-t-2 border-gray-200">
-                              <div class="mb-3 flex items-center justify-between">
-                                <h5 class="text-sm font-bold text-gray-700 flex items-center gap-2">
-                                  <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                                  </svg>
-                                  Column Configuration
-                                </h5>
-                                <div class="flex items-center gap-2">
-                                  <span class="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">
-                                    {template.lockedColumns.length} Locked
-                                  </span>
-                                  <span class="px-3 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full">
-                                    {template.visibleColumns.length} Visible
-                                  </span>
-                                </div>
-                              </div>
-
-                              <div class="bg-white rounded-lg border-2 border-gray-200 overflow-hidden shadow-sm">
-                                <div class="overflow-x-auto max-h-96">
-                                  <table class="w-full">
-                                    <thead class="bg-gradient-to-r from-gray-700 to-gray-800 text-white sticky top-0">
-                                      <tr>
-                                        <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">
-                                          #
-                                        </th>
-                                        <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">
-                                          Column Name
-                                        </th>
-                                        <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">
-                                          Field ID
-                                        </th>
-                                        <th class="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider">
-                                          Status
-                                        </th>
-                                        <th class="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider">
-                                          Lock Status
-                                        </th>
-                                      </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-gray-200">
-                                      <For each={template.visibleColumns}>
-                                        {(colId, index) => {
-                                          const colDef = columnDefs().find(c => c.field === colId);
-                                          const isLocked = template.lockedColumns.includes(colId);
-                                          return (
-                                            <tr class="hover:bg-blue-50 transition-colors">
-                                              <td class="px-4 py-3 text-sm font-bold text-gray-500">
-                                                {index() + 1}
-                                              </td>
-                                              <td class="px-4 py-3 text-sm font-semibold text-gray-800">
-                                                {colDef?.headerName || colId}
-                                              </td>
-                                              <td class="px-4 py-3 text-sm text-gray-600 font-mono bg-gray-50">
-                                                {colId}
-                                              </td>
-                                              <td class="px-4 py-3 text-center">
-                                                <span class="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full">
-                                                  <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                                                  </svg>
-                                                  Visible
-                                                </span>
-                                              </td>
-                                              <td class="px-4 py-3 text-center">
-                                                <Show when={isLocked} fallback={
-                                                  <span class="inline-flex items-center gap-1 px-3 py-1 bg-gray-100 text-gray-600 text-xs font-bold rounded-full">
-                                                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                                      <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
-                                                    </svg>
-                                                    Unlocked
-                                                  </span>
-                                                }>
-                                                  <span class="inline-flex items-center gap-1 px-3 py-1 bg-orange-100 text-orange-700 text-xs font-bold rounded-full">
-                                                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                                      <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
-                                                    </svg>
-                                                    Locked
-                                                  </span>
-                                                </Show>
-                                              </td>
-                                            </tr>
-                                          );
-                                        }}
-                                      </For>
-                                    </tbody>
-                                  </table>
-                                </div>
-                              </div>
-
-                              {/* Summary Stats */}
-                              <div class="mt-4 grid grid-cols-3 gap-3">
-                                <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-3 text-white shadow-md">
-                                  <div class="text-xs font-semibold opacity-90">Total Columns</div>
-                                  <div class="text-2xl font-bold mt-1">{template.visibleColumns.length}</div>
-                                </div>
-                                <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg p-3 text-white shadow-md">
-                                  <div class="text-xs font-semibold opacity-90">Locked Columns</div>
-                                  <div class="text-2xl font-bold mt-1">{template.lockedColumns.length}</div>
-                                </div>
-                                <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-3 text-white shadow-md">
-                                  <div class="text-xs font-semibold opacity-90">Editable Columns</div>
-                                  <div class="text-2xl font-bold mt-1">{template.visibleColumns.length - template.lockedColumns.length}</div>
-                                </div>
-                              </div>
-                            </div>
-                          </Show>
-                        </div>
-                      )}
-                    </For>
-                  </div>
-                </div>
-
-                {/* Create Template Form Modal */}
-                <Show when={showTemplateForm()}>
-                  <div class="fixed inset-0 bg-black/50 z-[2100] flex items-center justify-center p-4">
-                    <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
-                      <h3 class="text-lg font-bold text-gray-800 mb-4">Create New Template</h3>
-
-                      <div class="space-y-4">
-                        <div>
-                          <label class="block text-sm font-medium text-gray-700 mb-1">Template Name</label>
-                          <input
-                            type="text"
-                            value={templateName()}
-                            onInput={(e) => setTemplateName(e.currentTarget.value)}
-                            placeholder="e.g., My Custom View"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                          />
-                        </div>
-
-                        <div>
-                          <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                          <textarea
-                            value={templateDescription()}
-                            onInput={(e) => setTemplateDescription(e.currentTarget.value)}
-                            placeholder="Describe this template..."
-                            rows="3"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                          />
-                        </div>
-
-                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                          <p class="text-xs text-blue-800">
-                            💡 The current visible columns in the grid will be saved to this template.
-                          </p>
-                        </div>
-                      </div>
-
-                      <div class="flex gap-3 mt-6">
-                        <button
-                          class="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                          onClick={handleSaveTemplate}
-                        >
-                          Save Template
-                        </button>
-                        <button
-                          class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                          onClick={() => {
-                            setShowTemplateForm(false);
-                            setTemplateName('');
-                            setTemplateDescription('');
-                          }}
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </Show>
               </div>
             </Show>
 
@@ -1992,194 +1763,12 @@ export function RMJModal(props: RMJModalProps) {
       </div>
     </Show>
 
-    {/* Report RMJ Modal */}
-    <Show when={showReportRMJ()}>
-      <div
-        class="fixed inset-0 bg-black/50 z-[3000] flex items-center justify-center p-4"
-        onClick={() => setShowReportRMJ(false)}
-      >
-        <div
-          class="bg-white rounded-2xl shadow-2xl w-[98vw] h-[95vh] flex flex-col overflow-hidden"
-          onClick={(e) => e.stopPropagation()}
-          style={{ "font-family": "'Poppins', sans-serif" }}
-        >
-          {/* Header */}
-          <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-orange-50 to-orange-100">
-            <div>
-              <h2 class="text-2xl font-bold text-gray-800 m-0">📊 PROGRES REVENUE OSP DKI TELKOMINFRA 2025</h2>
-              <p class="text-sm text-gray-600 m-0 mt-1">Report RMJ - Progress Monitoring Dashboard</p>
-            </div>
-            <button
-              class="w-10 h-10 rounded-full bg-white hover:bg-gray-100 flex items-center justify-center transition-colors shadow-sm border border-gray-200"
-              onClick={() => setShowReportRMJ(false)}
-            >
-              <span class="text-2xl text-gray-600">×</span>
-            </button>
-          </div>
-
-          {/* Toolbar */}
-          <div class="px-6 py-3 border-b border-gray-200 bg-white flex items-center justify-between">
-            <div class="flex items-center gap-3">
-              <button
-                class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors font-medium text-sm shadow-sm flex items-center gap-2"
-                onClick={() => {
-                  const ws = XLSX.utils.json_to_sheet(sampleReportData);
-                  const wb = XLSX.utils.book_new();
-                  XLSX.utils.book_append_sheet(wb, ws, 'RMJ Report');
-                  XLSX.writeFile(wb, `RMJ_Report_${new Date().toISOString().split('T')[0]}.xlsx`);
-                }}
-              >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
-                </svg>
-                Export to Excel
-              </button>
-              <button
-                class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors font-medium text-sm shadow-sm flex items-center gap-2"
-                onClick={() => {
-                  const api = reportGridApi();
-                  if (api) {
-                    api.openToolPanel('filters');
-                  }
-                }}
-              >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                </svg>
-                Open Filters
-              </button>
-            </div>
-            <div class="text-sm text-gray-600">
-              Total Records: <span class="font-semibold text-gray-800">{sampleReportData.length}</span>
-            </div>
-          </div>
-
-          {/* AG Grid */}
-          <div class="flex-1 px-6 py-4 overflow-hidden">
-            <div class="ag-theme-alpine h-full w-full">
-              <AgGridSolid
-                columnDefs={[
-                  { field: 'no', headerName: 'NO', width: 70, pinned: 'left', filter: 'agNumberColumnFilter' },
-                  { field: 'area', headerName: 'AREA', width: 90, pinned: 'left', filter: 'agTextColumnFilter' },
-                  { field: 'ktrl', headerName: 'KTRL', width: 90, filter: 'agTextColumnFilter' },
-                  { field: 'mitraPelaksana', headerName: 'MITRA PELAKSANA', width: 150, filter: 'agTextColumnFilter' },
-                  { field: 'linkRuas', headerName: 'LINK/RUAS', width: 300, filter: 'agTextColumnFilter' },
-                  { field: 'volumePhm', headerName: 'VOLUME (PHM)', width: 130, filter: 'agNumberColumnFilter', valueFormatter: (params: any) => params.value?.toLocaleString() },
-                  
-                  // Progres Galian/Boring Manual (BO/DG) & Roding
-                  { 
-                    headerName: 'PROGRES GALIAN/BORING MANUAL (BO/DG) & RODING', 
-                    children: [
-                      { field: 'progresGalianBoringManual.plan', headerName: 'PLAN', width: 110, filter: 'agNumberColumnFilter', valueFormatter: (params: any) => params.value?.toLocaleString() },
-                      { field: 'progresGalianBoringManual.actual', headerName: 'ACTUAL', width: 110, filter: 'agNumberColumnFilter', valueFormatter: (params: any) => params.value?.toLocaleString() },
-                      { field: 'progresGalianBoringManual.sisa', headerName: 'SISA', width: 110, filter: 'agNumberColumnFilter', valueFormatter: (params: any) => params.value?.toLocaleString() },
-                      { field: 'progresGalianBoringManual.percentage', headerName: '%', width: 80, filter: 'agNumberColumnFilter', valueFormatter: (params: any) => `${params.value}%` },
-                    ]
-                  },
-
-                  // Penanaman HDPE
-                  { 
-                    headerName: 'PENANAMAN HDPE', 
-                    children: [
-                      { field: 'penambahanHdpe.plan', headerName: 'PLAN', width: 110, filter: 'agNumberColumnFilter', valueFormatter: (params: any) => params.value?.toLocaleString() },
-                      { field: 'penambahanHdpe.actual', headerName: 'ACTUAL', width: 110, filter: 'agNumberColumnFilter', valueFormatter: (params: any) => params.value?.toLocaleString() },
-                      { field: 'penambahanHdpe.sisa', headerName: 'SISA', width: 110, filter: 'agNumberColumnFilter', valueFormatter: (params: any) => params.value?.toLocaleString() },
-                      { field: 'penambahanHdpe.percentage', headerName: '%', width: 80, filter: 'agNumberColumnFilter', valueFormatter: (params: any) => `${params.value}%` },
-                    ]
-                  },
-
-                  // Penambahan Tiang
-                  { 
-                    headerName: 'PENAMBAHAN TIANG', 
-                    children: [
-                      { field: 'penambahanTiang.plan', headerName: 'PLAN', width: 110, filter: 'agNumberColumnFilter', valueFormatter: (params: any) => params.value?.toLocaleString() },
-                      { field: 'penambahanTiang.actual', headerName: 'ACTUAL (SBT)', width: 130, filter: 'agNumberColumnFilter', valueFormatter: (params: any) => params.value?.toLocaleString() },
-                      { field: 'penambahanTiang.sisa', headerName: 'SISA', width: 110, filter: 'agNumberColumnFilter', valueFormatter: (params: any) => params.value?.toLocaleString() },
-                      { field: 'penambahanTiang.percentage', headerName: '%', width: 80, filter: 'agNumberColumnFilter', valueFormatter: (params: any) => `${params.value}%` },
-                    ]
-                  },
-
-                  // Konstruksi Alur Jembatan
-                  { 
-                    headerName: 'KONSTRUKSI ALUR JEMBATAN', 
-                    children: [
-                      { field: 'konstruksiAlurJembatan.plan', headerName: 'PLAN', width: 110, filter: 'agNumberColumnFilter', valueFormatter: (params: any) => params.value?.toLocaleString() },
-                      { field: 'konstruksiAlurJembatan.actual', headerName: 'ACTUAL (SBT)', width: 130, filter: 'agNumberColumnFilter', valueFormatter: (params: any) => params.value?.toLocaleString() },
-                      { field: 'konstruksiAlurJembatan.sisa', headerName: 'SISA', width: 110, filter: 'agNumberColumnFilter', valueFormatter: (params: any) => params.value?.toLocaleString() },
-                      { field: 'konstruksiAlurJembatan.percentage', headerName: '%', width: 80, filter: 'agNumberColumnFilter', valueFormatter: (params: any) => `${params.value}%` },
-                    ]
-                  },
-
-                  // Handhole
-                  { 
-                    headerName: 'HANDHOLE', 
-                    children: [
-                      { field: 'handhole.plan', headerName: 'PLAN (UNIT)', width: 120, filter: 'agTextColumnFilter' },
-                      { field: 'handhole.actual', headerName: 'ACTUAL (SBT)', width: 130, filter: 'agTextColumnFilter' },
-                      { field: 'handhole.sisa', headerName: 'SISA', width: 110, filter: 'agTextColumnFilter' },
-                      { field: 'handhole.percentage', headerName: '%', width: 80, filter: 'agNumberColumnFilter', valueFormatter: (params: any) => `${params.value}%` },
-                    ]
-                  },
-
-                  // Jointing & Terminasi
-                  { 
-                    headerName: 'JOINTING & TERMINASI', 
-                    children: [
-                      { field: 'jointingTerminasi.plan', headerName: 'PLAN (UNIT)', width: 120, filter: 'agTextColumnFilter' },
-                      { field: 'jointingTerminasi.actual', headerName: 'ACTUAL (SBT)', width: 130, filter: 'agTextColumnFilter' },
-                      { field: 'jointingTerminasi.sisa', headerName: 'SISA', width: 110, filter: 'agTextColumnFilter' },
-                      { field: 'jointingTerminasi.percentage', headerName: '%', width: 80, filter: 'agNumberColumnFilter', valueFormatter: (params: any) => `${params.value}%` },
-                    ]
-                  },
-
-                  { field: 'nocApft', headerName: 'NOC APFT', width: 110, filter: 'agTextColumnFilter' },
-                  { field: 'persentaseRealisasiKonstruksi', headerName: 'PERSENTASE REALISASI KONSTRUKSI (%)', width: 180, filter: 'agNumberColumnFilter', valueFormatter: (params: any) => `${params.value}%` },
-                  { field: 'planTargetTi', headerName: 'PLAN TARGET TI', width: 140, filter: 'agTextColumnFilter' },
-                  { field: 'nilaiOdm', headerName: 'NILAI ODM', width: 120, filter: 'agTextColumnFilter' },
-                  { field: 'volumeRekon', headerName: 'VOLUME REKON', width: 130, filter: 'agNumberColumnFilter', valueFormatter: (params: any) => params.value?.toLocaleString() },
-                  { field: 'nilaiRekon', headerName: 'NILAI REKON', width: 120, filter: 'agTextColumnFilter' },
-                  { field: 'deviasi', headerName: 'DEVIASI', width: 110, pinned: 'right', filter: 'agNumberColumnFilter', valueFormatter: (params: any) => params.value?.toLocaleString() },
-                ]}
-                rowData={sampleReportData}
-                onGridReady={(params: any) => setReportGridApi(params.api)}
-                defaultColDef={{
-                  sortable: true,
-                  filter: true,
-                  resizable: true,
-                  floatingFilter: true,
-                }}
-                pagination={true}
-                paginationPageSize={20}
-                paginationPageSizeSelector={[10, 20, 50, 100]}
-                enableCellTextSelection={true}
-                suppressRowClickSelection={true}
-                enableRangeSelection={true}
-                rowHeight={45}
-                headerHeight={56}
-                sideBar={{
-                  toolPanels: [
-                    {
-                      id: 'filters',
-                      labelDefault: 'Filters',
-                      labelKey: 'filters',
-                      iconKey: 'filter',
-                      toolPanel: 'agFiltersToolPanel',
-                    },
-                    {
-                      id: 'columns',
-                      labelDefault: 'Columns',
-                      labelKey: 'columns',
-                      iconKey: 'columns',
-                      toolPanel: 'agColumnsToolPanel',
-                    },
-                  ],
-                }}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-    </Show>
+    {/* Report RMJ Modal - Now using separate component */}
+    <ReportRMJModal 
+      isOpen={showReportRMJ()} 
+      onClose={() => setShowReportRMJ(false)}
+      reportData={sampleReportData}
+    />
     </>
   );
 }
