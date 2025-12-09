@@ -1,4 +1,4 @@
-import { creteSignal,  Show } from 'solid-js';
+import { createSignal,  Show, onMount, onCleanup } from 'solid-js';
 import AgGridSolid from 'ag-grid-solid';
 import type { ColDef, GridApi } from 'ag-grid-community';
 import mockProjects from '../data/mockProjects';
@@ -82,7 +82,8 @@ export default function ProjectGrid(props: ProjectGridProps) {
     },
   ]);
 
-  const [ setGridApi] = createSignal<GridApi | null>(null);
+  const [gridApi, setGridApi] = createSignal<GridApi | null>(null);
+  const [boqGridApi, setBoqGridApi] = createSignal<GridApi | null>(null);
   const [selectedProjectId, setSelectedProjectId] = createSignal<string | null>(null);
   const [selectedBoQProjectId, setSelectedBoQProjectId] = createSignal<string | null>(null);
   const [showColumnSettings, setShowColumnSettings] = createSignal(false);
@@ -238,7 +239,13 @@ export default function ProjectGrid(props: ProjectGridProps) {
   };
 
   const onGridReady = (params: any) => {
-    setGridApi();
+    setGridApi(params.api);
+    
+    // Notify parent component (RMJModal) about gridApi
+    if (props.onProjectGridReady) {
+      props.onProjectGridReady(params.api);
+    }
+    
     // make columns fit available width so header has no empty right space
     try {
       params.api.sizeColumnsToFit();
