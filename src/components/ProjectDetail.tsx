@@ -1,7 +1,5 @@
 import { createSignal, For, Show } from 'solid-js';
-import AgGridSolid from 'ag-grid-solid';
-import type { ColDef, GridApi } from 'ag-grid-community';
-import type { ProjectHierarchyProject, Lokasi } from '../types';
+import type { ProjectHierarchyProject,  Lokasi } from '../types';
 import LokasiDetailModal from '../components/LokasiDetailModal';
 
 interface Props {

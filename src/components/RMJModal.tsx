@@ -113,307 +113,623 @@ interface Project {
 }
 
 export function RMJModal(props: RMJModalProps) {
-    console.log('RMJModal rendered, isOpen:', props.isOpen);
+  console.log('RMJModal rendered, isOpen:', props.isOpen);
+  
+  const [activeTab, setActiveTab] = createSignal<'sitelist' | 'settings' | 'users'>('sitelist');
+  const [searchQuery, setSearchQuery] = createSignal('');
+  const [gridApi] = createSignal<GridApi | null>(null);
+  const [isGridReady] = createSignal(false);
+  
+  // Project Selection State
+  const [selectedProject, setSelectedProject] = createSignal<string>('project1');
+  
+  // User Management State
+  const [showUserForm, setShowUserForm] = createSignal(false);
+  const [editingUser, setEditingUser] = createSignal<RMJUser | null>(null);
+  const [userGridApi, setUserGridApi] = createSignal<GridApi | null>(null);
+  const [userDataTab, setUserDataTab] = createSignal<'all' | 'selected'>('all');
+  const [selectedUsers, setSelectedUsers] = createSignal<RMJUser[]>([]);
+  
+  // User filter state
+  const [userNameFilter, setUserNameFilter] = createSignal('');
+  const [userRoleFilter, setUserRoleFilter] = createSignal('');
+  const [userUnitFilter, setUserUnitFilter] = createSignal('');
+  
+  // Template Settings State
+  const [showTemplateForm, setShowTemplateForm] = createSignal(false);
+  const [templateName, setTemplateName] = createSignal('');
+  const [templateDescription, setTemplateDescription] = createSignal('');
+  const [expandedTemplate, setExpandedTemplate] = createSignal<string | null>(null);
+  
+  // Projects data
+  const projects: Project[] = [
+    {
+      id: 'project1',
+      name: 'PROJECT_SITELIST / UNIXID',
+      year: '2023',
+      program: 'Ant_leveling',
+      description: 'COAD12-Ant_leveling-2023',
+    },
+    {
+      id: 'project2',
+      name: 'New_Combat',
+      year: '2024',
+      program: 'CD036',
+      description: 'New_Combat-CD036-2024',
+    },
+    {
+      id: 'project3',
+      name: 'Infrastructure_Upgrade',
+      year: '2024',
+      program: 'INF_UPG',
+      description: 'Infrastructure-Upgrade-2024',
+    },
+  ];
 
-    const [activeTab, setActiveTab] = createSignal<'sitelist' | 'users'>('sitelist');
-    const [searchQuery, setSearchQuery] = createSignal('');
-    const [gridApi] = createSignal<GridApi | null>(null);
-    const [isGridReady] = createSignal(false);
+  // Sample data for Project 1
+  const sampleDataProject1: RMJSitelistRow[] = [
+    {
+      unixId: 'U-01BKDI-148',
+      customerId: 'Akad Mitra',
+      siteId: 'DBBKDI148_M',
+      siteName: 'DBBKDI148_M',
+      deliveryRegion: 'West Java',
+      areaName: 'Area B',
+      installation: 'PT. ADIWARNA TELECOM',
+      wiDnUgas: '199C-01-01B',
+      subcontractor: 'PT. ADIWARNA TELECOM',
+      siteOwner: 'M. Ilham S',
+      installationPd: '2023-10-31',
+      wiWeeklyPlan: 'Done',
+      mosCnInstallationCompleted: 'Done',
+      planEndDate: '2024-02-16',
+      actualEndDate: '2024-02-16',
+      owner: 'PT. ABC',
+      action: '',
+      milestone1: 'Done',
+      milestone2: 'In Progress',
+      milestone3: 'Pending',
+    },
+    {
+      unixId: 'U-01BKDI-149',
+      customerId: 'Akad Mitra',
+      siteId: 'DBBKDI149_M',
+      siteName: 'DBBKDI149_M',
+      deliveryRegion: 'West Java',
+      areaName: 'Area B',
+      installation: 'PT. ADIWARNA TELECOM',
+      wiDnUgas: '199C-01-02B',
+      subcontractor: 'PT. ADIWARNA TELECOM',
+      siteOwner: 'Fery Hardiansyah',
+      installationPd: '2023-11-28',
+      wiWeeklyPlan: 'Done',
+      mosCnInstallationCompleted: 'Done',
+      planEndDate: '2024-02-16',
+      actualEndDate: '2024-02-16',
+      owner: 'PT. XYZ',
+      action: '',
+      milestone1: 'Done',
+      milestone2: 'Done',
+      milestone3: 'In Progress',
+    },
+    {
+      unixId: 'U-01BKDI-150',
+      customerId: 'Akad Mitra',
+      siteId: 'DBBKDI150_M',
+      siteName: 'DBBKDI150_M',
+      deliveryRegion: 'Central Java',
+      areaName: 'Area C',
+      installation: 'PT. BUANA NETWORK',
+      wiDnUgas: '199C-01-03C',
+      subcontractor: 'PT. BUANA NETWORK',
+      siteOwner: 'Ahmad Rizki',
+      installationPd: '2023-12-15',
+      wiWeeklyPlan: 'In Progress',
+      mosCnInstallationCompleted: 'Pending',
+      planEndDate: '2024-03-20',
+      actualEndDate: '',
+      owner: 'PT. DEF',
+      action: '',
+      milestone1: 'Done',
+      milestone2: 'In Progress',
+      milestone3: 'Pending',
+    },
+    {
+      unixId: 'U-01BKDI-151',
+      customerId: 'Akad Mitra',
+      siteId: 'DBBKDI151_M',
+      siteName: 'DBBKDI151_M',
+      deliveryRegion: 'East Java',
+      areaName: 'Area D',
+      installation: 'PT. CIPTA TEKNOLOGI',
+      wiDnUgas: '199C-01-04D',
+      subcontractor: 'PT. CIPTA TEKNOLOGI',
+      siteOwner: 'Budi Santoso',
+      installationPd: '2024-01-10',
+      wiWeeklyPlan: 'Pending',
+      mosCnInstallationCompleted: 'Pending',
+      planEndDate: '2024-04-15',
+      actualEndDate: '',
+      owner: 'PT. GHI',
+      action: '',
+      milestone1: 'In Progress',
+      milestone2: 'Pending',
+      milestone3: 'Pending',
+    },
+    {
+      unixId: 'U-01BKDI-152',
+      customerId: 'Akad Mitra',
+      siteId: 'DBBKDI152_M',
+      siteName: 'DBBKDI152_M',
+      deliveryRegion: 'West Java',
+      areaName: 'Area A',
+      installation: 'PT. DIGITAL SOLUTION',
+      wiDnUgas: '199C-01-05A',
+      subcontractor: 'PT. DIGITAL SOLUTION',
+      siteOwner: 'Siti Nurhaliza',
+      installationPd: '2024-02-01',
+      wiWeeklyPlan: 'Done',
+      mosCnInstallationCompleted: 'Done',
+      planEndDate: '2024-05-10',
+      actualEndDate: '2024-05-08',
+      owner: 'PT. JKL',
+      action: '',
+      milestone1: 'Done',
+      milestone2: 'Done',
+      milestone3: 'In Progress',
+    },
+    {
+      unixId: 'U-01BKDI-153',
+      customerId: 'Akad Mitra',
+      siteId: 'DBBKDI153_M',
+      siteName: 'DBBKDI153_M',
+      deliveryRegion: 'Central Java',
+      areaName: 'Area B',
+      installation: 'PT. ENERKOM INDONESIA',
+      wiDnUgas: '199C-01-06B',
+      subcontractor: 'PT. ENERKOM INDONESIA',
+      siteOwner: 'Dedi Kurniawan',
+      installationPd: '2024-03-05',
+      wiWeeklyPlan: 'In Progress',
+      mosCnInstallationCompleted: 'In Progress',
+      planEndDate: '2024-06-20',
+      actualEndDate: '',
+      owner: 'PT. MNO',
+      action: '',
+      milestone1: 'Done',
+      milestone2: 'In Progress',
+      milestone3: 'Pending',
+    },
+  ];
 
-    // Project Selection State
-    const [selectedProject, setSelectedProject] = createSignal<string>('project1');
+  // Sample data for Project 2
+  const sampleDataProject2: RMJSitelistRow[] = [
+    {
+      unixId: 'U-02JKTA-201',
+      customerId: 'Telkom Indonesia',
+      siteId: 'JKTCB201_T',
+      siteName: 'JKTCB201_T',
+      deliveryRegion: 'Jakarta',
+      areaName: 'Area A',
+      installation: 'PT. TELKOM AKSES',
+      wiDnUgas: '200D-02-01A',
+      subcontractor: 'PT. TELKOM AKSES',
+      siteOwner: 'Andi Wijaya',
+      installationPd: '2024-01-15',
+      wiWeeklyPlan: 'Done',
+      mosCnInstallationCompleted: 'Done',
+      planEndDate: '2024-03-30',
+      actualEndDate: '2024-03-28',
+      owner: 'PT. Telkom',
+      action: '',
+      milestone1: 'Done',
+      milestone2: 'Done',
+      milestone3: 'Done',
+    },
+    {
+      unixId: 'U-02JKTA-202',
+      customerId: 'Telkom Indonesia',
+      siteId: 'JKTCB202_T',
+      siteName: 'JKTCB202_T',
+      deliveryRegion: 'Jakarta',
+      areaName: 'Area B',
+      installation: 'PT. TELKOM AKSES',
+      wiDnUgas: '200D-02-02B',
+      subcontractor: 'PT. TELKOM AKSES',
+      siteOwner: 'Budi Hartono',
+      installationPd: '2024-02-01',
+      wiWeeklyPlan: 'In Progress',
+      mosCnInstallationCompleted: 'In Progress',
+      planEndDate: '2024-04-15',
+      actualEndDate: '',
+      owner: 'PT. Telkom',
+      action: '',
+      milestone1: 'Done',
+      milestone2: 'In Progress',
+      milestone3: 'Pending',
+    },
+  ];
 
-    // User Management State
-    const [showUserForm, setShowUserForm] = createSignal(false);
-    const [editingUser, setEditingUser] = createSignal<RMJUser | null>(null);
-    const [userGridApi, setUserGridApi] = createSignal<GridApi | null>(null);
-    const [userDataTab, setUserDataTab] = createSignal<'all' | 'selected'>('all');
-    const [selectedUsers, setSelectedUsers] = createSignal<RMJUser[]>([]);
+  // Sample data for Project 3
+  const sampleDataProject3: RMJSitelistRow[] = [
+    {
+      unixId: 'U-03BDNG-301',
+      customerId: 'Enterprise Client',
+      siteId: 'BDGUPG301_E',
+      siteName: 'BDGUPG301_E',
+      deliveryRegion: 'West Java',
+      areaName: 'Area C',
+      installation: 'PT. INFRASTRUKTUR DIGITAL',
+      wiDnUgas: '201E-03-01C',
+      subcontractor: 'PT. INFRASTRUKTUR DIGITAL',
+      siteOwner: 'Citra Dewi',
+      installationPd: '2024-03-01',
+      wiWeeklyPlan: 'Pending',
+      mosCnInstallationCompleted: 'Pending',
+      planEndDate: '2024-06-30',
+      actualEndDate: '',
+      owner: 'PT. Enterprise',
+      action: '',
+      milestone1: 'In Progress',
+      milestone2: 'Pending',
+      milestone3: 'Pending',
+    },
+    {
+      unixId: 'U-03BDNG-302',
+      customerId: 'Enterprise Client',
+      siteId: 'BDGUPG302_E',
+      siteName: 'BDGUPG302_E',
+      deliveryRegion: 'West Java',
+      areaName: 'Area D',
+      installation: 'PT. INFRASTRUKTUR DIGITAL',
+      wiDnUgas: '201E-03-02D',
+      subcontractor: 'PT. INFRASTRUKTUR DIGITAL',
+      siteOwner: 'Doni Prasetyo',
+      installationPd: '2024-03-15',
+      wiWeeklyPlan: 'Done',
+      mosCnInstallationCompleted: 'In Progress',
+      planEndDate: '2024-07-15',
+      actualEndDate: '',
+      owner: 'PT. Enterprise',
+      action: '',
+      milestone1: 'Done',
+      milestone2: 'In Progress',
+      milestone3: 'Pending',
+    },
+  ];
 
-    // User filter state
-    const [userNameFilter, setUserNameFilter] = createSignal('');
-    const [userRoleFilter, setUserRoleFilter] = createSignal('');
-    const [userUnitFilter, setUserUnitFilter] = createSignal('');
+  // Get data based on selected project
+  const getProjectData = () => {
+    switch (selectedProject()) {
+      case 'project1':
+        return sampleDataProject1;
+      case 'project2':
+        return sampleDataProject2;
+      case 'project3':
+        return sampleDataProject3;
+      default:
+        return sampleDataProject1;
+    }
+  };
 
-    // Report RMJ Modal State
-    const [showReportRMJ, setShowReportRMJ] = createSignal(false);
+  // Column definitions
+  const [columnDefs] = createSignal<ColDef[]>([
+    { 
+      field: 'unixId', 
+      headerName: 'Unix ID', 
+      pinned: 'left',
+      checkboxSelection: true,
+      headerCheckboxSelection: true,
+      width: 150,
+      filter: 'agTextColumnFilter',
+    },
+    { field: 'customerId', headerName: 'Customer ID', width: 130 },
+    { field: 'siteId', headerName: 'Site ID', width: 150 },
+    { field: 'siteName', headerName: 'Site Name', width: 150 },
+    { field: 'deliveryRegion', headerName: 'Delivery Region', width: 150 },
+    { field: 'areaName', headerName: 'Area Name', width: 120 },
+    { field: 'installation', headerName: 'Installation', width: 200 },
+    { field: 'wiDnUgas', headerName: 'WI DN Ugas', width: 130 },
+    { field: 'subcontractor', headerName: 'Subcontractor', width: 200 },
+    { field: 'siteOwner', headerName: 'Site Owner', width: 150 },
+    { field: 'installationPd', headerName: 'Installation PD', width: 130 },
+    { field: 'wiWeeklyPlan', headerName: 'WI Weekly Plan', width: 130 },
+    { field: 'mosCnInstallationCompleted', headerName: 'MOS CN Installation', width: 180 },
+    { field: 'planEndDate', headerName: 'Plan End Date', width: 130 },
+    { field: 'actualEndDate', headerName: 'Actual End Date', width: 130 },
+    { field: 'owner', headerName: 'Owner', width: 120 },
+    { field: 'milestone1', headerName: 'Milestone 1', width: 120 },
+    { field: 'milestone2', headerName: 'Milestone 2', width: 120 },
+    { field: 'milestone3', headerName: 'Milestone 3', width: 120 },
+    { 
+      field: 'action', 
+      headerName: 'Action', 
+      pinned: 'right',
+      width: 120,
+      sortable: false,
+      filter: false,
+      editable: false,
+      cellRenderer: (params: any) => {
+        const container = document.createElement('div');
+        container.style.cssText = 'display: flex; gap: 4px; align-items: center; height: 100%; justify-content: center;';
+        
+        const button = document.createElement('button');
+        button.className = 'action-btn-edit';
+        button.innerHTML = '✏️ Edit';
+        button.onclick = () => {
+          console.log('Edit clicked for:', params.data);
+          alert(`Editing row: ${params.data.unixId}\nSite: ${params.data.siteName}`);
+        };
+        
+        container.appendChild(button);
+        return container;
+      }
+    },
+  ]);
 
-    // Column Settings State
-    const [showColumnSettings, setShowColumnSettings] = createSignal(false);
+  // const gridOptions: GridOptions = {
+  //   defaultColDef: {
+  //     sortable: true,
+  //     filter: true,
+  //     resizable: true,
+  //     editable: true,
+  //     floatingFilter: true,
+  //     enableRowGroup: true,
+  //     enablePivot: true,
+  //     enableValue: true,
+  //     minWidth: 100,
+  //   },
+  //   rowSelection: 'multiple',
+  //   pagination: true,
+  //   paginationPageSize: 15,
+  //   paginationPageSizeSelector: [15, 50, 100, 500],
+  //   enableCellTextSelection: true,
+  //   suppressRowClickSelection: true,
+  //   enableRangeSelection: true,
+  //   enableCharts: true,
+  //   enableAdvancedFilter: true,
+  //   rowGroupPanelShow: 'always',
+  //   pivotPanelShow: 'always',
+  //   animateRows: true,
+  //   enableFillHandle: true,
+  //   undoRedoCellEditing: true,
+  //   undoRedoCellEditingLimit: 20,
+  //   rowHeight: 50,
+  //   headerHeight: 56,
+  // };
+
+  // Enhanced context menu configuration
+  // const getContextMenuItems = (params: any): any[] => {
+  //   const result: any[] = [
+  //     {
+  //       name: 'Edit Row',
+  //       icon: '<span class="ag-icon ag-icon-edit"></span>',
+  //       action: () => {
+  //         console.log('Edit row:', params.node.data);
+  //         alert(`Editing row: ${params.node.data.unixId}`);
+  //       },
+  //     },
+  //     'separator' as const,
+  //     'copy' as const,
+  //     'copyWithHeaders' as const,
+  //     'copyWithGroupHeaders' as const,
+  //     'paste' as const,
+  //     'separator' as const,
+  //     {
+  //       name: 'Export',
+  //       icon: '<span class="ag-icon ag-icon-save"></span>',
+  //       subMenu: [
+  //         'csvExport' as const,
+  //         'excelExport' as const,
+  //       ],
+  //     },
+  //     'separator' as const,
+  //     {
+  //       name: 'Chart',
+  //       icon: '<span class="ag-icon ag-icon-chart"></span>',
+  //       subMenu: [
+  //         'chartRange' as const,
+  //       ],
+  //     },
+  //     'separator' as const,
+  //     {
+  //       name: 'Delete Row',
+  //       icon: '<span class="ag-icon ag-icon-cross"></span>',
+  //       cssClasses: ['red-item'],
+  //       action: () => {
+  //         if (confirm('Delete this row?')) {
+  //           const api = gridApi();
+  //           if (api) {
+  //             api.applyTransaction({ remove: [params.node.data] });
+  //             setRowData(rowData().filter(row => row.unixId !== params.node.data.unixId));
+  //           }
+  //         }
+  //       },
+  //     },
+  //   ];
+  //   return result;
+  // };
+
+  // Sample users data - expanded for better demo
+  const sampleUsers: RMJUser[] = [
+    {
+      id: '1',
+      username: 'A Gita Purnasari',
+      email: 'gita.purnasari@telkom.co.id',
+      role: 'Admin',
+      accessLevel: 'full',
+      unit: 'PT. NEXWAVE',
+      division: 'Technology',
+      regional: 'Jakarta',
+      createdDate: '2024-01-01',
+      lastLogin: '2024-12-02',
+    },
+    {
+      id: '2',
+      username: 'A Ismail Syahrana',
+      email: 'ismail.syahrana@telkom.co.id',
+      role: 'Internal TI',
+      accessLevel: 'modify',
+      unit: 'PT. NEXWAVE',
+      division: 'Technology',
+      regional: 'Jakarta',
+      createdDate: '2024-01-15',
+      lastLogin: '2024-12-01',
+    },
+    {
+      id: '3',
+      username: 'A Rofik',
+      email: 'rofik@partner.com',
+      role: 'Mitra',
+      accessLevel: 'view',
+      unit: 'PT. INTSEL PRODIAKTIKOM',
+      division: 'Installation',
+      regional: 'West Java',
+      createdDate: '2024-02-01',
+      lastLogin: '2024-11-30',
+    },
+    {
+      id: '4',
+      username: 'A. Dinal Mubaroq',
+      email: 'dinal.mubaroq@partner.com',
+      role: 'Mitra',
+      accessLevel: 'view',
+      unit: 'PT. Digital Solusindo Raya',
+      division: 'Installation',
+      regional: 'Central Java',
+      createdDate: '2024-02-10',
+      lastLogin: '2024-11-28',
+    },
+    {
+      id: '5',
+      username: 'A. Priyawan Listanto',
+      email: 'priyawan.listanto@partner.com',
+      role: 'Mitra',
+      accessLevel: 'view',
+      unit: 'PT. GRAHA SEJAHTERA INF',
+      division: 'Installation',
+      regional: 'East Java',
+      createdDate: '2024-02-15',
+      lastLogin: '2024-11-27',
+    },
+    {
+      id: '6',
+      username: 'A. Ridwan',
+      email: 'ridwan@partner.com',
+      role: 'Mitra',
+      accessLevel: 'view',
+      unit: 'PT. SWATAMA MEGANTARA',
+      division: 'Installation',
+      regional: 'West Java',
+      createdDate: '2024-02-20',
+      lastLogin: '2024-11-26',
+    },
+    {
+      id: '7',
+      username: 'Fery Hardianto',
+      email: 'fery.hardianto@telkom.co.id',
+      role: 'Internal TI',
+      accessLevel: 'modify',
+      unit: 'PT. ADIWARNA TELECOM',
+      division: 'Technology',
+      regional: 'Jakarta',
+      createdDate: '2024-03-01',
+      lastLogin: '2024-12-01',
+    },
+    {
+      id: '8',
+      username: 'Jajat D Purnomo',
+      email: 'jajat.purnomo@partner.com',
+      role: 'Mitra',
+      accessLevel: 'view',
+      unit: 'PT. ADIWARNA TELECOM',
+      division: 'Installation',
+      regional: 'West Java',
+      createdDate: '2024-03-05',
+      lastLogin: '2024-11-25',
+    },
+    {
+      id: '9',
+      username: 'M. Ilham S',
+      email: 'm.ilham@partner.com',
+      role: 'Mitra',
+      accessLevel: 'view',
+      unit: 'PT. ADIWARNA TELECOM',
+      division: 'Installation',
+      regional: 'West Java',
+      createdDate: '2024-03-10',
+      lastLogin: '2024-11-24',
+    },
+  ];
+
+  // Sample templates
+  const sampleTemplates: RMJViewTemplate[] = [
+    {
+      id: '1',
+      name: 'Admin Full View',
+      description: 'Complete view with all columns for administrators',
+      lockedColumns: ['unixId', 'siteId', 'siteName'],
+      visibleColumns: ['unixId', 'customerId', 'siteId', 'siteName', 'deliveryRegion', 'areaName', 'installation', 'wiDnUgas', 'subcontractor', 'siteOwner', 'installationPd', 'wiWeeklyPlan', 'mosCnInstallationCompleted', 'planEndDate', 'actualEndDate', 'owner', 'milestone1', 'milestone2', 'milestone3', 'action'],
+      createdBy: 'admin@telkom.co.id',
+      createdDate: '2024-01-01',
+      isPublic: true,
+      userRole: 'Admin',
+    },
+    {
+      id: '2',
+      name: 'Mitra Basic View',
+      description: 'Limited view for partner users',
+      lockedColumns: ['unixId', 'siteId'],
+      visibleColumns: ['unixId', 'siteId', 'siteName', 'deliveryRegion', 'areaName', 'subcontractor', 'siteOwner', 'installationPd', 'milestone1', 'milestone2', 'milestone3'],
+      createdBy: 'admin@telkom.co.id',
+      createdDate: '2024-01-01',
+      isPublic: true,
+      userRole: 'Mitra',
+    },
+  ];
+
+  // Initialize data immediately when component is created
+  const [users, setUsers] = createSignal<RMJUser[]>(sampleUsers);
+  const [templates, setTemplates] = createSignal<RMJViewTemplate[]>(sampleTemplates);
+  const [rowData, setRowData] = createSignal<RMJSitelistRow[]>(getProjectData());
+
+  onMount(() => {
+    console.log('RMJModal mounted');
+    console.log('Initial row data:', rowData().length, 'rows');
+  });
+
+  // Watch for isOpen changes
+  createEffect(() => {
+    if (props.isOpen) {
+      console.log('Modal opened, grid ready:', isGridReady());
+      
+      // Force grid refresh when modal opens and grid is ready
+      if (isGridReady()) {
+        setTimeout(() => {
+          const api = gridApi();
+          if (api) {
+            console.log('Refreshing grid with', rowData().length, 'rows');
+            api.setGridOption('rowData', rowData());
+            api.refreshCells();
+          }
+        }, 100);
+      }
+    }
+  });
+
+  // Watch for tab changes and refresh grid
+  createEffect(() => {
+    const tab = activeTab();
+    console.log('Active tab changed to:', tab);
     
-    // Grid APIs for all tables - to be received from ProjectGrid
-    const [projectGridApi, setProjectGridApi] = createSignal<GridApi | null>(null);
-    const [boqGridApi, setBoqGridApi] = createSignal<GridApi | null>(null);
-    const [lokasiGridApi, setLokasiGridApi] = createSignal<GridApi | null>(null);
-
-    // Projects data
-    const projects: Project[] = [
-        {
-            id: 'project1',
-            name: 'PROJECT_SITELIST / UNIXID',
-            year: '2023',
-            program: 'Ant_leveling',
-            description: 'COAD12-Ant_leveling-2023',
-        },
-        {
-            id: 'project2',
-            name: 'New_Combat',
-            year: '2024',
-            program: 'CD036',
-            description: 'New_Combat-CD036-2024',
-        },
-        {
-            id: 'project3',
-            name: 'Infrastructure_Upgrade',
-            year: '2024',
-            program: 'INF_UPG',
-            description: 'Infrastructure-Upgrade-2024',
-        },
-    ];
-
-    // Sample data for Project 1
-    const sampleDataProject1: RMJSitelistRow[] = [
-        {
-            unixId: 'U-01BKDI-148',
-            customerId: 'Akad Mitra',
-            siteId: 'DBBKDI148_M',
-            siteName: 'DBBKDI148_M',
-            deliveryRegion: 'West Java',
-            areaName: 'Area B',
-            installation: 'PT. ADIWARNA TELECOM',
-            wiDnUgas: '199C-01-01B',
-            subcontractor: 'PT. ADIWARNA TELECOM',
-            siteOwner: 'M. Ilham S',
-            installationPd: '2023-10-31',
-            wiWeeklyPlan: 'Done',
-            mosCnInstallationCompleted: 'Done',
-            planEndDate: '2024-02-16',
-            actualEndDate: '2024-02-16',
-            owner: 'PT. ABC',
-            action: '',
-            milestone1: 'Done',
-            milestone2: 'In Progress',
-            milestone3: 'Pending',
-        },
-        {
-            unixId: 'U-01BKDI-149',
-            customerId: 'Akad Mitra',
-            siteId: 'DBBKDI149_M',
-            siteName: 'DBBKDI149_M',
-            deliveryRegion: 'West Java',
-            areaName: 'Area B',
-            installation: 'PT. ADIWARNA TELECOM',
-            wiDnUgas: '199C-01-02B',
-            subcontractor: 'PT. ADIWARNA TELECOM',
-            siteOwner: 'Fery Hardiansyah',
-            installationPd: '2023-11-28',
-            wiWeeklyPlan: 'Done',
-            mosCnInstallationCompleted: 'Done',
-            planEndDate: '2024-02-16',
-            actualEndDate: '2024-02-16',
-            owner: 'PT. XYZ',
-            action: '',
-            milestone1: 'Done',
-            milestone2: 'Done',
-            milestone3: 'In Progress',
-        },
-        {
-            unixId: 'U-01BKDI-150',
-            customerId: 'Akad Mitra',
-            siteId: 'DBBKDI150_M',
-            siteName: 'DBBKDI150_M',
-            deliveryRegion: 'Central Java',
-            areaName: 'Area C',
-            installation: 'PT. BUANA NETWORK',
-            wiDnUgas: '199C-01-03C',
-            subcontractor: 'PT. BUANA NETWORK',
-            siteOwner: 'Ahmad Rizki',
-            installationPd: '2023-12-15',
-            wiWeeklyPlan: 'In Progress',
-            mosCnInstallationCompleted: 'Pending',
-            planEndDate: '2024-03-20',
-            actualEndDate: '',
-            owner: 'PT. DEF',
-            action: '',
-            milestone1: 'Done',
-            milestone2: 'In Progress',
-            milestone3: 'Pending',
-        },
-        {
-            unixId: 'U-01BKDI-151',
-            customerId: 'Akad Mitra',
-            siteId: 'DBBKDI151_M',
-            siteName: 'DBBKDI151_M',
-            deliveryRegion: 'East Java',
-            areaName: 'Area D',
-            installation: 'PT. CIPTA TEKNOLOGI',
-            wiDnUgas: '199C-01-04D',
-            subcontractor: 'PT. CIPTA TEKNOLOGI',
-            siteOwner: 'Budi Santoso',
-            installationPd: '2024-01-10',
-            wiWeeklyPlan: 'Pending',
-            mosCnInstallationCompleted: 'Pending',
-            planEndDate: '2024-04-15',
-            actualEndDate: '',
-            owner: 'PT. GHI',
-            action: '',
-            milestone1: 'In Progress',
-            milestone2: 'Pending',
-            milestone3: 'Pending',
-        },
-        {
-            unixId: 'U-01BKDI-152',
-            customerId: 'Akad Mitra',
-            siteId: 'DBBKDI152_M',
-            siteName: 'DBBKDI152_M',
-            deliveryRegion: 'West Java',
-            areaName: 'Area A',
-            installation: 'PT. DIGITAL SOLUTION',
-            wiDnUgas: '199C-01-05A',
-            subcontractor: 'PT. DIGITAL SOLUTION',
-            siteOwner: 'Siti Nurhaliza',
-            installationPd: '2024-02-01',
-            wiWeeklyPlan: 'Done',
-            mosCnInstallationCompleted: 'Done',
-            planEndDate: '2024-05-10',
-            actualEndDate: '2024-05-08',
-            owner: 'PT. JKL',
-            action: '',
-            milestone1: 'Done',
-            milestone2: 'Done',
-            milestone3: 'In Progress',
-        },
-        {
-            unixId: 'U-01BKDI-153',
-            customerId: 'Akad Mitra',
-            siteId: 'DBBKDI153_M',
-            siteName: 'DBBKDI153_M',
-            deliveryRegion: 'Central Java',
-            areaName: 'Area B',
-            installation: 'PT. ENERKOM INDONESIA',
-            wiDnUgas: '199C-01-06B',
-            subcontractor: 'PT. ENERKOM INDONESIA',
-            siteOwner: 'Dedi Kurniawan',
-            installationPd: '2024-03-05',
-            wiWeeklyPlan: 'In Progress',
-            mosCnInstallationCompleted: 'In Progress',
-            planEndDate: '2024-06-20',
-            actualEndDate: '',
-            owner: 'PT. MNO',
-            action: '',
-            milestone1: 'Done',
-            milestone2: 'In Progress',
-            milestone3: 'Pending',
-        },
-    ];
-
-    // Sample data for Project 2
-    const sampleDataProject2: RMJSitelistRow[] = [
-        {
-            unixId: 'U-02JKTA-201',
-            customerId: 'Telkom Indonesia',
-            siteId: 'JKTCB201_T',
-            siteName: 'JKTCB201_T',
-            deliveryRegion: 'Jakarta',
-            areaName: 'Area A',
-            installation: 'PT. TELKOM AKSES',
-            wiDnUgas: '200D-02-01A',
-            subcontractor: 'PT. TELKOM AKSES',
-            siteOwner: 'Andi Wijaya',
-            installationPd: '2024-01-15',
-            wiWeeklyPlan: 'Done',
-            mosCnInstallationCompleted: 'Done',
-            planEndDate: '2024-03-30',
-            actualEndDate: '2024-03-28',
-            owner: 'PT. Telkom',
-            action: '',
-            milestone1: 'Done',
-            milestone2: 'Done',
-            milestone3: 'Done',
-        },
-        {
-            unixId: 'U-02JKTA-202',
-            customerId: 'Telkom Indonesia',
-            siteId: 'JKTCB202_T',
-            siteName: 'JKTCB202_T',
-            deliveryRegion: 'Jakarta',
-            areaName: 'Area B',
-            installation: 'PT. TELKOM AKSES',
-            wiDnUgas: '200D-02-02B',
-            subcontractor: 'PT. TELKOM AKSES',
-            siteOwner: 'Budi Hartono',
-            installationPd: '2024-02-01',
-            wiWeeklyPlan: 'In Progress',
-            mosCnInstallationCompleted: 'In Progress',
-            planEndDate: '2024-04-15',
-            actualEndDate: '',
-            owner: 'PT. Telkom',
-            action: '',
-            milestone1: 'Done',
-            milestone2: 'In Progress',
-            milestone3: 'Pending',
-        },
-    ];
-
-    // Sample data for Project 3
-    const sampleDataProject3: RMJSitelistRow[] = [
-        {
-            unixId: 'U-03BDNG-301',
-            customerId: 'Enterprise Client',
-            siteId: 'BDGUPG301_E',
-            siteName: 'BDGUPG301_E',
-            deliveryRegion: 'West Java',
-            areaName: 'Area C',
-            installation: 'PT. INFRASTRUKTUR DIGITAL',
-            wiDnUgas: '201E-03-01C',
-            subcontractor: 'PT. INFRASTRUKTUR DIGITAL',
-            siteOwner: 'Citra Dewi',
-            installationPd: '2024-03-01',
-            wiWeeklyPlan: 'Pending',
-            mosCnInstallationCompleted: 'Pending',
-            planEndDate: '2024-06-30',
-            actualEndDate: '',
-            owner: 'PT. Enterprise',
-            action: '',
-            milestone1: 'In Progress',
-            milestone2: 'Pending',
-            milestone3: 'Pending',
-        },
-        {
-            unixId: 'U-03BDNG-302',
-            customerId: 'Enterprise Client',
-            siteId: 'BDGUPG302_E',
-            siteName: 'BDGUPG302_E',
-            deliveryRegion: 'West Java',
-            areaName: 'Area D',
-            installation: 'PT. INFRASTRUKTUR DIGITAL',
-            wiDnUgas: '201E-03-02D',
-            subcontractor: 'PT. INFRASTRUKTUR DIGITAL',
-            siteOwner: 'Doni Prasetyo',
-            installationPd: '2024-03-15',
-            wiWeeklyPlan: 'Done',
-            mosCnInstallationCompleted: 'In Progress',
-            planEndDate: '2024-07-15',
-            actualEndDate: '',
-            owner: 'PT. Enterprise',
-            action: '',
-            milestone1: 'Done',
-            milestone2: 'In Progress',
-            milestone3: 'Pending',
-        },
-    ];
-
-    // Get data based on selected project
-    const getProjectData = () => {
-        switch (selectedProject()) {
-            case 'project1':
-                return sampleDataProject1;
-            case 'project2':
-                return sampleDataProject2;
-            case 'project3':
-                return sampleDataProject3;
-            default:
-                return sampleDataProject1;
+    if (tab === 'sitelist' && isGridReady()) {
+      // Refresh grid when switching back to sitelist tab
+      setTimeout(() => {
+        const api = gridApi();
+        if (api) {
+          console.log('Refreshing grid after tab change...');
+          api.setGridOption('rowData', rowData());
+          api.refreshCells();
         }
     };
 
@@ -719,22 +1035,52 @@ export function RMJModal(props: RMJModalProps) {
             console.warn(`RMJModal: No API available for table ${tableId}`);
             return [];
         }
+      }, 50);
+    }
+  });
 
-        const columnDefs = api.getColumnDefs();
-        if (!columnDefs) return [];
+  // Grid event handlers
+  // const onGridReady = (params: any) => {
+  //   console.log('=== Grid Ready Event ===');
+  //   console.log('Row data count:', rowData().length);
+  //   console.log('Sample data:', rowData());
+    
+  //   setGridApi(params.api);
+  //   setIsGridReady(true);
+     
+  //   params.api.setGridOption('rowData', rowData());
+    
+  //   console.log('Grid initialized successfully');
+  // };
 
-        return columnDefs.map((col: any) => ({
-            field: col.field || '',
-            headerName: col.headerName || col.field || '',
-            isLocked: col.pinned === 'left' || col.pinned === 'right',
-        }));
-    };
+  // Export to Excel
+  const handleExport = () => {
+    const api = gridApi();
+    if (!api) return;
 
-    /**
-     * Get appropriate gridApi based on table selection
-     */
-    const getGridApiForTable = (tableId: string): GridApi | null => {
-        console.log('RMJModal: getGridApiForTable called with tableId:', tableId);
+    const allData = rowData();
+    const ws = XLSX.utils.json_to_sheet(allData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Sitelist');
+    XLSX.writeFile(wb, `RMJ_Sitelist_${new Date().toISOString().split('T')[0]}.xlsx`);
+    console.log('Data exported to Excel');
+  };
+
+  // Import from Excel
+  const handleImport = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.xlsx,.xls,.csv';
+    input.onchange = (e: any) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event: any) => {
+        const data = new Uint8Array(event.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        const jsonData = XLSX.utils.sheet_to_json(firstSheet) as RMJSitelistRow[];
         
         switch (tableId) {
             case 'project_grid':
