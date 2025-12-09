@@ -4,9 +4,15 @@ import type { ColDef, GridApi } from 'ag-grid-community';
 import mockProjects from '../data/mockProjects';
 import type { ProjectHierarchyProject, BoQItem } from '../types';
 import ProjectDetail from '../components/ProjectDetail';
-import { ColumnTemplateManager } from './ColumnTemplateManager';
+import { GlobalColumnSettings } from './GlobalColumnSettings';
 
-export default function ProjectGrid() {
+interface ProjectGridProps {
+  onProjectGridReady?: (api: GridApi) => void;
+  onBoqGridReady?: (api: GridApi) => void;
+  onLokasiGridReady?: (api: GridApi) => void;
+}
+
+export default function ProjectGrid(props: ProjectGridProps) {
   const [projects] = createSignal<ProjectHierarchyProject[]>(mockProjects);
   const [columnDefs] = createSignal<ColDef[]>([
     { field: 'tahunProject', headerName: 'Tahun Proj...', width: 110 },
@@ -77,12 +83,168 @@ export default function ProjectGrid() {
   ]);
 
   const [gridApi, setGridApi] = createSignal<GridApi | null>(null);
+  const [boqGridApi, setBoqGridApi] = createSignal<GridApi | null>(null);
   const [selectedProjectId, setSelectedProjectId] = createSignal<string | null>(null);
   const [selectedBoQProjectId, setSelectedBoQProjectId] = createSignal<string | null>(null);
   const [showColumnSettings, setShowColumnSettings] = createSignal(false);
 
+  // BoQ Column Definitions
+  const [boqColumnDefs] = createSignal<ColDef[]>([
+    { 
+      field: 'no', 
+      headerName: 'No', 
+      width: 70, 
+      pinned: 'left',
+      filter: 'agNumberColumnFilter'
+    },
+    { 
+      field: 'description', 
+      headerName: 'Description', 
+      width: 300,
+      filter: 'agTextColumnFilter'
+    },
+    { 
+      field: 'category', 
+      headerName: 'Category', 
+      width: 180,
+      filter: 'agTextColumnFilter'
+    },
+    { 
+      field: 'unit', 
+      headerName: 'Unit', 
+      width: 100,
+      filter: 'agTextColumnFilter'
+    },
+    { 
+      field: 'quantity', 
+      headerName: 'Quantity', 
+      width: 120,
+      filter: 'agNumberColumnFilter',
+      valueFormatter: (params: any) => params.value?.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    },
+    { 
+      field: 'unitPrice', 
+      headerName: 'Unit Price (Rp)', 
+      width: 150,
+      filter: 'agNumberColumnFilter',
+      valueFormatter: (params: any) => 'Rp ' + params.value?.toLocaleString('id-ID')
+    },
+    { 
+      field: 'totalPrice', 
+      headerName: 'Total Price (Rp)', 
+      width: 180,
+      pinned: 'right',
+      filter: 'agNumberColumnFilter',
+      valueFormatter: (params: any) => 'Rp ' + params.value?.toLocaleString('id-ID'),
+      cellStyle: { fontWeight: 'bold', color: '#2563eb' }
+    },
+    { 
+      field: 'notes', 
+      headerName: 'Notes', 
+      width: 250,
+      filter: 'agTextColumnFilter'
+    },
+  ]);
+
+  /**
+   * Prepare table info for GlobalColumnSettings - Project Grid
+   */
+  const getProjectTableInfo = () => {
+    return {
+      id: 'project_grid',
+      name: 'Project Grid',
+      description: 'Main project list with contract details',
+      category: 'Projects',
+      columnCount: columnDefs().length,
+      location: 'Main Dashboard',
+    };
+  };
+
+  /**
+   * Prepare columns info for GlobalColumnSettings - Project Grid
+   */
+  const getProjectColumns = () => {
+    return columnDefs().map(col => ({
+      field: col.field || '',
+      headerName: col.headerName || col.field || '',
+      isLocked: col.pinned === 'left' || col.pinned === 'right',
+    }));
+  };
+
+  /**
+   * Prepare table info for GlobalColumnSettings - BoQ Grid
+   */
+  const getBoQTableInfo = () => {
+    return {
+      id: 'boq_grid',
+      name: 'BoQ Grid',
+      description: 'Bill of Quantities with cost breakdown',
+      category: 'Projects',
+      columnCount: boqColumnDefs().length,
+      location: 'BoQ Modal',
+    };
+  };
+
+  /**
+   * Prepare columns info for GlobalColumnSettings - BoQ Grid
+   */
+  const getBoQColumns = () => {
+    return boqColumnDefs().map(col => ({
+      field: col.field || '',
+      headerName: col.headerName || col.field || '',
+      isLocked: col.pinned === 'left' || col.pinned === 'right',
+    }));
+  };
+
+  /**
+   * Get all available tables for GlobalColumnSettings
+   */
+  const getAllTables = () => {
+    return [getProjectTableInfo(), getBoQTableInfo()];
+  };
+
+  /**
+   * Get columns for specific table
+   */
+  const getColumnsForTable = (tableId: string) => {
+    switch (tableId) {
+      case 'project_grid':
+        return getProjectColumns();
+      case 'boq_grid':
+        return getBoQColumns();
+      default:
+        return [];
+    }
+  };
+
+  /**
+   * Get appropriate gridApi based on table selection
+   */
+  const getGridApiForTable = (tableId: string): GridApi | null => {
+    console.log('ProjectGrid: getGridApiForTable called with tableId:', tableId);
+    
+    switch (tableId) {
+      case 'project_grid':
+        const projApi = gridApi();
+        console.log('ProjectGrid: Returning project_grid API:', projApi ? 'Available' : 'NULL');
+        return projApi;
+      case 'boq_grid':
+        const boqApi = boqGridApi();
+        console.log('ProjectGrid: Returning boq_grid API:', boqApi ? 'Available' : 'NULL');
+        return boqApi;
+      default:
+        console.log('ProjectGrid: Unknown tableId, returning null');
+        return null;
+    }
+  };
+
   const onGridReady = (params: any) => {
     setGridApi(params.api);
+    
+    // Notify parent component (RMJModal) about gridApi
+    if (props.onProjectGridReady) {
+      props.onProjectGridReady(params.api);
+    }
     
     // make columns fit available width so header has no empty right space
     try {
@@ -280,23 +442,27 @@ export default function ProjectGrid() {
               if (api) {
                 api.redrawRows();
               }
-            }} 
+            }}
+            onLokasiGridReady={(api) => {
+              console.log('ProjectGrid: Received Lokasi GridAPI from ProjectDetail');
+              // Forward to parent (RMJModal)
+              if (props.onLokasiGridReady) {
+                props.onLokasiGridReady(api);
+              }
+            }}
           />
         </div>
       </Show>
 
       {/* Column Settings Modal */}
       <Show when={showColumnSettings()}>
-        <div class="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4">
-          <div class="bg-white rounded-xl w-[90vw] max-w-4xl h-[85vh] flex flex-col overflow-hidden shadow-2xl">
-            <ColumnTemplateManager
-              gridApi={gridApi()}
-              tableType="project"
-              tableLabel="Tabel Project"
-              onClose={() => setShowColumnSettings(false)}
-            />
-          </div>
-        </div>
+        <GlobalColumnSettings
+          gridApi={gridApi()}
+          onClose={() => setShowColumnSettings(false)}
+          tables={getAllTables()}
+          getColumnsForTable={getColumnsForTable}
+          getGridApiForTable={getGridApiForTable}
+        />
       </Show>
 
       {/* BoQ Modal */}
@@ -357,81 +523,50 @@ export default function ProjectGrid() {
               <div class="text-sm text-gray-600">
                 Showing <span class="font-semibold text-gray-800">{sampleBoQData.length}</span> items
               </div>
-              <button
-                class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors font-medium text-sm shadow-sm flex items-center gap-2"
-                onClick={() => {
-                  // Export functionality can be added here
-                  alert('Export BoQ to Excel');
-                }}
-              >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
-                </svg>
-                Export to Excel
-              </button>
+              <div class="flex items-center gap-2">
+                {/* Column Settings Button */}
+                <button
+                  class="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors font-medium text-sm shadow-sm flex items-center gap-2"
+                  onClick={() => setShowColumnSettings(true)}
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                  </svg>
+                  Column Settings
+                </button>
+                
+                {/* Export Button */}
+                <button
+                  class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors font-medium text-sm shadow-sm flex items-center gap-2"
+                  onClick={() => {
+                    // Export functionality can be added here
+                    alert('Export BoQ to Excel');
+                  }}
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                  </svg>
+                  Export to Excel
+                </button>
+              </div>
             </div>
 
             {/* AG Grid */}
             <div class="flex-1 px-6 py-4 overflow-hidden">
               <div class="ag-theme-alpine h-full w-full">
                 <AgGridSolid
-                  columnDefs={[
-                    { 
-                      field: 'no', 
-                      headerName: 'No', 
-                      width: 70, 
-                      pinned: 'left',
-                      filter: 'agNumberColumnFilter'
-                    },
-                    { 
-                      field: 'description', 
-                      headerName: 'Description', 
-                      width: 300,
-                      filter: 'agTextColumnFilter'
-                    },
-                    { 
-                      field: 'category', 
-                      headerName: 'Category', 
-                      width: 180,
-                      filter: 'agTextColumnFilter'
-                    },
-                    { 
-                      field: 'unit', 
-                      headerName: 'Unit', 
-                      width: 100,
-                      filter: 'agTextColumnFilter'
-                    },
-                    { 
-                      field: 'quantity', 
-                      headerName: 'Quantity', 
-                      width: 120,
-                      filter: 'agNumberColumnFilter',
-                      valueFormatter: (params: any) => params.value?.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                    },
-                    { 
-                      field: 'unitPrice', 
-                      headerName: 'Unit Price (Rp)', 
-                      width: 150,
-                      filter: 'agNumberColumnFilter',
-                      valueFormatter: (params: any) => 'Rp ' + params.value?.toLocaleString('id-ID')
-                    },
-                    { 
-                      field: 'totalPrice', 
-                      headerName: 'Total Price (Rp)', 
-                      width: 180,
-                      pinned: 'right',
-                      filter: 'agNumberColumnFilter',
-                      valueFormatter: (params: any) => 'Rp ' + params.value?.toLocaleString('id-ID'),
-                      cellStyle: { fontWeight: 'bold', color: '#2563eb' }
-                    },
-                    { 
-                      field: 'notes', 
-                      headerName: 'Notes', 
-                      width: 250,
-                      filter: 'agTextColumnFilter'
-                    },
-                  ]}
+                  columnDefs={boqColumnDefs()}
                   rowData={sampleBoQData}
+                  onGridReady={(params: any) => {
+                    console.log('ProjectGrid: BoQ Grid Ready');
+                    setBoqGridApi(params.api);
+                    
+                    // Notify parent component (RMJModal) about BoQ gridApi
+                    if (props.onBoqGridReady) {
+                      console.log('ProjectGrid: Calling onBoqGridReady callback');
+                      props.onBoqGridReady(params.api);
+                    }
+                  }}
                   defaultColDef={{
                     sortable: true,
                     filter: true,

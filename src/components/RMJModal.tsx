@@ -6,6 +6,7 @@ import { LicenseManager } from 'ag-grid-enterprise';
 import type { ColDef, GridOptions, GridApi } from 'ag-grid-community';
 import ProjectGrid from './ProjectGrid';
 import { ReportRMJModal } from './ReportRMJModal';
+import { GlobalColumnSettings } from './GlobalColumnSettings';
 import type { RMJSitelistRow, RMJUser, RMJViewTemplate, UserRole, AccessLevel, RMJReportRow } from '../types';
 import * as XLSX from 'xlsx';
 
@@ -132,8 +133,8 @@ export function RMJModal(props: RMJModalProps) {
 
   const [activeTab, setActiveTab] = createSignal<'sitelist' | 'settings' | 'users'>('sitelist');
   const [searchQuery, setSearchQuery] = createSignal('');
-  const [gridApi] = createSignal<GridApi | null>(null);
-  const [isGridReady] = createSignal(false);
+  const [gridApi, setGridApi] = createSignal<GridApi | null>(null);
+  const [isGridReady, setIsGridReady] = createSignal(false);
 
   // Project Selection State
   const [selectedProject] = createSignal<string>('project1');
@@ -159,235 +160,319 @@ export function RMJModal(props: RMJModalProps) {
   // Report RMJ State
   const [showReportRMJ, setShowReportRMJ] = createSignal(false);
 
-  // Sample data for Project 1
-  const sampleDataProject1: RMJSitelistRow[] = [
+  // Global Column Settings State
+  const [showGlobalColumnSettings, setShowGlobalColumnSettings] = createSignal(false);
+  const [boqGridApi, setBoqGridApi] = createSignal<GridApi | null>(null);
+  const [lokasiGridApi, setLokasiGridApi] = createSignal<GridApi | null>(null);
+
+// BoQ Column Definitions
+  const [boqColumnDefs] = createSignal<ColDef[]>([
+    { 
+      field: 'no', 
+      headerName: 'No', 
+      width: 70, 
+      pinned: 'left',
+      filter: 'agNumberColumnFilter'
+    },
+    { 
+      field: 'description', 
+      headerName: 'Description', 
+      width: 300,
+      filter: 'agTextColumnFilter'
+    },
+    { 
+      field: 'category', 
+      headerName: 'Category', 
+      width: 180,
+      filter: 'agTextColumnFilter'
+    },
+    { 
+      field: 'unit', 
+      headerName: 'Unit', 
+      width: 100,
+      filter: 'agTextColumnFilter'
+    },
+    { 
+      field: 'quantity', 
+      headerName: 'Quantity', 
+      width: 120,
+      filter: 'agNumberColumnFilter',
+      valueFormatter: (params: any) => params.value?.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    },
+    { 
+      field: 'unitPrice', 
+      headerName: 'Unit Price (Rp)', 
+      width: 150,
+      filter: 'agNumberColumnFilter',
+      valueFormatter: (params: any) => 'Rp ' + params.value?.toLocaleString('id-ID')
+    },
+    { 
+      field: 'totalPrice', 
+      headerName: 'Total Price (Rp)', 
+      width: 180,
+      pinned: 'right',
+      filter: 'agNumberColumnFilter',
+      valueFormatter: (params: any) => 'Rp ' + params.value?.toLocaleString('id-ID'),
+      cellStyle: { fontWeight: 'bold', color: '#2563eb' }
+    },
+    { 
+      field: 'notes', 
+      headerName: 'Notes', 
+      width: 250,
+      filter: 'agTextColumnFilter'
+    },
+  ]);
+
+  /**
+   * Prepare table info for GlobalColumnSettings - Project Sitelist (same as ProjectGrid)
+   */
+  const getSitelistTableInfo = () => {
+    return {
+      id: 'project_sitelist',
+      name: 'Project Sitelist',
+      description: 'Project list with contract details (8 columns same as ProjectGrid)',
+      category: 'Projects',
+      columnCount: columnDefs().length,
+      location: 'RMJ Modal - Sitelist Tab',
+    };
+  };
+
+  /**
+   * Prepare columns info for GlobalColumnSettings - Project Sitelist (8 columns)
+   */
+  const getSitelistColumns = () => {
+    return columnDefs().map(col => ({
+      field: col.field || '',
+      headerName: col.headerName || col.field || '',
+      isLocked: col.pinned === 'left' || col.pinned === 'right',
+    }));
+  };
+
+  /**
+   * Prepare table info for GlobalColumnSettings - BoQ Grid
+   */
+  const getBoQTableInfo = () => {
+    return {
+      id: 'boq_grid',
+      name: 'BoQ Grid',
+      description: 'Bill of Quantities with cost breakdown',
+      category: 'Projects',
+      columnCount: boqColumnDefs().length,
+      location: 'BoQ Modal',
+    };
+  };
+
+  /**
+   * Prepare columns info for GlobalColumnSettings - BoQ Grid
+   */
+  const getBoQColumns = () => {
+    return boqColumnDefs().map(col => ({
+      field: col.field || '',
+      headerName: col.headerName || col.field || '',
+      isLocked: col.pinned === 'left' || col.pinned === 'right',
+    }));
+  };
+
+  /**
+   * Prepare table info for GlobalColumnSettings - Lokasi Grid
+   */
+  const getLokasiTableInfo = () => {
+    return {
+      id: 'lokasi_grid',
+      name: 'Lokasi Grid',
+      description: 'Location details with site information (6 columns)',
+      category: 'Projects',
+      columnCount: 6, // kode, mitra, witel, siteName, ruasCount, action
+      location: 'Project Detail - Paket Area',
+    };
+  };
+
+  /**
+   * Prepare columns info for GlobalColumnSettings - Lokasi Grid
+   */
+  const getLokasiColumns = () => {
+    // Return column info for lokasi grid (from ProjectDetail)
+    return [
+      { field: 'kode', headerName: 'Kode', isLocked: false },
+      { field: 'mitra', headerName: 'Mitra', isLocked: false },
+      { field: 'witel', headerName: 'Witel', isLocked: false },
+      { field: 'siteName', headerName: 'Site Name', isLocked: false },
+      { field: 'ruasCount', headerName: 'Jumlah Ruas', isLocked: false },
+      { field: 'action', headerName: 'Action', isLocked: true },
+    ];
+  };
+
+  /**
+   * Get all available tables for GlobalColumnSettings
+   */
+  const getAllTables = () => {
+    return [getSitelistTableInfo(), getBoQTableInfo(), getLokasiTableInfo()];
+  };
+
+  /**
+   * Get columns for specific table
+   */
+  const getColumnsForTable = (tableId: string) => {
+    switch (tableId) {
+      case 'project_sitelist':
+        return getSitelistColumns();
+      case 'boq_grid':
+        return getBoQColumns();
+      case 'lokasi_grid':
+        return getLokasiColumns();
+      default:
+        return [];
+    }
+  };
+
+  /**
+   * Get appropriate gridApi based on table selection
+   */
+  const getGridApiForTable = (tableId: string): GridApi | null => {
+    console.log('RMJModal: getGridApiForTable called with tableId:', tableId);
+    
+    switch (tableId) {
+      case 'project_sitelist':
+        const projApi = gridApi();
+        console.log('RMJModal: Returning project_sitelist API:', projApi ? 'Available' : 'NULL');
+        return projApi;
+      case 'boq_grid':
+        const boqApi = boqGridApi();
+        console.log('RMJModal: Returning boq_grid API:', boqApi ? 'Available' : 'NULL');
+        return boqApi;
+      case 'lokasi_grid':
+        const lokApi = lokasiGridApi();
+        console.log('RMJModal: Returning lokasi_grid API:', lokApi ? 'Available' : 'NULL');
+        return lokApi;
+      default:
+        console.log('RMJModal: Unknown tableId, returning null');
+        return null;
+    }
+  };
+
+  const handleOpenColumnSettings = () => {
+    setShowGlobalColumnSettings(true);
+  };
+
+  // Sample data for Project 1 - Same structure as ProjectGrid (8 columns)
+  const sampleDataProject1: any[] = [
     {
-      unixId: 'U-01BKDI-148',
-      customerId: 'Akad Mitra',
-      siteId: 'DBBKDI148_M',
-      siteName: 'DBBKDI148_M',
-      deliveryRegion: 'West Java',
-      areaName: 'Area B',
-      installation: 'PT. ADIWARNA TELECOM',
-      wiDnUgas: '199C-01-01B',
-      subcontractor: 'PT. ADIWARNA TELECOM',
-      siteOwner: 'M. Ilham S',
-      installationPd: '2023-10-31',
-      wiWeeklyPlan: 'Done',
-      mosCnInstallationCompleted: 'Done',
-      planEndDate: '2024-02-16',
-      actualEndDate: '2024-02-16',
-      owner: 'PT. ABC',
+      id: 'proj-2024-001',
+      tahunProject: '2024',
+      program: 'FO-Deployment',
+      noKontrak: 'KTR-2024-001',
+      regional: 'Jakarta Pusat',
+      treg: 'TREG-01',
+      planRFS: '2024-12-31',
+      currentMilestone: 'Construction',
       action: '',
-      milestone1: 'Done',
-      milestone2: 'In Progress',
-      milestone3: 'Pending',
     },
     {
-      unixId: 'U-01BKDI-149',
-      customerId: 'Akad Mitra',
-      siteId: 'DBBKDI149_M',
-      siteName: 'DBBKDI149_M',
-      deliveryRegion: 'West Java',
-      areaName: 'Area B',
-      installation: 'PT. ADIWARNA TELECOM',
-      wiDnUgas: '199C-01-02B',
-      subcontractor: 'PT. ADIWARNA TELECOM',
-      siteOwner: 'Fery Hardiansyah',
-      installationPd: '2023-11-28',
-      wiWeeklyPlan: 'Done',
-      mosCnInstallationCompleted: 'Done',
-      planEndDate: '2024-02-16',
-      actualEndDate: '2024-02-16',
-      owner: 'PT. XYZ',
+      id: 'proj-2024-002',
+      tahunProject: '2024',
+      program: 'FO-Deployment',
+      noKontrak: 'KTR-2024-002',
+      regional: 'Jakarta Selatan',
+      treg: 'TREG-02',
+      planRFS: '2024-11-30',
+      currentMilestone: 'Design',
       action: '',
-      milestone1: 'Done',
-      milestone2: 'Done',
-      milestone3: 'In Progress',
     },
     {
-      unixId: 'U-01BKDI-150',
-      customerId: 'Akad Mitra',
-      siteId: 'DBBKDI150_M',
-      siteName: 'DBBKDI150_M',
-      deliveryRegion: 'Central Java',
-      areaName: 'Area C',
-      installation: 'PT. BUANA NETWORK',
-      wiDnUgas: '199C-01-03C',
-      subcontractor: 'PT. BUANA NETWORK',
-      siteOwner: 'Ahmad Rizki',
-      installationPd: '2023-12-15',
-      wiWeeklyPlan: 'In Progress',
-      mosCnInstallationCompleted: 'Pending',
-      planEndDate: '2024-03-20',
-      actualEndDate: '',
-      owner: 'PT. DEF',
+      id: 'proj-2024-003',
+      tahunProject: '2024',
+      program: 'FO-Deployment',
+      noKontrak: 'KTR-2024-003',
+      regional: 'Jakarta Pusat',
+      treg: 'TREG-03',
+      planRFS: '2024-10-15',
+      currentMilestone: 'Planning',
       action: '',
-      milestone1: 'Done',
-      milestone2: 'In Progress',
-      milestone3: 'Pending',
     },
     {
-      unixId: 'U-01BKDI-151',
-      customerId: 'Akad Mitra',
-      siteId: 'DBBKDI151_M',
-      siteName: 'DBBKDI151_M',
-      deliveryRegion: 'East Java',
-      areaName: 'Area D',
-      installation: 'PT. CIPTA TEKNOLOGI',
-      wiDnUgas: '199C-01-04D',
-      subcontractor: 'PT. CIPTA TEKNOLOGI',
-      siteOwner: 'Budi Santoso',
-      installationPd: '2024-01-10',
-      wiWeeklyPlan: 'Pending',
-      mosCnInstallationCompleted: 'Pending',
-      planEndDate: '2024-04-15',
-      actualEndDate: '',
-      owner: 'PT. GHI',
+      id: 'proj-2024-004',
+      tahunProject: '2024',
+      program: 'FO-Upgrade',
+      noKontrak: 'KTR-2024-004',
+      regional: 'Jakarta Pusat',
+      treg: 'TREG-04',
+      planRFS: '2024-09-30',
+      currentMilestone: 'Procurement',
       action: '',
-      milestone1: 'In Progress',
-      milestone2: 'Pending',
-      milestone3: 'Pending',
     },
     {
-      unixId: 'U-01BKDI-152',
-      customerId: 'Akad Mitra',
-      siteId: 'DBBKDI152_M',
-      siteName: 'DBBKDI152_M',
-      deliveryRegion: 'West Java',
-      areaName: 'Area A',
-      installation: 'PT. DIGITAL SOLUTION',
-      wiDnUgas: '199C-01-05A',
-      subcontractor: 'PT. DIGITAL SOLUTION',
-      siteOwner: 'Siti Nurhaliza',
-      installationPd: '2024-02-01',
-      wiWeeklyPlan: 'Done',
-      mosCnInstallationCompleted: 'Done',
-      planEndDate: '2024-05-10',
-      actualEndDate: '2024-05-08',
-      owner: 'PT. JKL',
+      id: 'proj-2024-005',
+      tahunProject: '2024',
+      program: 'FO-Expansion',
+      noKontrak: 'KTR-2024-005',
+      regional: 'Depok',
+      treg: 'TREG-05',
+      planRFS: '2024-12-15',
+      currentMilestone: 'Construction',
       action: '',
-      milestone1: 'Done',
-      milestone2: 'Done',
-      milestone3: 'In Progress',
     },
     {
-      unixId: 'U-01BKDI-153',
-      customerId: 'Akad Mitra',
-      siteId: 'DBBKDI153_M',
-      siteName: 'DBBKDI153_M',
-      deliveryRegion: 'Central Java',
-      areaName: 'Area B',
-      installation: 'PT. ENERKOM INDONESIA',
-      wiDnUgas: '199C-01-06B',
-      subcontractor: 'PT. ENERKOM INDONESIA',
-      siteOwner: 'Dedi Kurniawan',
-      installationPd: '2024-03-05',
-      wiWeeklyPlan: 'In Progress',
-      mosCnInstallationCompleted: 'In Progress',
-      planEndDate: '2024-06-20',
-      actualEndDate: '',
-      owner: 'PT. MNO',
+      id: 'proj-2024-006',
+      tahunProject: '2024',
+      program: 'FO-Expansion',
+      noKontrak: 'KTR-2024-006',
+      regional: 'Bekasi',
+      treg: 'TREG-06',
+      planRFS: '2024-11-30',
+      currentMilestone: 'Installation',
       action: '',
-      milestone1: 'Done',
-      milestone2: 'In Progress',
-      milestone3: 'Pending',
     },
   ];
 
   // Sample data for Project 2
-  const sampleDataProject2: RMJSitelistRow[] = [
+  const sampleDataProject2: any[] = [
     {
-      unixId: 'U-02JKTA-201',
-      customerId: 'Telkom Indonesia',
-      siteId: 'JKTCB201_T',
-      siteName: 'JKTCB201_T',
-      deliveryRegion: 'Jakarta',
-      areaName: 'Area A',
-      installation: 'PT. TELKOM AKSES',
-      wiDnUgas: '200D-02-01A',
-      subcontractor: 'PT. TELKOM AKSES',
-      siteOwner: 'Andi Wijaya',
-      installationPd: '2024-01-15',
-      wiWeeklyPlan: 'Done',
-      mosCnInstallationCompleted: 'Done',
-      planEndDate: '2024-03-30',
-      actualEndDate: '2024-03-28',
-      owner: 'PT. Telkom',
+      id: 'proj-2024-101',
+      tahunProject: '2024',
+      program: 'FO-Deployment',
+      noKontrak: 'KTR-2024-101',
+      regional: 'Jakarta',
+      treg: 'TREG-10',
+      planRFS: '2024-03-30',
+      currentMilestone: 'Completed',
       action: '',
-      milestone1: 'Done',
-      milestone2: 'Done',
-      milestone3: 'Done',
     },
     {
-      unixId: 'U-02JKTA-202',
-      customerId: 'Telkom Indonesia',
-      siteId: 'JKTCB202_T',
-      siteName: 'JKTCB202_T',
-      deliveryRegion: 'Jakarta',
-      areaName: 'Area B',
-      installation: 'PT. TELKOM AKSES',
-      wiDnUgas: '200D-02-02B',
-      subcontractor: 'PT. TELKOM AKSES',
-      siteOwner: 'Budi Hartono',
-      installationPd: '2024-02-01',
-      wiWeeklyPlan: 'In Progress',
-      mosCnInstallationCompleted: 'In Progress',
-      planEndDate: '2024-04-15',
-      actualEndDate: '',
-      owner: 'PT. Telkom',
+      id: 'proj-2024-102',
+      tahunProject: '2024',
+      program: 'FO-Deployment',
+      noKontrak: 'KTR-2024-102',
+      regional: 'Jakarta',
+      treg: 'TREG-11',
+      planRFS: '2024-04-15',
+      currentMilestone: 'In Progress',
       action: '',
-      milestone1: 'Done',
-      milestone2: 'In Progress',
-      milestone3: 'Pending',
     },
   ];
 
   // Sample data for Project 3
-  const sampleDataProject3: RMJSitelistRow[] = [
+  const sampleDataProject3: any[] = [
     {
-      unixId: 'U-03BDNG-301',
-      customerId: 'Enterprise Client',
-      siteId: 'BDGUPG301_E',
-      siteName: 'BDGUPG301_E',
-      deliveryRegion: 'West Java',
-      areaName: 'Area C',
-      installation: 'PT. INFRASTRUKTUR DIGITAL',
-      wiDnUgas: '201E-03-01C',
-      subcontractor: 'PT. INFRASTRUKTUR DIGITAL',
-      siteOwner: 'Citra Dewi',
-      installationPd: '2024-03-01',
-      wiWeeklyPlan: 'Pending',
-      mosCnInstallationCompleted: 'Pending',
-      planEndDate: '2024-06-30',
-      actualEndDate: '',
-      owner: 'PT. Enterprise',
+      id: 'proj-2024-201',
+      tahunProject: '2024',
+      program: 'FO-Upgrade',
+      noKontrak: 'KTR-2024-201',
+      regional: 'West Java',
+      treg: 'TREG-20',
+      planRFS: '2024-06-30',
+      currentMilestone: 'Pending',
       action: '',
-      milestone1: 'In Progress',
-      milestone2: 'Pending',
-      milestone3: 'Pending',
     },
     {
-      unixId: 'U-03BDNG-302',
-      customerId: 'Enterprise Client',
-      siteId: 'BDGUPG302_E',
-      siteName: 'BDGUPG302_E',
-      deliveryRegion: 'West Java',
-      areaName: 'Area D',
-      installation: 'PT. INFRASTRUKTUR DIGITAL',
-      wiDnUgas: '201E-03-02D',
-      subcontractor: 'PT. INFRASTRUKTUR DIGITAL',
-      siteOwner: 'Doni Prasetyo',
-      installationPd: '2024-03-15',
-      wiWeeklyPlan: 'Done',
-      mosCnInstallationCompleted: 'In Progress',
-      planEndDate: '2024-07-15',
-      actualEndDate: '',
-      owner: 'PT. Enterprise',
+      id: 'proj-2024-202',
+      tahunProject: '2024',
+      program: 'FO-Upgrade',
+      noKontrak: 'KTR-2024-202',
+      regional: 'West Java',
+      treg: 'TREG-21',
+      planRFS: '2024-07-15',
+      currentMilestone: 'In Progress',
       action: '',
-      milestone1: 'Done',
-      milestone2: 'In Progress',
-      milestone3: 'Pending',
     },
   ];
 
@@ -405,56 +490,111 @@ export function RMJModal(props: RMJModalProps) {
     }
   };
 
-  // Column definitions
+  // Column definitions - Same structure as ProjectGrid (8 columns)
   const [columnDefs] = createSignal<ColDef[]>([
-    {
-      field: 'unixId',
-      headerName: 'Unix ID',
-      pinned: 'left',
-      checkboxSelection: true,
-      headerCheckboxSelection: true,
+    { 
+      field: 'tahunProject', 
+      headerName: 'Tahun Proj...', 
+      width: 110,
+      filter: 'agTextColumnFilter',
+      floatingFilter: true
+    },
+    { 
+      field: 'program', 
+      headerName: 'Program', 
       width: 150,
       filter: 'agTextColumnFilter',
+      floatingFilter: true
     },
-    { field: 'customerId', headerName: 'Customer ID', width: 130 },
-    { field: 'siteId', headerName: 'Site ID', width: 150 },
-    { field: 'siteName', headerName: 'Site Name', width: 150 },
-    { field: 'deliveryRegion', headerName: 'Delivery Region', width: 150 },
-    { field: 'areaName', headerName: 'Area Name', width: 120 },
-    { field: 'installation', headerName: 'Installation', width: 200 },
-    { field: 'wiDnUgas', headerName: 'WI DN Ugas', width: 130 },
-    { field: 'subcontractor', headerName: 'Subcontractor', width: 200 },
-    { field: 'siteOwner', headerName: 'Site Owner', width: 150 },
-    { field: 'installationPd', headerName: 'Installation PD', width: 130 },
-    { field: 'wiWeeklyPlan', headerName: 'WI Weekly Plan', width: 130 },
-    { field: 'mosCnInstallationCompleted', headerName: 'MOS CN Installation', width: 180 },
-    { field: 'planEndDate', headerName: 'Plan End Date', width: 130 },
-    { field: 'actualEndDate', headerName: 'Actual End Date', width: 130 },
-    { field: 'owner', headerName: 'Owner', width: 120 },
-    { field: 'milestone1', headerName: 'Milestone 1', width: 120 },
-    { field: 'milestone2', headerName: 'Milestone 2', width: 120 },
-    { field: 'milestone3', headerName: 'Milestone 3', width: 120 },
+    { 
+      field: 'noKontrak', 
+      headerName: 'No Kontrak', 
+      width: 140,
+      filter: 'agTextColumnFilter',
+      floatingFilter: true
+    },
+    { 
+      field: 'regional', 
+      headerName: 'Regional', 
+      width: 130,
+      filter: 'agTextColumnFilter',
+      floatingFilter: true
+    },
+    { 
+      field: 'treg', 
+      headerName: 'TREG', 
+      width: 90,
+      filter: 'agTextColumnFilter',
+      floatingFilter: true
+    },
+    { 
+      field: 'planRFS', 
+      headerName: 'Plan RFS', 
+      width: 120,
+      filter: 'agTextColumnFilter',
+      floatingFilter: true
+    },
+    { 
+      field: 'currentMilestone', 
+      headerName: 'Current Milestone', 
+      flex: 1, 
+      minWidth: 150,
+      filter: 'agTextColumnFilter',
+      floatingFilter: true
+    },
     {
       field: 'action',
       headerName: 'Action',
       pinned: 'right',
-      width: 120,
+      width: 200,
       sortable: false,
       filter: false,
       editable: false,
+      floatingFilter: false,
       cellRenderer: (params: any) => {
         const container = document.createElement('div');
-        container.style.cssText = 'display: flex; gap: 4px; align-items: center; height: 100%; justify-content: center;';
+        container.style.cssText = 'display: flex; gap: 8px; align-items: center; height: 100%; justify-content: center;';
 
-        const button = document.createElement('button');
-        button.className = 'action-btn-edit';
-        button.innerHTML = '✏️ Edit';
-        button.onclick = () => {
-          console.log('Edit clicked for:', params.data);
-          alert(`Editing row: ${params.data.unixId}\nSite: ${params.data.siteName}`);
+        // View Detail Button
+        const viewBtn = document.createElement('button');
+        viewBtn.textContent = 'View Detail';
+        viewBtn.className = 'action-btn-edit';
+        viewBtn.onclick = () => {
+          console.log('View Detail clicked for:', params.data);
+          alert(`View Detail: ${params.data.noKontrak}`);
         };
 
-        container.appendChild(button);
+        // BoQ Button
+        const boqBtn = document.createElement('button');
+        boqBtn.textContent = '📋 BoQ';
+        boqBtn.className = 'action-btn-boq';
+        boqBtn.style.cssText = `
+          padding: 6px 14px;
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+          color: white;
+          border: none;
+          border-radius: 6px;
+          font-size: 12px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s;
+          box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+        `;
+        boqBtn.onclick = () => {
+          console.log('BoQ clicked for:', params.data);
+          alert(`BoQ for: ${params.data.noKontrak}`);
+        };
+        boqBtn.onmouseenter = () => {
+          boqBtn.style.transform = 'translateY(-1px)';
+          boqBtn.style.boxShadow = '0 4px 8px rgba(16, 185, 129, 0.4)';
+        };
+        boqBtn.onmouseleave = () => {
+          boqBtn.style.transform = 'translateY(0)';
+          boqBtn.style.boxShadow = '0 2px 4px rgba(16, 185, 129, 0.3)';
+        };
+
+        container.appendChild(viewBtn);
+        container.appendChild(boqBtn);
         return container;
       }
     },
@@ -1299,22 +1439,19 @@ export function RMJModal(props: RMJModalProps) {
                 User Management
               </button>
               
-              {/* Action Buttons - Conditional */}
+              {/* Column Settings - Next to User Management */}
+              <button
+                class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors font-medium text-sm shadow-sm flex items-center gap-2"
+                onClick={() => setShowGlobalColumnSettings(true)}
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                </svg>
+                Column Settings
+              </button>
+              
+              {/* Report RMJ Button */}
               <Show when={activeTab() === 'sitelist'}>
-                <div class="h-6 w-px bg-gray-300 mx-2"></div>
-                <button
-                  class="px-4 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors font-medium text-sm shadow-sm flex items-center gap-2"
-                  onClick={() => {
-                    // Trigger Column Settings
-                    const event = new CustomEvent('open-column-settings');
-                    window.dispatchEvent(event);
-                  }}
-                >
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                  </svg>
-                  Column Settings
-                </button>
                 <button
                   class="px-4 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors font-medium text-sm shadow-sm flex items-center gap-2"
                   onClick={() => setShowReportRMJ(true)}
@@ -1338,7 +1475,7 @@ export function RMJModal(props: RMJModalProps) {
           {/* Content */}
           <div class="flex-1 overflow-hidden flex flex-col">
             <Show when={activeTab() === 'sitelist'}>
-              <div class="h-full flex flex-col overflow-hidden">
+              <div class="h-full flex flex-col">
                 {/* Toolbar */}
                 <div class="px-6 py-3 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100 flex-shrink-0">
                   <div class="flex items-center gap-3 flex-wrap">
@@ -1438,8 +1575,22 @@ export function RMJModal(props: RMJModalProps) {
                 </div>
 
                 {/* Project grid with hierarchical detail */}
-                <div class="flex-1 px-6 py-4 overflow-auto">
-                  <ProjectGrid />
+                <div class="flex-1 overflow-y-auto px-6 py-4">
+                  <ProjectGrid 
+                    onProjectGridReady={(api) => {
+                      console.log('RMJModal: Received Project GridAPI');
+                      setGridApi(api);
+                      setIsGridReady(true);
+                    }}
+                    onBoqGridReady={(api) => {
+                      console.log('RMJModal: Received BoQ GridAPI');
+                      setBoqGridApi(api);
+                    }}
+                    onLokasiGridReady={(api) => {
+                      console.log('RMJModal: Received Lokasi GridAPI');
+                      setLokasiGridApi(api);
+                    }}
+                  />
                 </div>
               </div>
             </Show>
@@ -1769,6 +1920,17 @@ export function RMJModal(props: RMJModalProps) {
       onClose={() => setShowReportRMJ(false)}
       reportData={sampleReportData}
     />
+    
+    {/* Global Column Settings Modal */}
+      <Show when={showGlobalColumnSettings()}>
+        <GlobalColumnSettings
+          gridApi={gridApi()}
+          onClose={() => setShowGlobalColumnSettings(false)}
+          tables={getAllTables()}
+          getColumnsForTable={getColumnsForTable}
+          getGridApiForTable={getGridApiForTable}
+        />
+      </Show>
     </>
   );
 }

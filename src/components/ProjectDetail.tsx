@@ -1,12 +1,13 @@
 import { createSignal, For, Show } from 'solid-js';
 import AgGridSolid from 'ag-grid-solid';
-import type { ColDef } from 'ag-grid-community';
+import type { ColDef, GridApi } from 'ag-grid-community';
 import type { ProjectHierarchyProject, Lokasi } from '../types';
 import LokasiDetailModal from '../components/LokasiDetailModal';
 
 interface Props {
   project: ProjectHierarchyProject;
   onClose: () => void;
+  onLokasiGridReady?: (api: GridApi) => void;
 }
 
 export default function ProjectDetail(props: Props) {
@@ -235,6 +236,11 @@ export default function ProjectDetail(props: Props) {
                             <AgGridSolid
                               columnDefs={lokasiColumnDefs}
                               rowData={pa.lokasis}
+                              onGridReady={(params: any) => {
+                                if (props.onLokasiGridReady) {
+                                  props.onLokasiGridReady(params.api);
+                                }
+                              }}
                               defaultColDef={{
                                 sortable: true,
                                 resizable: true,
