@@ -138,7 +138,7 @@ export default function ProjectDetail(props: Props) {
   ];
 
   return (
-    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm">
       {/* Header */}
       <div class="flex items-start justify-between px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200">
         <div>
