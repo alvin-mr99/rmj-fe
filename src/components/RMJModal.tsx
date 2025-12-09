@@ -5,7 +5,9 @@ import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { LicenseManager } from 'ag-grid-enterprise';
 import type { ColDef, GridOptions, GridApi } from 'ag-grid-community';
 import ProjectGrid from './ProjectGrid';
-import type { RMJSitelistRow, RMJUser, RMJViewTemplate, UserRole, AccessLevel } from '../types';
+import { ReportRMJModal } from './ReportRMJModal';
+import { GlobalColumnSettings } from './GlobalColumnSettings';
+import type { RMJSitelistRow, RMJUser, UserRole, AccessLevel, RMJReportRow } from '../types';
 import * as XLSX from 'xlsx';
 
 // Add custom styles for AG Grid
@@ -86,28 +88,28 @@ const customGridStyles = `
 
 // Inject styles
 if (typeof document !== 'undefined') {
-  const styleElement = document.createElement('style');
-  styleElement.textContent = customGridStyles;
-  document.head.appendChild(styleElement);
+    const styleElement = document.createElement('style');
+    styleElement.textContent = customGridStyles;
+    document.head.appendChild(styleElement);
 }
 
 // Set AG Grid Enterprise License (Trial)
 LicenseManager.setLicenseKey('[TRIAL]_this_{AG_Charts_and_AG_Grid}_Enterprise_key_{AG-113850}_is_granted_for_evaluation_only___Use_in_production_is_not_permitted___Please_report_misuse_to_legal@ag-grid.com___For_help_with_purchasing_a_production_key_please_contact_info@ag-grid.com___You_are_granted_a_{Single_Application}_Developer_License_for_one_application_only___All_Front-End_JavaScript_developers_working_on_the_application_would_need_to_be_licensed___This_key_will_deactivate_on_{1 January 2026}____[v3]_[0102]_MTc2NzIyNTYwMDAwMA==77931508b786a1519feb9ddef5f01e67');
 
 interface RMJModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  userRole?: UserRole;
-  userEmail?: string;
+    isOpen: boolean;
+    onClose: () => void;
+    userRole?: UserRole;
+    userEmail?: string;
 }
 
 // Project data type
 interface Project {
-  id: string;
-  name: string;
-  year: string;
-  program: string;
-  description: string;
+    id: string;
+    name: string;
+    year: string;
+    program: string;
+    description: string;
 }
 
 export function RMJModal(props: RMJModalProps) {
@@ -729,25 +731,309 @@ export function RMJModal(props: RMJModalProps) {
           api.setGridOption('rowData', rowData());
           api.refreshCells();
         }
-      }, 50);
-    }
-  });
+    };
 
-  // Watch for project changes and update grid data
-  createEffect(() => {
-    const project = selectedProject();
-    console.log('Selected project changed to:', project);
-    
-    const newData = getProjectData();
-    setRowData(newData);
-    
-    if (isGridReady()) {
-      setTimeout(() => {
-        const api = gridApi();
-        if (api) {
-          console.log('Updating grid with new project data...');
-          api.setGridOption('rowData', newData);
-          api.refreshCells();
+    // Column definitions
+    //     filter: true,
+    //     resizable: true,
+    //     editable: true,
+    //     floatingFilter: true,
+    //     enableRowGroup: true,
+    //     enablePivot: true,
+    //     enableValue: true,
+    //     minWidth: 100,
+    //   },
+    //   rowSelection: 'multiple',
+    //   pagination: true,
+    //   paginationPageSize: 15,
+    //   paginationPageSizeSelector: [15, 50, 100, 500],
+    //   enableCellTextSelection: true,
+    //   suppressRowClickSelection: true,
+    //   enableRangeSelection: true,
+    //   enableCharts: true,
+    //   enableAdvancedFilter: true,
+    //   rowGroupPanelShow: 'always',
+    //   pivotPanelShow: 'always',
+    //   animateRows: true,
+    //   enableFillHandle: true,
+    //   undoRedoCellEditing: true,
+    //   undoRedoCellEditingLimit: 20,
+    //   rowHeight: 50,
+    //   headerHeight: 56,
+    // };
+
+    // Enhanced context menu configuration
+    // const getContextMenuItems = (params: any): any[] => {
+    //   const result: any[] = [
+    //     {
+    //       name: 'Edit Row',
+    //       icon: '<span class="ag-icon ag-icon-edit"></span>',
+    //       action: () => {
+    //         console.log('Edit row:', params.node.data);
+    //         alert(`Editing row: ${params.node.data.unixId}`);
+    //       },
+    //     },
+    //     'separator' as const,
+    //     'copy' as const,
+    //     'copyWithHeaders' as const,
+    //     'copyWithGroupHeaders' as const,
+    //     'paste' as const,
+    //     'separator' as const,
+    //     {
+    //       name: 'Export',
+    //       icon: '<span class="ag-icon ag-icon-save"></span>',
+    //       subMenu: [
+    //         'csvExport' as const,
+    //         'excelExport' as const,
+    //       ],
+    //     },
+    //     'separator' as const,
+    //     {
+    //       name: 'Chart',
+    //       icon: '<span class="ag-icon ag-icon-chart"></span>',
+    //       subMenu: [
+    //         'chartRange' as const,
+    //       ],
+    //     },
+    //     'separator' as const,
+    //     {
+    //       name: 'Delete Row',
+    //       icon: '<span class="ag-icon ag-icon-cross"></span>',
+    //       cssClasses: ['red-item'],
+    //       action: () => {
+    //         if (confirm('Delete this row?')) {
+    //           const api = gridApi();
+    //           if (api) {
+    //             api.applyTransaction({ remove: [params.node.data] });
+    //             setRowData(rowData().filter(row => row.unixId !== params.node.data.unixId));
+    //           }
+    //         }
+    //       },
+    //     },
+    //   ];
+    //   return result;
+    // };
+
+    // Sample users data - expanded for better demo
+    const sampleUsers: RMJUser[] = [
+        {
+            id: '1',
+            username: 'A Gita Purnasari',
+            email: 'gita.purnasari@telkom.co.id',
+            role: 'Admin',
+            accessLevel: 'full',
+            unit: 'PT. NEXWAVE',
+            division: 'Technology',
+            regional: 'Jakarta',
+            createdDate: '2024-01-01',
+            lastLogin: '2024-12-02',
+        },
+        {
+            id: '2',
+            username: 'A Ismail Syahrana',
+            email: 'ismail.syahrana@telkom.co.id',
+            role: 'Internal TI',
+            accessLevel: 'modify',
+            unit: 'PT. NEXWAVE',
+            division: 'Technology',
+            regional: 'Jakarta',
+            createdDate: '2024-01-15',
+            lastLogin: '2024-12-01',
+        },
+        {
+            id: '3',
+            username: 'A Rofik',
+            email: 'rofik@partner.com',
+            role: 'Mitra',
+            accessLevel: 'view',
+            unit: 'PT. INTSEL PRODIAKTIKOM',
+            division: 'Installation',
+            regional: 'West Java',
+            createdDate: '2024-02-01',
+            lastLogin: '2024-11-30',
+        },
+        {
+            id: '4',
+            username: 'A. Dinal Mubaroq',
+            email: 'dinal.mubaroq@partner.com',
+            role: 'Mitra',
+            accessLevel: 'view',
+            unit: 'PT. Digital Solusindo Raya',
+            division: 'Installation',
+            regional: 'Central Java',
+            createdDate: '2024-02-10',
+            lastLogin: '2024-11-28',
+        },
+        {
+            id: '5',
+            username: 'A. Priyawan Listanto',
+            email: 'priyawan.listanto@partner.com',
+            role: 'Mitra',
+            accessLevel: 'view',
+            unit: 'PT. GRAHA SEJAHTERA INF',
+            division: 'Installation',
+            regional: 'East Java',
+            createdDate: '2024-02-15',
+            lastLogin: '2024-11-27',
+        },
+        {
+            id: '6',
+            username: 'A. Ridwan',
+            email: 'ridwan@partner.com',
+            role: 'Mitra',
+            accessLevel: 'view',
+            unit: 'PT. SWATAMA MEGANTARA',
+            division: 'Installation',
+            regional: 'West Java',
+            createdDate: '2024-02-20',
+            lastLogin: '2024-11-26',
+        },
+        {
+            id: '7',
+            username: 'Fery Hardianto',
+            email: 'fery.hardianto@telkom.co.id',
+            role: 'Internal TI',
+            accessLevel: 'modify',
+            unit: 'PT. ADIWARNA TELECOM',
+            division: 'Technology',
+            regional: 'Jakarta',
+            createdDate: '2024-03-01',
+            lastLogin: '2024-12-01',
+        },
+        {
+            id: '8',
+            username: 'Jajat D Purnomo',
+            email: 'jajat.purnomo@partner.com',
+            role: 'Mitra',
+            accessLevel: 'view',
+            unit: 'PT. ADIWARNA TELECOM',
+            division: 'Installation',
+            regional: 'West Java',
+            createdDate: '2024-03-05',
+            lastLogin: '2024-11-25',
+        },
+        {
+            id: '9',
+            username: 'M. Ilham S',
+            email: 'm.ilham@partner.com',
+            role: 'Mitra',
+            accessLevel: 'view',
+            unit: 'PT. ADIWARNA TELECOM',
+            division: 'Installation',
+            regional: 'West Java',
+            createdDate: '2024-03-10',
+            lastLogin: '2024-11-24',
+        },
+    ];
+
+    // Sample Report Data for Report RMJ Modal
+    const sampleReportData: RMJReportRow[] = [
+        {
+            no: 1,
+            area: 'TRBR',
+            ktrl: '5422',
+            mitraPelaksana: 'ABC',
+            linkRuas: '5FK4.1 STO LEBAK LAKSONO - TIBL L1.LO.04',
+            volumePhm: 76.983,
+            progresGalianBoringManual: { plan: 73.013, actual: 73.013, sisa: 0, percentage: 100 },
+            penambahanHdpe: { plan: 73.013, actual: 73.013, sisa: 0, percentage: 100 },
+            penambahanTiang: { plan: 0, actual: 0, sisa: 0, percentage: 0 },
+            konstruksiAlurJembatan: { plan: 76.963, actual: 76.963, sisa: 0, percentage: 100 },
+            handhole: { plan: '42', actual: '42', sisa: '0', percentage: 100 },
+            jointingTerminasi: { plan: '31', actual: '31', sisa: '0', percentage: 100 },
+            nocApft: 'DONE',
+            persentaseRealisasiKonstruksi: 100,
+            planTargetTi: 'BAST',
+            nilaiOdm: 'Rp. 10,782',
+            volumeRekon: 25.558,
+            nilaiRekon: 'Rp. 14,897',
+            deviasi: 127,
+        },
+        {
+            no: 2,
+            area: 'TRBR',
+            ktrl: '5422',
+            mitraPelaksana: 'DEF',
+            linkRuas: '5FK4.2 Griya Ciracas - Cilacap - JLMR L2.EB.02',
+            volumePhm: 96.353,
+            progresGalianBoringManual: { plan: 86.086, actual: 86.086, sisa: 0, percentage: 100 },
+            penambahanHdpe: { plan: 86.086, actual: 86.086, sisa: 0, percentage: 100 },
+            penambahanTiang: { plan: 0, actual: 0, sisa: 0, percentage: 0 },
+            konstruksiAlurJembatan: { plan: 86.753, actual: 86.753, sisa: 0, percentage: 100 },
+            handhole: { plan: 'LWC', actual: 'LWC', sisa: '0', percentage: 100 },
+            jointingTerminasi: { plan: '33', actual: '33', sisa: '0', percentage: 100 },
+            nocApft: 'DONE',
+            persentaseRealisasiKonstruksi: 100,
+            planTargetTi: 'BAST',
+            nilaiOdm: 'Rp. 9,479',
+            volumeRekon: 0,
+            nilaiRekon: 'Rp. 8,413',
+            deviasi: -100,
+        },
+        {
+            no: 3,
+            area: 'TRBR',
+            ktrl: '5422',
+            mitraPelaksana: 'GHI',
+            linkRuas: '5FK4.3 Bojonegoro Utara - ODF JGR L3.CO.07',
+            volumePhm: 39.216,
+            progresGalianBoringManual: { plan: 35.085, actual: 35.085, sisa: 0, percentage: 100 },
+            penambahanHdpe: { plan: 35.085, actual: 35.085, sisa: 0, percentage: 100 },
+            penambahanTiang: { plan: 0, actual: 0, sisa: 0, percentage: 0 },
+            konstruksiAlurJembatan: { plan: 39.216, actual: 39.216, sisa: 0, percentage: 100 },
+            handhole: { plan: 'LWC', actual: 'LWC', sisa: '0', percentage: 100 },
+            jointingTerminasi: { plan: '13', actual: '13', sisa: '0', percentage: 100 },
+            nocApft: 'DONE',
+            persentaseRealisasiKonstruksi: 100,
+            planTargetTi: 'BAST',
+            nilaiOdm: 'Rp. 4,127',
+            volumeRekon: 0,
+            nilaiRekon: 'Rp. 3,434',
+            deviasi: -90,
+        },
+    ];
+
+    // Helper functions for Column Settings integration
+    /**
+     * Get all available tables for GlobalColumnSettings
+     */
+    const getAllTables = () => {
+        return [
+            {
+                id: 'project_grid',
+                name: 'Project Grid (Sitelist)',
+                description: 'Main project list with contract details',
+                category: 'Projects',
+                columnCount: 8,
+                location: 'Main Dashboard',
+            },
+            {
+                id: 'boq_grid',
+                name: 'BoQ Grid',
+                description: 'Bill of Quantities with cost breakdown',
+                category: 'Projects',
+                columnCount: 8,
+                location: 'BoQ Modal',
+            },
+            {
+                id: 'lokasi_grid',
+                name: 'Lokasi Grid',
+                description: 'Location details and area information',
+                category: 'Projects',
+                columnCount: 10,
+                location: 'Project Detail',
+            },
+        ];
+    };
+
+    /**
+     * Get columns for specific table
+     */
+    const getColumnsForTable = (tableId: string) => {
+        const api = getGridApiForTable(tableId);
+        if (!api) {
+            console.warn(`RMJModal: No API available for table ${tableId}`);
+            return [];
         }
       }, 50);
     }
@@ -796,177 +1082,254 @@ export function RMJModal(props: RMJModalProps) {
         const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
         const jsonData = XLSX.utils.sheet_to_json(firstSheet) as RMJSitelistRow[];
         
-        setRowData([...rowData(), ...jsonData]);
-        console.log('Imported', jsonData.length, 'rows');
-        alert(`Successfully imported ${jsonData.length} rows`);
-      };
-      reader.readAsArrayBuffer(file);
+        switch (tableId) {
+            case 'project_grid':
+                const projApi = projectGridApi();
+                console.log('RMJModal: Returning project_grid API:', projApi ? 'Available' : 'NULL');
+                return projApi;
+            case 'boq_grid':
+                const boqApi = boqGridApi();
+                console.log('RMJModal: Returning boq_grid API:', boqApi ? 'Available' : 'NULL');
+                return boqApi;
+            case 'lokasi_grid':
+                const lokasiApi = lokasiGridApi();
+                console.log('RMJModal: Returning lokasi_grid API:', lokasiApi ? 'Available' : 'NULL');
+                return lokasiApi;
+            default:
+                console.log('RMJModal: Unknown tableId, returning null');
+                return null;
+        }
     };
-    input.click();
-  };
 
-  // Batch update selected rows
-  const handleBatchUpdate = () => {
-    const api = gridApi();
-    if (!api) return;
+    // Initialize data immediately when component is created
+    const [users, setUsers] = createSignal<RMJUser[]>(sampleUsers);
+    const [rowData, setRowData] = createSignal<RMJSitelistRow[]>(getProjectData());
 
-    const selectedRows = api.getSelectedRows();
-    if (selectedRows.length === 0) {
-      alert('Please select rows to update');
-      return;
-    }
-
-    const field = prompt('Enter field name to update (e.g., milestone1):');
-    if (!field) return;
-
-    const value = prompt(`Enter new value for ${field}:`);
-    if (value === null) return;
-
-    selectedRows.forEach((row: RMJSitelistRow) => {
-      row[field] = value;
+    onMount(() => {
+        console.log('RMJModal mounted');
+        console.log('Initial row data:', rowData().length, 'rows');
     });
 
-    api.applyTransaction({ update: selectedRows });
-    console.log('Batch updated', selectedRows.length, 'rows');
-    alert(`Updated ${selectedRows.length} rows`);
-  };
+    // Watch for isOpen changes
+    createEffect(() => {
+        if (props.isOpen) {
+            console.log('Modal opened, grid ready:', isGridReady());
 
-  // Generate import template
-  const handleGenerateTemplate = () => {
-    const templateData = [{
-      unixId: 'U-01XXXXX-XXX',
-      customerId: 'Customer Name',
-      siteId: 'SITE_ID',
-      siteName: 'Site Name',
-      deliveryRegion: 'Region',
-      areaName: 'Area',
-      installation: 'Installation Company',
-      wiDnUgas: 'WI Number',
-      subcontractor: 'Subcontractor Name',
-      siteOwner: 'Owner Name',
-      installationPd: '2024-01-01',
-      wiWeeklyPlan: 'Done/Pending',
-      mosCnInstallationCompleted: 'Done/Pending',
-      planEndDate: '2024-12-31',
-      actualEndDate: '2024-12-31',
-      owner: 'Owner',
-      milestone1: 'Done/In Progress/Pending',
-      milestone2: 'Done/In Progress/Pending',
-      milestone3: 'Done/In Progress/Pending',
-    }];
+            // Force grid refresh when modal opens and grid is ready
+            if (isGridReady()) {
+                setTimeout(() => {
+                    const api = gridApi();
+                    if (api) {
+                        console.log('Refreshing grid with', rowData().length, 'rows');
+                        api.setGridOption('rowData', rowData());
+                        api.refreshCells();
+                    }
+                }, 100);
+            }
+        }
+    });
 
-    const ws = XLSX.utils.json_to_sheet(templateData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Template');
-    XLSX.writeFile(wb, 'RMJ_Import_Template.xlsx');
-    console.log('Template generated');
-  };
+    // Watch for tab changes and refresh grid
+    createEffect(() => {
+        const tab = activeTab();
+        console.log('Active tab changed to:', tab);
 
-  // Search functionality
-  const handleSearch = () => {
-    const api = gridApi();
-    if (!api) return;
-    api.setGridOption('quickFilterText', searchQuery());
-  };
+        if (tab === 'sitelist' && isGridReady()) {
+            // Refresh grid when switching back to sitelist tab
+            setTimeout(() => {
+                const api = gridApi();
+                if (api) {
+                    console.log('Refreshing grid after tab change...');
+                    api.setGridOption('rowData', rowData());
+                    api.refreshCells();
+                }
+            }, 50);
+        }
+    });
 
-  // Save current view as template
-  const handleSaveTemplate = () => {
-    const api = gridApi();
-    if (!api) return;
+    // Watch for project changes and update grid data
+    createEffect(() => {
+        const project = selectedProject();
+        console.log('Selected project changed to:', project);
 
-    const name = templateName();
-    if (!name) {
-      alert('Please enter template name');
-      return;
-    }
+        const newData = getProjectData();
+        setRowData(newData);
 
-    const allColumns = api.getColumns();
-    const visibleColumns = allColumns?.filter((col: any) => col.isVisible()).map((col: any) => col.getColId()) || [];
-    
-    const newTemplate: RMJViewTemplate = {
-      id: Date.now().toString(),
-      name,
-      description: templateDescription(),
-      lockedColumns: ['unixId'],
-      visibleColumns,
-      createdBy: props.userEmail || 'unknown',
-      createdDate: new Date().toISOString(),
-      isPublic: false,
-      userRole: props.userRole,
+        if (isGridReady()) {
+            setTimeout(() => {
+                const api = gridApi();
+                if (api) {
+                    console.log('Updating grid with new project data...');
+                    api.setGridOption('rowData', newData);
+                    api.refreshCells();
+                }
+            }, 50);
+        }
+    });
+
+    // Grid event handlers
+    // const onGridReady = (params: any) => {
+    //   console.log('=== Grid Ready Event ===');
+    //   console.log('Row data count:', rowData().length);
+    //   console.log('Sample data:', rowData());
+
+    //   setGridApi(params.api);
+    //   setIsGridReady(true);
+
+    //   params.api.setGridOption('rowData', rowData());
+
+    //   console.log('Grid initialized successfully');
+    // };
+
+    // Export to Excel
+    const handleExport = () => {
+        const api = gridApi();
+        if (!api) return;
+
+        const allData = rowData();
+        const ws = XLSX.utils.json_to_sheet(allData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Sitelist');
+        XLSX.writeFile(wb, `RMJ_Sitelist_${new Date().toISOString().split('T')[0]}.xlsx`);
+        console.log('Data exported to Excel');
     };
 
-    setTemplates([...templates(), newTemplate]);
-    setShowTemplateForm(false);
-    setTemplateName('');
-    setTemplateDescription('');
-    alert('Template saved successfully!');
-  };
+    // Import from Excel
+    const handleImport = () => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.xlsx,.xls,.csv';
+        input.onchange = (e: any) => {
+            const file = e.target.files[0];
+            if (!file) return;
 
-  // Apply template
-  const handleApplyTemplate = (templateId: string) => {
-    const template = templates().find(t => t.id === templateId);
-    const api = gridApi();
-    if (!template || !api) return;
+            const reader = new FileReader();
+            reader.onload = (event: any) => {
+                const data = new Uint8Array(event.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet) as RMJSitelistRow[];
 
-    const allColumns = api.getColumns();
-    
-    // Hide all columns first, then show only the ones in template
-    const columnsToHide = allColumns?.filter((col: any) => !template.visibleColumns.includes(col.getColId())).map((col: any) => col.getColId()) || [];
-    const columnsToShow = allColumns?.filter((col: any) => template.visibleColumns.includes(col.getColId())).map((col: any) => col.getColId()) || [];
-    
-    api.setColumnsVisible(columnsToHide, false);
-    api.setColumnsVisible(columnsToShow, true);
+                setRowData([...rowData(), ...jsonData]);
+                console.log('Imported', jsonData.length, 'rows');
+                alert(`Successfully imported ${jsonData.length} rows`);
+            };
+            reader.readAsArrayBuffer(file);
+        };
+        input.click();
+    };
 
-    alert(`Template "${template.name}" applied successfully!`);
-  };
+    // Batch update selected rows
+    const handleBatchUpdate = () => {
+        const api = gridApi();
+        if (!api) return;
 
-  // User column definitions for All Data table
-  const [userColumnDefs] = createSignal<ColDef[]>([
-    { 
-      field: 'username', 
-      headerName: 'Name',
-      checkboxSelection: true,
-      headerCheckboxSelection: true,
-      width: 200,
-      filter: 'agTextColumnFilter',
-      pinned: 'left',
-    },
-    { 
-      field: 'id', 
-      headerName: 'ID', 
-      width: 80,
-      filter: 'agTextColumnFilter',
-    },
-    { 
-      field: 'unit', 
-      headerName: 'Subcontractor', 
-      width: 220,
-      filter: 'agTextColumnFilter',
-    },
-    { 
-      field: 'email', 
-      headerName: 'Subcontractor Name', 
-      width: 240,
-      filter: 'agTextColumnFilter',
-    },
-    { 
-      field: 'action', 
-      headerName: 'Action', 
-      width: 100,
-      pinned: 'right',
-      sortable: false,
-      filter: false,
-      cellRenderer: (params: any) => {
-        const button = document.createElement('button');
-        button.className = 'add-to-select-btn';
-        button.setAttribute('data-user-id', params.data.id);
-        button.innerHTML = `
+        const selectedRows = api.getSelectedRows();
+        if (selectedRows.length === 0) {
+            alert('Please select rows to update');
+            return;
+        }
+
+        const field = prompt('Enter field name to update (e.g., milestone1):');
+        if (!field) return;
+
+        const value = prompt(`Enter new value for ${field}:`);
+        if (value === null) return;
+
+        selectedRows.forEach((row: RMJSitelistRow) => {
+            row[field] = value;
+        });
+
+        api.applyTransaction({ update: selectedRows });
+        console.log('Batch updated', selectedRows.length, 'rows');
+        alert(`Updated ${selectedRows.length} rows`);
+    };
+
+    // Generate import template
+    const handleGenerateTemplate = () => {
+        const templateData = [{
+            unixId: 'U-01XXXXX-XXX',
+            customerId: 'Customer Name',
+            siteId: 'SITE_ID',
+            siteName: 'Site Name',
+            deliveryRegion: 'Region',
+            areaName: 'Area',
+            installation: 'Installation Company',
+            wiDnUgas: 'WI Number',
+            subcontractor: 'Subcontractor Name',
+            siteOwner: 'Owner Name',
+            installationPd: '2024-01-01',
+            wiWeeklyPlan: 'Done/Pending',
+            mosCnInstallationCompleted: 'Done/Pending',
+            planEndDate: '2024-12-31',
+            actualEndDate: '2024-12-31',
+            owner: 'Owner',
+            milestone1: 'Done/In Progress/Pending',
+            milestone2: 'Done/In Progress/Pending',
+            milestone3: 'Done/In Progress/Pending',
+        }];
+
+        const ws = XLSX.utils.json_to_sheet(templateData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Template');
+        XLSX.writeFile(wb, 'RMJ_Import_Template.xlsx');
+        console.log('Template generated');
+    };
+
+    // Search functionality
+    const handleSearch = () => {
+        const api = gridApi();
+        if (!api) return;
+        api.setGridOption('quickFilterText', searchQuery());
+    };
+
+    // User column definitions for All Data table
+    const [userColumnDefs] = createSignal<ColDef[]>([
+        {
+            field: 'username',
+            headerName: 'Name',
+            checkboxSelection: true,
+            headerCheckboxSelection: true,
+            width: 200,
+            filter: 'agTextColumnFilter',
+            pinned: 'left',
+        },
+        {
+            field: 'id',
+            headerName: 'ID',
+            width: 80,
+            filter: 'agTextColumnFilter',
+        },
+        {
+            field: 'unit',
+            headerName: 'Subcontractor',
+            width: 220,
+            filter: 'agTextColumnFilter',
+        },
+        {
+            field: 'email',
+            headerName: 'Subcontractor Name',
+            width: 240,
+            filter: 'agTextColumnFilter',
+        },
+        {
+            field: 'action',
+            headerName: 'Action',
+            width: 100,
+            pinned: 'right',
+            sortable: false,
+            filter: false,
+            cellRenderer: (params: any) => {
+                const button = document.createElement('button');
+                button.className = 'add-to-select-btn';
+                button.setAttribute('data-user-id', params.data.id);
+                button.innerHTML = `
           <svg style="width: 12px; height: 12px;" fill="currentColor" viewBox="0 0 20 20">
             <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
           </svg>
           <span>Add</span>
         `;
-        button.style.cssText = `
+                button.style.cssText = `
           padding: 4px 12px;
           background: linear-gradient(135deg, #10b981 0%, #059669 100%);
           color: white;
@@ -981,75 +1344,75 @@ export function RMJModal(props: RMJModalProps) {
           align-items: center;
           gap: 4px;
         `;
-        
-        button.addEventListener('mouseenter', () => {
-          button.style.transform = 'translateY(-1px)';
-          button.style.boxShadow = '0 4px 8px rgba(16, 185, 129, 0.4)';
-        });
-        
-        button.addEventListener('mouseleave', () => {
-          button.style.transform = 'translateY(0)';
-          button.style.boxShadow = '0 2px 4px rgba(16, 185, 129, 0.3)';
-        });
-        
-        button.addEventListener('click', () => {
-          const userId = params.data.id;
-          const user = users().find(u => u.id === userId);
-          if (user && !selectedUsers().find(u => u.id === userId)) {
-            setSelectedUsers([...selectedUsers(), user]);
-          }
-        });
-        
-        return button;
-      }
-    },
-  ]);
 
-  // User column definitions for Selected Data table
-  const [selectedUserColumnDefs] = createSignal<ColDef[]>([
-    { 
-      field: 'username', 
-      headerName: 'Name', 
-      width: 200,
-      filter: 'agTextColumnFilter',
-      pinned: 'left',
-    },
-    { 
-      field: 'id', 
-      headerName: 'ID', 
-      width: 80,
-      filter: 'agTextColumnFilter',
-    },
-    { 
-      field: 'unit', 
-      headerName: 'Subcontractor', 
-      width: 220,
-      filter: 'agTextColumnFilter',
-    },
-    { 
-      field: 'email', 
-      headerName: 'Subcontractor Name', 
-      width: 240,
-      filter: 'agTextColumnFilter',
-    },
-    { 
-      field: 'action', 
-      headerName: 'Action', 
-      width: 120,
-      pinned: 'right',
-      sortable: false,
-      filter: false,
-      cellRenderer: (params: any) => {
-        const button = document.createElement('button');
-        button.className = 'remove-from-select-btn';
-        button.setAttribute('data-user-id', params.data.id);
-        button.innerHTML = `
+                button.addEventListener('mouseenter', () => {
+                    button.style.transform = 'translateY(-1px)';
+                    button.style.boxShadow = '0 4px 8px rgba(16, 185, 129, 0.4)';
+                });
+
+                button.addEventListener('mouseleave', () => {
+                    button.style.transform = 'translateY(0)';
+                    button.style.boxShadow = '0 2px 4px rgba(16, 185, 129, 0.3)';
+                });
+
+                button.addEventListener('click', () => {
+                    const userId = params.data.id;
+                    const user = users().find(u => u.id === userId);
+                    if (user && !selectedUsers().find(u => u.id === userId)) {
+                        setSelectedUsers([...selectedUsers(), user]);
+                    }
+                });
+
+                return button;
+            }
+        },
+    ]);
+
+    // User column definitions for Selected Data table
+    const [selectedUserColumnDefs] = createSignal<ColDef[]>([
+        {
+            field: 'username',
+            headerName: 'Name',
+            width: 200,
+            filter: 'agTextColumnFilter',
+            pinned: 'left',
+        },
+        {
+            field: 'id',
+            headerName: 'ID',
+            width: 80,
+            filter: 'agTextColumnFilter',
+        },
+        {
+            field: 'unit',
+            headerName: 'Subcontractor',
+            width: 220,
+            filter: 'agTextColumnFilter',
+        },
+        {
+            field: 'email',
+            headerName: 'Subcontractor Name',
+            width: 240,
+            filter: 'agTextColumnFilter',
+        },
+        {
+            field: 'action',
+            headerName: 'Action',
+            width: 120,
+            pinned: 'right',
+            sortable: false,
+            filter: false,
+            cellRenderer: (params: any) => {
+                const button = document.createElement('button');
+                button.className = 'remove-from-select-btn';
+                button.setAttribute('data-user-id', params.data.id);
+                button.innerHTML = `
           <svg style="width: 12px; height: 12px;" fill="currentColor" viewBox="0 0 20 20">
             <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
           </svg>
           <span>Remove</span>
         `;
-        button.style.cssText = `
+                button.style.cssText = `
           padding: 4px 12px;
           background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
           color: white;
@@ -1064,926 +1427,686 @@ export function RMJModal(props: RMJModalProps) {
           align-items: center;
           gap: 4px;
         `;
-        
-        button.addEventListener('mouseenter', () => {
-          button.style.transform = 'translateY(-1px)';
-          button.style.boxShadow = '0 4px 8px rgba(239, 68, 68, 0.4)';
-        });
-        
-        button.addEventListener('mouseleave', () => {
-          button.style.transform = 'translateY(0)';
-          button.style.boxShadow = '0 2px 4px rgba(239, 68, 68, 0.3)';
-        });
-        
-        button.addEventListener('click', () => {
-          const userId = params.data.id;
-          setSelectedUsers(selectedUsers().filter(u => u.id !== userId));
-        });
-        
-        return button;
-      }
-    },
-  ]);
 
-  const userGridOptions: GridOptions = {
-    defaultColDef: {
-      sortable: true,
-      filter: true,
-      resizable: true,
-      floatingFilter: false,
-    },
-    rowSelection: 'multiple',
-    pagination: true,
-    paginationPageSize: 15,
-    paginationPageSizeSelector: [15, 50, 100],
-    enableCellTextSelection: true,
-    suppressRowClickSelection: true,
-  };
+                button.addEventListener('mouseenter', () => {
+                    button.style.transform = 'translateY(-1px)';
+                    button.style.boxShadow = '0 4px 8px rgba(239, 68, 68, 0.4)';
+                });
 
-  // Separate grid APIs
-  const [selectedUserGridApi, setSelectedUserGridApi] = createSignal<GridApi | null>(null);
+                button.addEventListener('mouseleave', () => {
+                    button.style.transform = 'translateY(0)';
+                    button.style.boxShadow = '0 2px 4px rgba(239, 68, 68, 0.3)';
+                });
 
-  // User grid event handlers
-  const onUserGridReady = (params: any) => {
-    console.log('User Grid Ready');
-    setUserGridApi(params.api);
-    params.api.setGridOption('rowData', users());
-  };
+                button.addEventListener('click', () => {
+                    const userId = params.data.id;
+                    setSelectedUsers(selectedUsers().filter(u => u.id !== userId));
+                });
 
-  const onSelectedUserGridReady = (params: any) => {
-    console.log('Selected User Grid Ready');
-    setSelectedUserGridApi(params.api);
-    params.api.setGridOption('rowData', selectedUsers());
-  };
+                return button;
+            }
+        },
+    ]);
 
-  // Watch for selected users changes and update grid
-  createEffect(() => {
-    const selected = selectedUsers();
-    const api = selectedUserGridApi();
-    if (api) {
-      api.setGridOption('rowData', selected);
-    }
-  });
+    const userGridOptions: GridOptions = {
+        defaultColDef: {
+            sortable: true,
+            filter: true,
+            resizable: true,
+            floatingFilter: false,
+        },
+        rowSelection: 'multiple',
+        pagination: true,
+        paginationPageSize: 15,
+        paginationPageSizeSelector: [15, 50, 100],
+        enableCellTextSelection: true,
+        suppressRowClickSelection: true,
+    };
 
-  // Apply filters
-  const applyUserFilters = () => {
-    const api = userGridApi();
-    if (!api) return;
+    // Separate grid APIs
+    const [selectedUserGridApi, setSelectedUserGridApi] = createSignal<GridApi | null>(null);
 
-    api.setFilterModel({
-      username: userNameFilter() ? {
-        filterType: 'text',
-        type: 'contains',
-        filter: userNameFilter()
-      } : null,
-      role: userRoleFilter() ? {
-        filterType: 'set',
-        values: [userRoleFilter()]
-      } : null,
-      unit: userUnitFilter() ? {
-        filterType: 'text',
-        type: 'contains',
-        filter: userUnitFilter()
-      } : null,
+    // User grid event handlers
+    const onUserGridReady = (params: any) => {
+        console.log('User Grid Ready');
+        setUserGridApi(params.api);
+        params.api.setGridOption('rowData', users());
+    };
+
+    const onSelectedUserGridReady = (params: any) => {
+        console.log('Selected User Grid Ready');
+        setSelectedUserGridApi(params.api);
+        params.api.setGridOption('rowData', selectedUsers());
+    };
+
+    // Watch for selected users changes and update grid
+    createEffect(() => {
+        const selected = selectedUsers();
+        const api = selectedUserGridApi();
+        if (api) {
+            api.setGridOption('rowData', selected);
+        }
     });
-  };
 
-  // Reset filters
-  const resetUserFilters = () => {
-    setUserNameFilter('');
-    setUserRoleFilter('');
-    setUserUnitFilter('');
-    const api = userGridApi();
-    if (api) {
-      api.setFilterModel(null);
-    }
-  };
+    // Apply filters
+    const applyUserFilters = () => {
+        const api = userGridApi();
+        if (!api) return;
 
+        api.setFilterModel({
+            username: userNameFilter() ? {
+                filterType: 'text',
+                type: 'contains',
+                filter: userNameFilter()
+            } : null,
+            role: userRoleFilter() ? {
+                filterType: 'set',
+                values: [userRoleFilter()]
+            } : null,
+            unit: userUnitFilter() ? {
+                filterType: 'text',
+                type: 'contains',
+                filter: userUnitFilter()
+            } : null,
+        });
+    };
 
-
-  // User Management Functions
-  const handleAddUser = () => {
-    setEditingUser(null);
-    setShowUserForm(true);
-  };
-
-  const handleSaveUser = (userData: Partial<RMJUser>) => {
-    if (editingUser()) {
-      // Update existing user
-      setUsers(users().map(u => u.id === editingUser()!.id ? { ...u, ...userData } : u));
-      alert('User updated successfully!');
-    } else {
-      // Add new user
-      const newUser: RMJUser = {
-        id: Date.now().toString(),
-        username: userData.username || '',
-        email: userData.email || '',
-        role: userData.role || 'Mitra',
-        accessLevel: userData.accessLevel || 'view',
-        unit: userData.unit,
-        division: userData.division,
-        regional: userData.regional,
-        createdDate: new Date().toISOString(),
-      };
-      setUsers([...users(), newUser]);
-      alert('User created successfully!');
-    }
-    setShowUserForm(false);
-    setEditingUser(null);
-  };
+    // Reset filters
+    const resetUserFilters = () => {
+        setUserNameFilter('');
+        setUserRoleFilter('');
+        setUserUnitFilter('');
+        const api = userGridApi();
+        if (api) {
+            api.setFilterModel(null);
+        }
+    };
 
 
 
-  return (
-    <Show when={props.isOpen}>
-    <div 
-      class="fixed inset-0 bg-black/50 z-[2000] flex items-center justify-center p-4"
-      onClick={props.onClose}
-    >
-      <div 
-        class="bg-white rounded-2xl shadow-2xl w-[95vw] h-[95vh] flex flex-col"
-        onClick={(e) => e.stopPropagation()}
-        style={{"font-family": "'Poppins', sans-serif"}}
-      >
-        {/* Header */}
-        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <div>
-            <h2 class="text-2xl font-bold text-gray-800 m-0">RMJ Tools - Project Delivery Management</h2>
-            <p class="text-sm text-gray-500 m-0 mt-1">Integrated Work Management System</p>
-          </div>
-          <button
-            class="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
-            onClick={props.onClose}
-          >
-            <span class="text-xl text-gray-600">×</span>
-          </button>
-        </div>
+    // User Management Functions
+    const handleAddUser = () => {
+        setEditingUser(null);
+        setShowUserForm(true);
+    };
 
-        {/* Tabs */}
-        <div class="flex gap-2 px-6 py-3 border-b border-gray-200 bg-gray-50">
-          <button
-            class={`px-4 py-2 rounded-lg font-medium transition-all ${
-              activeTab() === 'sitelist'
-                ? 'bg-blue-500 text-white shadow-md'
-                : 'bg-white text-gray-600 hover:bg-gray-100'
-            }`}
-            onClick={() => setActiveTab('sitelist')}
-          >
-            📊 Sitelist Project
-          </button>
-          <button
-            class={`px-4 py-2 rounded-lg font-medium transition-all ${
-              activeTab() === 'settings'
-                ? 'bg-blue-500 text-white shadow-md'
-                : 'bg-white text-gray-600 hover:bg-gray-100'
-            }`}
-            onClick={() => setActiveTab('settings')}
-          >
-            ⚙️ Template Settings
-          </button>
-          <button
-            class={`px-4 py-2 rounded-lg font-medium transition-all ${
-              activeTab() === 'users'
-                ? 'bg-blue-500 text-white shadow-md'
-                : 'bg-white text-gray-600 hover:bg-gray-100'
-            }`}
-            onClick={() => setActiveTab('users')}
-          >
-            👥 User Management
-          </button>
-        </div>
+    const handleSaveUser = (userData: Partial<RMJUser>) => {
+        if (editingUser()) {
+            // Update existing user
+            setUsers(users().map(u => u.id === editingUser()!.id ? { ...u, ...userData } : u));
+            alert('User updated successfully!');
+        } else {
+            // Add new user
+            const newUser: RMJUser = {
+                id: Date.now().toString(),
+                username: userData.username || '',
+                email: userData.email || '',
+                role: userData.role || 'Mitra',
+                accessLevel: userData.accessLevel || 'view',
+                unit: userData.unit,
+                division: userData.division,
+                regional: userData.regional,
+                createdDate: new Date().toISOString(),
+            };
+            setUsers([...users(), newUser]);
+            alert('User created successfully!');
+        }
+        setShowUserForm(false);
+        setEditingUser(null);
+    };
 
-        {/* Content */}
-        <div class="flex-1 overflow-hidden">
-          <Show when={activeTab() === 'sitelist'}>
-            <div class="h-full flex flex-col">
-              {/* Project Selector */}
-              <div class="px-6 py-3 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
-                <div class="flex items-center gap-4">
-                  <label class="text-sm font-semibold text-gray-700">Project:</label>
-                  <select
-                    value={selectedProject()}
-                    onChange={(e) => setSelectedProject(e.currentTarget.value)}
-                    class="flex-1 max-w-md px-4 py-2 border-2 border-blue-300 rounded-lg focus:outline-none focus:border-blue-500 bg-white font-medium text-gray-800 shadow-sm hover:border-blue-400 transition-colors"
-                  >
-                    <For each={projects}>
-                      {(project) => (
-                        <option value={project.id}>
-                          {project.year} - {project.program} - {project.description}
-                        </option>
-                      )}
-                    </For>
-                  </select>
-                  <div class="flex items-center gap-2 px-4 py-2 bg-white rounded-lg border border-gray-200 shadow-sm">
-                    <span class="text-xs font-medium text-gray-500">Total Sites:</span>
-                    <span class="text-sm font-bold text-blue-600">{rowData().length}</span>
-                  </div>
-                </div>
-              </div>
 
-              {/* Toolbar */}
-              <div class="px-6 py-3 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100">
-                <div class="flex items-center gap-3 flex-wrap">
-                  {/* Search */}
-                  <div class="flex-1 min-w-[200px] relative">
-                    <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                    <input
-                      type="text"
-                      placeholder="Search Unix ID, Site Name, Region..."
-                      value={searchQuery()}
-                      onInput={(e) => {
-                        setSearchQuery(e.currentTarget.value);
-                        handleSearch();
-                      }}
-                      class="w-full pl-10 pr-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 text-sm shadow-sm hover:border-gray-400 transition-colors text-gray-900 placeholder-gray-400"
-                      style="color: #111827;"
-                    />
-                  </div>
-                  
-                  {/* Action Buttons */}
-                  <div class="flex items-center gap-2">
-                    <button
-                      class="group relative p-2 rounded-lg bg-white border-2 border-blue-200 hover:bg-blue-50 hover:border-blue-400 transition-all shadow-sm"
-                      onClick={handleImport}
-                      title="Import"
-                    >
-                      <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                      </svg>
-                      <span class="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
-                        Import Excel/CSV
-                      </span>
-                    </button>
 
-                    <button
-                      class="group relative p-2 rounded-lg bg-white border-2 border-green-200 hover:bg-green-50 hover:border-green-400 transition-all shadow-sm"
-                      onClick={handleExport}
-                      title="Export"
-                    >
-                      <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
-                      </svg>
-                      <span class="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
-                        Export to Excel
-                      </span>
-                    </button>
-
-                    <button
-                      class="group relative p-2 rounded-lg bg-white border-2 border-purple-200 hover:bg-purple-50 hover:border-purple-400 transition-all shadow-sm"
-                      onClick={handleGenerateTemplate}
-                      title="Template"
-                    >
-                      <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      <span class="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
-                        Download Template
-                      </span>
-                    </button>
-
-                    <button
-                      class="group relative p-2 rounded-lg bg-white border-2 border-orange-200 hover:bg-orange-50 hover:border-orange-400 transition-all shadow-sm"
-                      onClick={handleBatchUpdate}
-                      title="Batch Update"
-                    >
-                      <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
-                      <span class="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
-                        Batch Update
-                      </span>
-                    </button>
-
-                    <div class="w-px h-6 bg-gray-300"></div>
-
-                    <button
-                      class="group relative p-2 rounded-lg bg-white border-2 border-gray-300 hover:bg-gray-50 hover:border-gray-400 transition-all shadow-sm"
-                      onClick={() => {
-                        const api = gridApi();
-                        if (api) {
-                          api.openToolPanel('filters');
-                        }
-                      }}
-                      title="Filter"
-                    >
-                      <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                      </svg>
-                      <span class="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
-                        Open Filters
-                      </span>
-                    </button>
-
-                    <button
-                      class="group relative p-2 rounded-lg bg-white border-2 border-gray-300 hover:bg-gray-50 hover:border-gray-400 transition-all shadow-sm"
-                      onClick={() => {
-                        const api = gridApi();
-                        if (api) {
-                          api.openToolPanel('columns');
-                        }
-                      }}
-                      title="Columns"
-                    >
-                      <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
-                      </svg>
-                      <span class="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
-                        Manage Columns
-                      </span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Project grid with hierarchical detail */}
-              <div class="flex-1 px-6 py-4">
-                <ProjectGrid />
-              </div>
-            </div>
-          </Show>
-
-          <Show when={activeTab() === 'settings'}>
-            <div class="h-full flex flex-col">
-              {/* Header */}
-              <div class="px-6 py-4 border-b border-gray-200">
-                <div class="flex items-center justify-between">
-                  <div>
-                    <h3 class="text-xl font-bold text-gray-800">View Template Settings</h3>
-                    <p class="text-sm text-gray-600 mt-1">Save and manage custom column views for different use cases</p>
-                  </div>
-                  <button
-                    class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium"
-                    onClick={() => setShowTemplateForm(true)}
-                  >
-                    + Create Template
-                  </button>
-                </div>
-              </div>
-
-              {/* Template List */}
-              <div class="flex-1 overflow-auto p-6">
-                <div class="space-y-4">
-                  <For each={templates()}>
-                    {(template) => (
-                      <div class="border-2 border-gray-200 rounded-xl overflow-hidden hover:border-blue-300 transition-all bg-white shadow-sm">
-                        {/* Template Header */}
-                        <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4">
-                          <div class="flex items-start justify-between mb-3">
-                            <div class="flex-1">
-                              <div class="flex items-center gap-3">
-                                <h4 class="text-lg font-bold text-gray-800">{template.name}</h4>
-                                <Show when={template.isPublic}>
-                                  <span class="px-3 py-1 bg-green-500 text-white text-xs rounded-full font-semibold shadow-sm">
-                                    🌐 Public
-                                  </span>
-                                </Show>
-                              </div>
-                              <p class="text-sm text-gray-600 mt-1">{template.description}</p>
-                            </div>
-                          </div>
-                          
-                          <div class="flex items-center gap-6 mb-3">
-                            <div class="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg shadow-sm">
-                              <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
-                              </svg>
-                              <span class="text-xs font-semibold text-gray-700">{template.visibleColumns.length} Columns</span>
-                            </div>
-                            <div class="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg shadow-sm">
-                              <svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                              </svg>
-                              <span class="text-xs font-semibold text-gray-700">{template.userRole || 'All Roles'}</span>
-                            </div>
-                            <div class="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg shadow-sm">
-                              <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                              </svg>
-                              <span class="text-xs font-semibold text-gray-700">{new Date(template.createdDate).toLocaleDateString()}</span>
-                            </div>
-                          </div>
-
-                          <div class="flex gap-2">
-                            <button
-                              class="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg text-sm font-semibold hover:from-blue-600 hover:to-blue-700 transition-all shadow-md hover:shadow-lg"
-                              onClick={() => handleApplyTemplate(template.id)}
-                            >
-                              ✓ Apply Template
-                            </button>
-                            <button
-                              class="px-4 py-2 bg-white border-2 border-blue-300 text-blue-600 rounded-lg text-sm font-semibold hover:bg-blue-50 transition-all"
-                              onClick={() => setExpandedTemplate(expandedTemplate() === template.id ? null : template.id)}
-                            >
-                              {expandedTemplate() === template.id ? '▲ Hide Columns' : '▼ View Columns'}
-                            </button>
-                            <button
-                              class="px-4 py-2 bg-white border-2 border-red-300 text-red-600 rounded-lg text-sm font-semibold hover:bg-red-50 transition-all"
-                              onClick={() => {
-                                if (confirm('Delete this template?')) {
-                                  setTemplates(templates().filter(t => t.id !== template.id));
-                                }
-                              }}
-                            >
-                              🗑️ Delete
-                            </button>
-                          </div>
+    return (
+        <>
+            <Show when={props.isOpen}>
+                <div
+                    class="fixed inset-0 bg-black/50 z-[2000] flex items-center justify-center p-4"
+                    onClick={props.onClose}
+                >
+                <div
+                    class="bg-white rounded-2xl shadow-2xl w-[95vw] h-[95vh] flex flex-col"
+                    onClick={(e) => e.stopPropagation()}
+                    style={{ "font-family": "'Poppins', sans-serif" }}
+                >
+                    {/* Header */}
+                    <div class="flex items-center px-6 py-3 border-b border-gray-200 flex-shrink-0">
+                        <div class="flex-shrink-0">
+                            <h2 class="text-xl font-bold text-gray-800 m-0">RMJ Tools - Project Delivery Management</h2>
+                            <p class="text-xs text-gray-500 m-0 mt-0.5">Integrated Work Management System</p>
                         </div>
 
-                        {/* Expandable Column Table */}
-                        <Show when={expandedTemplate() === template.id}>
-                          <div class="p-4 bg-gray-50 border-t-2 border-gray-200">
-                            <div class="mb-3 flex items-center justify-between">
-                              <h5 class="text-sm font-bold text-gray-700 flex items-center gap-2">
-                                <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        {/* Tabs and Actions */}
+                        <div class="flex-1 flex items-center justify-center gap-2">
+                            <button
+                                class={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${activeTab() === 'sitelist'
+                                    ? 'bg-blue-500 text-white shadow-md'
+                                    : 'bg-white text-gray-600 hover:bg-gray-100'
+                                    }`}
+                                onClick={() => setActiveTab('sitelist')}
+                            >
+                                📊 Sitelist Project
+                            </button>
+                            <button
+                                class={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${activeTab() === 'users'
+                                    ? 'bg-blue-500 text-white shadow-md'
+                                    : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+                                    }`}
+                                onClick={() => setActiveTab('users')}
+                            >
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                                 </svg>
-                                Column Configuration
-                              </h5>
-                              <div class="flex items-center gap-2">
-                                <span class="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">
-                                  {template.lockedColumns.length} Locked
-                                </span>
-                                <span class="px-3 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full">
-                                  {template.visibleColumns.length} Visible
-                                </span>
-                              </div>
-                            </div>
-                            
-                            <div class="bg-white rounded-lg border-2 border-gray-200 overflow-hidden shadow-sm">
-                              <div class="overflow-x-auto max-h-96">
-                                <table class="w-full">
-                                  <thead class="bg-gradient-to-r from-gray-700 to-gray-800 text-white sticky top-0">
-                                    <tr>
-                                      <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">
-                                        #
-                                      </th>
-                                      <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">
-                                        Column Name
-                                      </th>
-                                      <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">
-                                        Field ID
-                                      </th>
-                                      <th class="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider">
-                                        Status
-                                      </th>
-                                      <th class="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider">
-                                        Lock Status
-                                      </th>
-                                    </tr>
-                                  </thead>
-                                  <tbody class="divide-y divide-gray-200">
-                                    <For each={template.visibleColumns}>
-                                      {(colId, index) => {
-                                        const colDef = columnDefs().find(c => c.field === colId);
-                                        const isLocked = template.lockedColumns.includes(colId);
-                                        return (
-                                          <tr class="hover:bg-blue-50 transition-colors">
-                                            <td class="px-4 py-3 text-sm font-bold text-gray-500">
-                                              {index() + 1}
-                                            </td>
-                                            <td class="px-4 py-3 text-sm font-semibold text-gray-800">
-                                              {colDef?.headerName || colId}
-                                            </td>
-                                            <td class="px-4 py-3 text-sm text-gray-600 font-mono bg-gray-50">
-                                              {colId}
-                                            </td>
-                                            <td class="px-4 py-3 text-center">
-                                              <span class="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full">
-                                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                                                </svg>
-                                                Visible
-                                              </span>
-                                            </td>
-                                            <td class="px-4 py-3 text-center">
-                                              <Show when={isLocked} fallback={
-                                                <span class="inline-flex items-center gap-1 px-3 py-1 bg-gray-100 text-gray-600 text-xs font-bold rounded-full">
-                                                  <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
-                                                  </svg>
-                                                  Unlocked
-                                                </span>
-                                              }>
-                                                <span class="inline-flex items-center gap-1 px-3 py-1 bg-orange-100 text-orange-700 text-xs font-bold rounded-full">
-                                                  <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
-                                                  </svg>
-                                                  Locked
-                                                </span>
-                                              </Show>
-                                            </td>
-                                          </tr>
-                                        );
-                                      }}
-                                    </For>
-                                  </tbody>
-                                </table>
-                              </div>
+                                User Management
+                            </button>
+
+                            {/* Action Buttons - Conditional */}
+                            <Show when={activeTab() === 'sitelist'}>
+                                <div class="h-6 w-px bg-gray-300 mx-2"></div>
+                                <button
+                                    class="px-4 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors font-medium text-sm shadow-sm flex items-center gap-2"
+                                    onClick={() => setShowColumnSettings(true)}
+                                >
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                                    </svg>
+                                    Column Settings
+                                </button>
+                                <button
+                                    class="px-4 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors font-medium text-sm shadow-sm flex items-center gap-2"
+                                    onClick={() => setShowReportRMJ(true)}
+                                >
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    Report RMJ
+                                </button>
+                            </Show>
+                        </div>
+
+                        <button
+                            class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors flex-shrink-0 ml-4"
+                            onClick={props.onClose}
+                        >
+                            <span class="text-lg text-gray-600">×</span>
+                        </button>
+                    </div>
+
+                    {/* Content */}
+                    <div class="flex-1 overflow-hidden">
+                        <div class="h-full flex flex-col">
+                            {/* Toolbar */}
+                            <div class="px-6 py-3 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100">
+                                <div class="flex items-center gap-3 flex-wrap">
+                                    {/* Search */}
+                                    <div class="flex-1 min-w-[200px] relative">
+                                        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                        </svg>
+                                        <input
+                                            type="text"
+                                            placeholder="Search Unix ID, Site Name, Region..."
+                                            value={searchQuery()}
+                                            onInput={(e) => {
+                                                setSearchQuery(e.currentTarget.value);
+                                                handleSearch();
+                                            }}
+                                            class="w-full pl-10 pr-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 text-sm shadow-sm hover:border-gray-400 transition-colors text-gray-900 placeholder-gray-400"
+                                            style="color: #111827;"
+                                        />
+                                    </div>
+
+                                    {/* Action Buttons */}
+                                    <div class="flex items-center gap-2">
+                                        <button
+                                            class="group relative p-2 rounded-lg bg-white border-2 border-blue-200 hover:bg-blue-50 hover:border-blue-400 transition-all shadow-sm"
+                                            onClick={handleImport}
+                                            title="Import"
+                                        >
+                                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                            </svg>
+                                            <span class="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
+                                                Import Excel/CSV
+                                            </span>
+                                        </button>
+
+                                        <button
+                                            class="group relative p-2 rounded-lg bg-white border-2 border-green-200 hover:bg-green-50 hover:border-green-400 transition-all shadow-sm"
+                                            onClick={handleExport}
+                                            title="Export"
+                                        >
+                                            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                                            </svg>
+                                            <span class="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
+                                                Export to Excel
+                                            </span>
+                                        </button>
+
+                                        <button
+                                            class="group relative p-2 rounded-lg bg-white border-2 border-purple-200 hover:bg-purple-50 hover:border-purple-400 transition-all shadow-sm"
+                                            onClick={handleGenerateTemplate}
+                                            title="Template"
+                                        >
+                                            <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                            </svg>
+                                            <span class="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
+                                                Download Template
+                                            </span>
+                                        </button>
+
+                                        <button
+                                            class="group relative p-2 rounded-lg bg-white border-2 border-orange-200 hover:bg-orange-50 hover:border-orange-400 transition-all shadow-sm"
+                                            onClick={handleBatchUpdate}
+                                            title="Batch Update"
+                                        >
+                                            <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                            </svg>
+                                            <span class="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
+                                                Batch Update
+                                            </span>
+                                        </button>
+
+                                        <div class="w-px h-6 bg-gray-300"></div>
+
+                                        <button
+                                            class="group relative p-2 rounded-lg bg-white border-2 border-gray-300 hover:bg-gray-50 hover:border-gray-400 transition-all shadow-sm"
+                                            onClick={() => {
+                                                const api = gridApi();
+                                                if (api) {
+                                                    api.openToolPanel('filters');
+                                                }
+                                            }}
+                                            title="Filter"
+                                        >
+                                            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                                            </svg>
+                                            <span class="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
+                                                Open Filters
+                                            </span>
+                                        </button>
+
+                                        <button
+                                            class="group relative p-2 rounded-lg bg-white border-2 border-gray-300 hover:bg-gray-50 hover:border-gray-400 transition-all shadow-sm"
+                                            onClick={() => {
+                                                const api = gridApi();
+                                                if (api) {
+                                                    api.openToolPanel('columns');
+                                                }
+                                            }}
+                                            title="Columns"
+                                        >
+                                            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+                                            </svg>
+                                            <span class="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
+                                                Manage Columns
+                                            </span>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
 
-                            {/* Summary Stats */}
-                            <div class="mt-4 grid grid-cols-3 gap-3">
-                              <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-3 text-white shadow-md">
-                                <div class="text-xs font-semibold opacity-90">Total Columns</div>
-                                <div class="text-2xl font-bold mt-1">{template.visibleColumns.length}</div>
-                              </div>
-                              <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg p-3 text-white shadow-md">
-                                <div class="text-xs font-semibold opacity-90">Locked Columns</div>
-                                <div class="text-2xl font-bold mt-1">{template.lockedColumns.length}</div>
-                              </div>
-                              <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-3 text-white shadow-md">
-                                <div class="text-xs font-semibold opacity-90">Editable Columns</div>
-                                <div class="text-2xl font-bold mt-1">{template.visibleColumns.length - template.lockedColumns.length}</div>
-                              </div>
+                            {/* Project grid with hierarchical detail */}
+                            <div class="flex-1 px-6 py-4 overflow-auto">
+                                <ProjectGrid 
+                                    onProjectGridReady={(api) => {
+                                        console.log('RMJModal: Received Project GridAPI');
+                                        setProjectGridApi(api);
+                                    }}
+                                    onBoqGridReady={(api) => {
+                                        console.log('RMJModal: Received BoQ GridAPI');
+                                        setBoqGridApi(api);
+                                    }}
+                                    onLokasiGridReady={(api) => {
+                                        console.log('RMJModal: Received Lokasi GridAPI');
+                                        setLokasiGridApi(api);
+                                    }}
+                                />
                             </div>
-                          </div>
+                        </div>
+
+                        <Show when={activeTab() === 'users'}>
+                            <div class="h-full flex flex-col bg-gray-50">
+                                {/* Header */}
+                                <div class="px-6 py-4 bg-white border-b border-gray-200">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <h3 class="text-xl font-bold text-gray-800">Personal and Group</h3>
+                                            <p class="text-sm text-gray-600 mt-1">Manage users, roles, and access levels</p>
+                                        </div>
+                                        <Show when={props.userRole === 'Admin'}>
+                                            <button
+                                                class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium"
+                                                onClick={handleAddUser}
+                                            >
+                                                + Add User
+                                            </button>
+                                        </Show>
+                                    </div>
+                                </div>
+
+                                {/* Tab Navigation */}
+                                <div class="px-6 py-3 bg-white border-b border-gray-200">
+                                    <div class="flex items-center gap-1">
+                                        <button
+                                            class={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${userDataTab() === 'all'
+                                                ? 'bg-blue-500 text-white'
+                                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                                }`}
+                                            onClick={() => setUserDataTab('all')}
+                                        >
+                                            Personal and Group
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Filter Section */}
+                                <div class="px-6 py-4 bg-white border-b border-gray-200">
+                                    <div class="flex items-center gap-3 flex-wrap">
+                                        <input
+                                            type="text"
+                                            placeholder="Name/Employee No."
+                                            value={userNameFilter()}
+                                            onInput={(e) => setUserNameFilter(e.currentTarget.value)}
+                                            class="px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-500 w-48"
+                                        />
+
+                                        <select
+                                            value={userRoleFilter()}
+                                            onChange={(e) => setUserRoleFilter(e.currentTarget.value)}
+                                            class="px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-500 w-40"
+                                        >
+                                            <option value="">Resource Type</option>
+                                            <option value="Admin">Admin</option>
+                                            <option value="Internal TI">Internal TI</option>
+                                            <option value="Mitra">Mitra</option>
+                                        </select>
+
+                                        <select
+                                            class="px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-500 w-40"
+                                        >
+                                            <option value="">Resource</option>
+                                        </select>
+
+                                        <input
+                                            type="text"
+                                            placeholder="Subcontractor"
+                                            value={userUnitFilter()}
+                                            onInput={(e) => setUserUnitFilter(e.currentTarget.value)}
+                                            class="px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-500 w-48"
+                                        />
+
+                                        <input
+                                            type="text"
+                                            placeholder="Subcontractor Name"
+                                            class="px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-500 w-48"
+                                        />
+
+                                        <button
+                                            class="px-6 py-2 bg-blue-500 text-white rounded text-sm font-medium hover:bg-blue-600 transition-colors"
+                                            onClick={applyUserFilters}
+                                        >
+                                            Search
+                                        </button>
+
+                                        <button
+                                            class="px-6 py-2 bg-gray-200 text-gray-700 rounded text-sm font-medium hover:bg-gray-300 transition-colors"
+                                            onClick={resetUserFilters}
+                                        >
+                                            Reset
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Two Tables Side by Side */}
+                                <div class="flex-1 px-6 py-4 overflow-hidden">
+                                    <div class="h-full flex gap-4">
+                                        {/* All Data Table */}
+                                        <div class="flex-1 flex flex-col">
+                                            <div class="mb-2 flex items-center justify-between">
+                                                <h4 class="text-sm font-bold text-gray-700 flex items-center gap-2">
+                                                    <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                                                    </svg>
+                                                    All Data
+                                                </h4>
+                                                <span class="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">
+                                                    Total: {users().length}
+                                                </span>
+                                            </div>
+                                            <div class="flex-1 ag-theme-alpine bg-white rounded-lg shadow-md border-2 border-gray-200">
+                                                <AgGridSolid
+                                                    columnDefs={userColumnDefs()}
+                                                    rowData={users()}
+                                                    defaultColDef={userGridOptions.defaultColDef}
+                                                    rowSelection={userGridOptions.rowSelection}
+                                                    pagination={userGridOptions.pagination}
+                                                    paginationPageSize={userGridOptions.paginationPageSize}
+                                                    paginationPageSizeSelector={userGridOptions.paginationPageSizeSelector}
+                                                    enableCellTextSelection={userGridOptions.enableCellTextSelection}
+                                                    suppressRowClickSelection={userGridOptions.suppressRowClickSelection}
+                                                    onGridReady={onUserGridReady}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Select Data Table */}
+                                        <div class="flex-1 flex flex-col">
+                                            <div class="mb-2 flex items-center justify-between">
+                                                <h4 class="text-sm font-bold text-gray-700 flex items-center gap-2">
+                                                    <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                                                    </svg>
+                                                    Select Data
+                                                </h4>
+                                                <span class="px-3 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full">
+                                                    Selected: {selectedUsers().length}
+                                                </span>
+                                            </div>
+                                            <div class="flex-1 ag-theme-alpine bg-white rounded-lg shadow-md border-2 border-green-200">
+                                                <AgGridSolid
+                                                    columnDefs={selectedUserColumnDefs()}
+                                                    rowData={selectedUsers()}
+                                                    defaultColDef={userGridOptions.defaultColDef}
+                                                    pagination={userGridOptions.pagination}
+                                                    paginationPageSize={userGridOptions.paginationPageSize}
+                                                    paginationPageSizeSelector={userGridOptions.paginationPageSizeSelector}
+                                                    enableCellTextSelection={userGridOptions.enableCellTextSelection}
+                                                    suppressRowClickSelection={userGridOptions.suppressRowClickSelection}
+                                                    onGridReady={onSelectedUserGridReady}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Action Buttons */}
+                                <div class="px-6 py-4 bg-white border-t-2 border-gray-200">
+                                    <div class="flex items-center justify-center gap-3">
+                                        <button
+                                            class="px-10 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg font-semibold hover:from-blue-600 hover:to-blue-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2"
+                                            onClick={() => {
+                                                if (selectedUsers().length > 0) {
+                                                    alert(`✓ Confirmed ${selectedUsers().length} selected users`);
+                                                } else {
+                                                    alert('⚠️ Please select users first');
+                                                }
+                                            }}
+                                        >
+                                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                            </svg>
+                                            OK
+                                        </button>
+                                        <button
+                                            class="px-10 py-2.5 bg-gradient-to-r from-gray-300 to-gray-400 text-gray-700 rounded-lg font-semibold hover:from-gray-400 hover:to-gray-500 transition-all shadow-md hover:shadow-lg flex items-center gap-2"
+                                            onClick={() => {
+                                                setSelectedUsers([]);
+                                            }}
+                                        >
+                                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                            </svg>
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* User Form Modal */}
+                                <Show when={showUserForm()}>
+                                    <div class="fixed inset-0 bg-black/50 z-[2100] flex items-center justify-center p-4">
+                                        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6">
+                                            <h3 class="text-lg font-bold text-gray-800 mb-4">
+                                                {editingUser() ? 'Edit User' : 'Add New User'}
+                                            </h3>
+
+                                            <form onSubmit={(e) => {
+                                                e.preventDefault();
+                                                const formData = new FormData(e.currentTarget);
+                                                handleSaveUser({
+                                                    username: formData.get('username') as string,
+                                                    email: formData.get('email') as string,
+                                                    role: formData.get('role') as UserRole,
+                                                    accessLevel: formData.get('accessLevel') as AccessLevel,
+                                                    unit: formData.get('unit') as string,
+                                                    division: formData.get('division') as string,
+                                                    regional: formData.get('regional') as string,
+                                                });
+                                            }}>
+                                                <div class="grid grid-cols-2 gap-4">
+                                                    <div>
+                                                        <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                                                        <input
+                                                            type="text"
+                                                            name="username"
+                                                            value={editingUser()?.username || ''}
+                                                            required
+                                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                                                        />
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                                                        <input
+                                                            type="email"
+                                                            name="email"
+                                                            value={editingUser()?.email || ''}
+                                                            required
+                                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                                                        />
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                                                        <select
+                                                            name="role"
+                                                            value={editingUser()?.role || 'Mitra'}
+                                                            required
+                                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                                                        >
+                                                            <option value="Admin">Admin</option>
+                                                            <option value="Internal TI">Internal TI</option>
+                                                            <option value="Mitra">Mitra</option>
+                                                        </select>
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="block text-sm font-medium text-gray-700 mb-1">Access Level</label>
+                                                        <select
+                                                            name="accessLevel"
+                                                            value={editingUser()?.accessLevel || 'view'}
+                                                            required
+                                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                                                        >
+                                                            <option value="view">View Only</option>
+                                                            <option value="modify">Modify</option>
+                                                            <option value="full">Full Access</option>
+                                                        </select>
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="block text-sm font-medium text-gray-700 mb-1">Unit</label>
+                                                        <input
+                                                            type="text"
+                                                            name="unit"
+                                                            value={editingUser()?.unit || ''}
+                                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                                                        />
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="block text-sm font-medium text-gray-700 mb-1">Division</label>
+                                                        <input
+                                                            type="text"
+                                                            name="division"
+                                                            value={editingUser()?.division || ''}
+                                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                                                        />
+                                                    </div>
+
+                                                    <div class="col-span-2">
+                                                        <label class="block text-sm font-medium text-gray-700 mb-1">Regional</label>
+                                                        <input
+                                                            type="text"
+                                                            name="regional"
+                                                            value={editingUser()?.regional || ''}
+                                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div class="flex gap-3 mt-6">
+                                                    <button
+                                                        type="submit"
+                                                        class="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                                                    >
+                                                        {editingUser() ? 'Update User' : 'Create User'}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                                                        onClick={() => {
+                                                            setShowUserForm(false);
+                                                            setEditingUser(null);
+                                                        }}
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </Show>
+                            </div>
                         </Show>
-                      </div>
-                    )}
-                  </For>
-                </div>
-              </div>
-
-              {/* Create Template Form Modal */}
-              <Show when={showTemplateForm()}>
-                <div class="fixed inset-0 bg-black/50 z-[2100] flex items-center justify-center p-4">
-                  <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
-                    <h3 class="text-lg font-bold text-gray-800 mb-4">Create New Template</h3>
-                    
-                    <div class="space-y-4">
-                      <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Template Name</label>
-                        <input
-                          type="text"
-                          value={templateName()}
-                          onInput={(e) => setTemplateName(e.currentTarget.value)}
-                          placeholder="e.g., My Custom View"
-                          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                        />
-                      </div>
-
-                      <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                        <textarea
-                          value={templateDescription()}
-                          onInput={(e) => setTemplateDescription(e.currentTarget.value)}
-                          placeholder="Describe this template..."
-                          rows="3"
-                          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                        />
-                      </div>
-
-                      <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                        <p class="text-xs text-blue-800">
-                          💡 The current visible columns in the grid will be saved to this template.
-                        </p>
-                      </div>
                     </div>
-
-                    <div class="flex gap-3 mt-6">
-                      <button
-                        class="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                        onClick={handleSaveTemplate}
-                      >
-                        Save Template
-                      </button>
-                      <button
-                        class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                        onClick={() => {
-                          setShowTemplateForm(false);
-                          setTemplateName('');
-                          setTemplateDescription('');
-                        }}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
                 </div>
-              </Show>
             </div>
-          </Show>
+        </Show>
 
-          <Show when={activeTab() === 'users'}>
-            <div class="h-full flex flex-col bg-gray-50">
-              {/* Header */}
-              <div class="px-6 py-4 bg-white border-b border-gray-200">
-                <div class="flex items-center justify-between">
-                  <div>
-                    <h3 class="text-xl font-bold text-gray-800">Personal and Group</h3>
-                    <p class="text-sm text-gray-600 mt-1">Manage users, roles, and access levels</p>
-                  </div>
-                  <Show when={props.userRole === 'Admin'}>
-                    <button
-                      class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium"
-                      onClick={handleAddUser}
-                    >
-                      + Add User
-                    </button>
-                  </Show>
-                </div>
-              </div>
+        {/* Column Settings Modal - Centralized for all grids */}
+        <Show when={showColumnSettings()}>
+            <GlobalColumnSettings
+                gridApi={projectGridApi()}
+                onClose={() => setShowColumnSettings(false)}
+                tables={getAllTables()}
+                getColumnsForTable={getColumnsForTable}
+                getGridApiForTable={getGridApiForTable}
+                userEmail={props.userEmail}
+            />
+        </Show>
 
-              {/* Tab Navigation */}
-              <div class="px-6 py-3 bg-white border-b border-gray-200">
-                <div class="flex items-center gap-1">
-                  <button
-                    class={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
-                      userDataTab() === 'all'
-                        ? 'bg-blue-500 text-white'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
-                    onClick={() => setUserDataTab('all')}
-                  >
-                    Personal and Group
-                  </button>
-                </div>
-              </div>
-
-              {/* Filter Section */}
-              <div class="px-6 py-4 bg-white border-b border-gray-200">
-                <div class="flex items-center gap-3 flex-wrap">
-                  <input
-                    type="text"
-                    placeholder="Name/Employee No."
-                    value={userNameFilter()}
-                    onInput={(e) => setUserNameFilter(e.currentTarget.value)}
-                    class="px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-500 w-48"
-                  />
-                  
-                  <select
-                    value={userRoleFilter()}
-                    onChange={(e) => setUserRoleFilter(e.currentTarget.value)}
-                    class="px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-500 w-40"
-                  >
-                    <option value="">Resource Type</option>
-                    <option value="Admin">Admin</option>
-                    <option value="Internal TI">Internal TI</option>
-                    <option value="Mitra">Mitra</option>
-                  </select>
-
-                  <select
-                    class="px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-500 w-40"
-                  >
-                    <option value="">Resource</option>
-                  </select>
-
-                  <input
-                    type="text"
-                    placeholder="Subcontractor"
-                    value={userUnitFilter()}
-                    onInput={(e) => setUserUnitFilter(e.currentTarget.value)}
-                    class="px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-500 w-48"
-                  />
-
-                  <input
-                    type="text"
-                    placeholder="Subcontractor Name"
-                    class="px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-500 w-48"
-                  />
-
-                  <button
-                    class="px-6 py-2 bg-blue-500 text-white rounded text-sm font-medium hover:bg-blue-600 transition-colors"
-                    onClick={applyUserFilters}
-                  >
-                    Search
-                  </button>
-
-                  <button
-                    class="px-6 py-2 bg-gray-200 text-gray-700 rounded text-sm font-medium hover:bg-gray-300 transition-colors"
-                    onClick={resetUserFilters}
-                  >
-                    Reset
-                  </button>
-                </div>
-              </div>
-
-              {/* Two Tables Side by Side */}
-              <div class="flex-1 px-6 py-4 overflow-hidden">
-                <div class="h-full flex gap-4">
-                  {/* All Data Table */}
-                  <div class="flex-1 flex flex-col">
-                    <div class="mb-2 flex items-center justify-between">
-                      <h4 class="text-sm font-bold text-gray-700 flex items-center gap-2">
-                        <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-                        </svg>
-                        All Data
-                      </h4>
-                      <span class="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">
-                        Total: {users().length}
-                      </span>
-                    </div>
-                    <div class="flex-1 ag-theme-alpine bg-white rounded-lg shadow-md border-2 border-gray-200">
-                      <AgGridSolid
-                        columnDefs={userColumnDefs()}
-                        rowData={users()}
-                        defaultColDef={userGridOptions.defaultColDef}
-                        rowSelection={userGridOptions.rowSelection}
-                        pagination={userGridOptions.pagination}
-                        paginationPageSize={userGridOptions.paginationPageSize}
-                        paginationPageSizeSelector={userGridOptions.paginationPageSizeSelector}
-                        enableCellTextSelection={userGridOptions.enableCellTextSelection}
-                        suppressRowClickSelection={userGridOptions.suppressRowClickSelection}
-                        onGridReady={onUserGridReady}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Select Data Table */}
-                  <div class="flex-1 flex flex-col">
-                    <div class="mb-2 flex items-center justify-between">
-                      <h4 class="text-sm font-bold text-gray-700 flex items-center gap-2">
-                        <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                        </svg>
-                        Select Data
-                      </h4>
-                      <span class="px-3 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full">
-                        Selected: {selectedUsers().length}
-                      </span>
-                    </div>
-                    <div class="flex-1 ag-theme-alpine bg-white rounded-lg shadow-md border-2 border-green-200">
-                      <AgGridSolid
-                        columnDefs={selectedUserColumnDefs()}
-                        rowData={selectedUsers()}
-                        defaultColDef={userGridOptions.defaultColDef}
-                        pagination={userGridOptions.pagination}
-                        paginationPageSize={userGridOptions.paginationPageSize}
-                        paginationPageSizeSelector={userGridOptions.paginationPageSizeSelector}
-                        enableCellTextSelection={userGridOptions.enableCellTextSelection}
-                        suppressRowClickSelection={userGridOptions.suppressRowClickSelection}
-                        onGridReady={onSelectedUserGridReady}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div class="px-6 py-4 bg-white border-t-2 border-gray-200">
-                <div class="flex items-center justify-center gap-3">
-                  <button
-                    class="px-10 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg font-semibold hover:from-blue-600 hover:to-blue-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2"
-                    onClick={() => {
-                      if (selectedUsers().length > 0) {
-                        alert(`✓ Confirmed ${selectedUsers().length} selected users`);
-                      } else {
-                        alert('⚠️ Please select users first');
-                      }
-                    }}
-                  >
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                    </svg>
-                    OK
-                  </button>
-                  <button
-                    class="px-10 py-2.5 bg-gradient-to-r from-gray-300 to-gray-400 text-gray-700 rounded-lg font-semibold hover:from-gray-400 hover:to-gray-500 transition-all shadow-md hover:shadow-lg flex items-center gap-2"
-                    onClick={() => {
-                      setSelectedUsers([]);
-                    }}
-                  >
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
-                    </svg>
-                    Cancel
-                  </button>
-                </div>
-              </div>
-
-              {/* User Form Modal */}
-              <Show when={showUserForm()}>
-                <div class="fixed inset-0 bg-black/50 z-[2100] flex items-center justify-center p-4">
-                  <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6">
-                    <h3 class="text-lg font-bold text-gray-800 mb-4">
-                      {editingUser() ? 'Edit User' : 'Add New User'}
-                    </h3>
-                    
-                    <form onSubmit={(e) => {
-                      e.preventDefault();
-                      const formData = new FormData(e.currentTarget);
-                      handleSaveUser({
-                        username: formData.get('username') as string,
-                        email: formData.get('email') as string,
-                        role: formData.get('role') as UserRole,
-                        accessLevel: formData.get('accessLevel') as AccessLevel,
-                        unit: formData.get('unit') as string,
-                        division: formData.get('division') as string,
-                        regional: formData.get('regional') as string,
-                      });
-                    }}>
-                      <div class="grid grid-cols-2 gap-4">
-                        <div>
-                          <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
-                          <input
-                            type="text"
-                            name="username"
-                            value={editingUser()?.username || ''}
-                            required
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                          />
-                        </div>
-
-                        <div>
-                          <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                          <input
-                            type="email"
-                            name="email"
-                            value={editingUser()?.email || ''}
-                            required
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                          />
-                        </div>
-
-                        <div>
-                          <label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
-                          <select
-                            name="role"
-                            value={editingUser()?.role || 'Mitra'}
-                            required
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                          >
-                            <option value="Admin">Admin</option>
-                            <option value="Internal TI">Internal TI</option>
-                            <option value="Mitra">Mitra</option>
-                          </select>
-                        </div>
-
-                        <div>
-                          <label class="block text-sm font-medium text-gray-700 mb-1">Access Level</label>
-                          <select
-                            name="accessLevel"
-                            value={editingUser()?.accessLevel || 'view'}
-                            required
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                          >
-                            <option value="view">View Only</option>
-                            <option value="modify">Modify</option>
-                            <option value="full">Full Access</option>
-                          </select>
-                        </div>
-
-                        <div>
-                          <label class="block text-sm font-medium text-gray-700 mb-1">Unit</label>
-                          <input
-                            type="text"
-                            name="unit"
-                            value={editingUser()?.unit || ''}
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                          />
-                        </div>
-
-                        <div>
-                          <label class="block text-sm font-medium text-gray-700 mb-1">Division</label>
-                          <input
-                            type="text"
-                            name="division"
-                            value={editingUser()?.division || ''}
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                          />
-                        </div>
-
-                        <div class="col-span-2">
-                          <label class="block text-sm font-medium text-gray-700 mb-1">Regional</label>
-                          <input
-                            type="text"
-                            name="regional"
-                            value={editingUser()?.regional || ''}
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                          />
-                        </div>
-                      </div>
-
-                      <div class="flex gap-3 mt-6">
-                        <button
-                          type="submit"
-                          class="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                        >
-                          {editingUser() ? 'Update User' : 'Create User'}
-                        </button>
-                        <button
-                          type="button"
-                          class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                          onClick={() => {
-                            setShowUserForm(false);
-                            setEditingUser(null);
-                          }}
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </form>
-                  </div>
-                </div>
-              </Show>
-            </div>
-          </Show>
-        </div>
-      </div>
-    </div>
-    </Show>
-  );
+        {/* Report RMJ Modal - Now using separate component */}
+        <ReportRMJModal 
+            isOpen={showReportRMJ()} 
+            onClose={() => setShowReportRMJ(false)}
+            reportData={sampleReportData}
+        />
+        </>
+    );
 }

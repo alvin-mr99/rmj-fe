@@ -5,12 +5,93 @@ import BOQTree from '../components/BOQTree';
 interface Props {
   lokasi: Lokasi | null | undefined;
   onClose: () => void;
+  onRuasGridReady?: (api: GridApi) => void;
 }
 
 export default function LokasiDetailModal(props: Props) {
   const [expandedRuas, setExpandedRuas] = createSignal<string | null>(null);
 
   if (!props.lokasi) return null as any;
+
+  // Grid API ready handler
+  const onRuasGridReady = (params: any) => {
+    if (props.onRuasGridReady) {
+      props.onRuasGridReady(params.api);
+    }
+  };
+
+  // Column definitions untuk ruas kontrak table
+  const ruasColumnDefs: ColDef[] = [
+    { field: 'noRuas', headerName: 'No Ruas', width: 100, filter: true },
+    { field: 'namaRuas', headerName: 'Nama Ruas', width: 200, filter: true },
+    { field: 'panjangKM', headerName: 'Panjang (KM)', width: 120 },
+    { field: 'volumeMeter', headerName: 'Volume (M)', width: 120 },
+    { 
+      field: 'progressGalian', 
+      headerName: 'Progress Galian', 
+      width: 160,
+      cellRenderer: (params: any) => {
+        const progress = params.value || 0;
+        const el = document.createElement('div');
+        el.className = 'flex items-center gap-2 w-full px-2';
+        el.innerHTML = `
+          <div class="flex-1 bg-gray-200 rounded-full h-2 overflow-hidden">
+            <div class="bg-green-500 h-2 rounded-full" style="width: ${progress}%"></div>
+          </div>
+          <span class="text-xs font-semibold text-gray-700 whitespace-nowrap">${progress}%</span>
+        `;
+        return el;
+      }
+    },
+    { 
+      field: 'progressHDPE', 
+      headerName: 'Progress HDPE', 
+      width: 160,
+      cellRenderer: (params: any) => {
+        const progress = params.value || 0;
+        const el = document.createElement('div');
+        el.className = 'flex items-center gap-2 w-full px-2';
+        el.innerHTML = `
+          <div class="flex-1 bg-gray-200 rounded-full h-2 overflow-hidden">
+            <div class="bg-blue-500 h-2 rounded-full" style="width: ${progress}%"></div>
+          </div>
+          <span class="text-xs font-semibold text-gray-700 whitespace-nowrap">${progress}%</span>
+        `;
+        return el;
+      }
+    },
+    { 
+      field: 'nilaiDRM', 
+      headerName: 'Nilai DRM', 
+      width: 140,
+      valueFormatter: (params: any) => `Rp ${params.value?.toLocaleString() || 0}`
+    },
+    { 
+      field: 'nilaiRekon', 
+      headerName: 'Nilai Rekon', 
+      width: 140,
+      valueFormatter: (params: any) => `Rp ${params.value?.toLocaleString() || 0}`
+    },
+    {
+      field: 'action',
+      headerName: 'Action',
+      width: 110,
+      pinned: 'right',
+      cellRenderer: (params: any) => {
+        const el = document.createElement('div');
+        el.className = 'flex justify-center items-center h-full';
+        const btn = document.createElement('button');
+        btn.className = 'px-2 py-1 bg-blue-500 hover:bg-blue-600 text-white text-xs rounded-lg transition-colors shadow-sm font-medium whitespace-nowrap';
+        btn.textContent = '+ View';
+        btn.onclick = () => {
+          const currentExpanded = expandedRuas();
+          setExpandedRuas(currentExpanded === params.data.id ? null : params.data.id);
+        };
+        el.appendChild(btn);
+        return el;
+      }
+    }
+  ];
 
   return (
     <div class="fixed inset-0 bg-black/40 z-[2200] flex items-center justify-center p-4">
@@ -58,70 +139,31 @@ export default function LokasiDetailModal(props: Props) {
             </span>
           </div>
           
-          <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-            <table class="w-full border-collapse">
-              <thead>
-                <tr class="bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-200">
-                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">No Ruas</th>
-                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Nama Ruas</th>
-                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Panjang (KM)</th>
-                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Volume (M)</th>
-                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Progress Galian</th>
-                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Progress HDPE</th>
-                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Nilai DRM</th>
-                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Nilai Rekon</th>
-                  <th class="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Action</th>
-                </tr>
-              </thead>
-              <tbody class="bg-white divide-y divide-gray-200">
-                <For each={props.lokasi.ruasKontraks}>
-                  {(r) => (
-                    <>
-                      <tr class="hover:bg-blue-50 transition-colors">
-                        <td class="px-4 py-3 text-sm text-gray-900 font-medium">{r.noRuas}</td>
-                        <td class="px-4 py-3 text-sm text-gray-900">{r.namaRuas}</td>
-                        <td class="px-4 py-3 text-sm text-gray-900">{r.panjangKM}</td>
-                        <td class="px-4 py-3 text-sm text-gray-900">{r.volumeMeter}</td>
-                        <td class="px-4 py-3 text-sm">
-                          <div class="flex items-center gap-2">
-                            <div class="flex-1 bg-gray-200 rounded-full h-2 overflow-hidden">
-                              <div class="bg-green-500 h-2 rounded-full" style={`width: ${r.progressGalian}%`}></div>
-                            </div>
-                            <span class="text-xs font-semibold text-gray-700">{r.progressGalian}%</span>
-                          </div>
-                        </td>
-                        <td class="px-4 py-3 text-sm">
-                          <div class="flex items-center gap-2">
-                            <div class="flex-1 bg-gray-200 rounded-full h-2 overflow-hidden">
-                              <div class="bg-blue-500 h-2 rounded-full" style={`width: ${r.progressHDPE}%`}></div>
-                            </div>
-                            <span class="text-xs font-semibold text-gray-700">{r.progressHDPE}%</span>
-                          </div>
-                        </td>
-                        <td class="px-4 py-3 text-sm text-gray-900 font-medium">Rp {r.nilaiDRM.toLocaleString()}</td>
-                        <td class="px-4 py-3 text-sm text-gray-900 font-medium">Rp {r.nilaiRekon.toLocaleString()}</td>
-                        <td class="px-4 py-3 text-center">
-                          <button 
-                            class="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-sm rounded-lg transition-colors shadow-sm font-medium"
-                            onClick={() => setExpandedRuas(expandedRuas() === r.id ? null : r.id)}
-                          >
-                            {expandedRuas() === r.id ? '− Hide' : '+ View'} Tree
-                          </button>
-                        </td>
-                      </tr>
-                      <Show when={expandedRuas() === r.id}>
-                        <tr>
-                          <td colspan={9} class="px-4 py-4 bg-gray-50 border-t border-gray-200">
-                            <BOQTree boqCustomers={r.boqCustomers} boqIndikatifs={r.boqIndikatifs} />
-                          </td>
-                        </tr>
-                      </Show>
-                    </>
-                  )}
-                </For>
-              </tbody>
-            </table>
+          <div class="ag-theme-alpine" style="width: 100%;">
+            <AgGridSolid
+              columnDefs={ruasColumnDefs}
+              rowData={props.lokasi.ruasKontraks}
+              defaultColDef={{
+                sortable: true,
+                resizable: true,
+              }}
+              domLayout="autoHeight"
+              onGridReady={onRuasGridReady}
+            />
           </div>
+
+          {/* Show BOQ Tree when ruas is expanded */}
+          <Show when={expandedRuas()}>
+            <For each={props.lokasi.ruasKontraks}>
+              {(r) => (
+                <Show when={expandedRuas() === r.id}>
+                  <div class="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <BOQTree boqCustomers={r.boqCustomers} boqIndikatifs={r.boqIndikatifs} />
+                  </div>
+                </Show>
+              )}
+            </For>
+          </Show>
         </div>
       </div>
     </div>

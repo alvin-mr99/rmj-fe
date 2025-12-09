@@ -431,6 +431,61 @@ export interface RMJEvidence {
   description?: string;
 }
 
+/**
+ * RMJ Report Row Interface
+ */
+export interface RMJReportRow {
+  no: number;
+  area: string;
+  ktrl: string;
+  mitraPelaksana: string;
+  linkRuas: string;
+  volumePhm: number;
+  progresGalianBoringManual: {
+    plan: number;
+    actual: number;
+    sisa: number;
+    percentage: number;
+  };
+  penambahanHdpe: {
+    plan: number;
+    actual: number;
+    sisa: number;
+    percentage: number;
+  };
+  penambahanTiang: {
+    plan: number;
+    actual: number;
+    sisa: number;
+    percentage: number;
+  };
+  konstruksiAlurJembatan: {
+    plan: number;
+    actual: number;
+    sisa: number;
+    percentage: number;
+  };
+  handhole: {
+    plan: string;
+    actual: string;
+    sisa: string;
+    percentage: number;
+  };
+  jointingTerminasi: {
+    plan: string;
+    actual: string;
+    sisa: string;
+    percentage: number;
+  };
+  nocApft: string;
+  persentaseRealisasiKonstruksi: number;
+  planTargetTi: string;
+  nilaiOdm: string;
+  volumeRekon: number;
+  nilaiRekon: string;
+  deviasi: number;
+}
+
 // ============================================================================
 // Hierarchical Project Interfaces (for Project -> PaketArea -> Lokasi -> Ruas)
 // ============================================================================
