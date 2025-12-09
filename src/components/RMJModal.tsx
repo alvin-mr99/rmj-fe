@@ -6,6 +6,7 @@ import { LicenseManager } from 'ag-grid-enterprise';
 import type { ColDef, GridOptions, GridApi } from 'ag-grid-community';
 import ProjectGrid from './ProjectGrid';
 import { ReportRMJModal } from './ReportRMJModal';
+import { GlobalColumnSettings } from './GlobalColumnSettings';
 import type { RMJSitelistRow, RMJUser, UserRole, AccessLevel, RMJReportRow } from '../types';
 import * as XLSX from 'xlsx';
 
@@ -136,6 +137,14 @@ export function RMJModal(props: RMJModalProps) {
 
     // Report RMJ Modal State
     const [showReportRMJ, setShowReportRMJ] = createSignal(false);
+
+    // Column Settings State
+    const [showColumnSettings, setShowColumnSettings] = createSignal(false);
+    
+    // Grid APIs for all tables - to be received from ProjectGrid
+    const [projectGridApi, setProjectGridApi] = createSignal<GridApi | null>(null);
+    const [boqGridApi, setBoqGridApi] = createSignal<GridApi | null>(null);
+    const [lokasiGridApi, setLokasiGridApi] = createSignal<GridApi | null>(null);
 
     // Projects data
     const projects: Project[] = [
@@ -668,6 +677,84 @@ export function RMJModal(props: RMJModalProps) {
         },
     ];
 
+    // Helper functions for Column Settings integration
+    /**
+     * Get all available tables for GlobalColumnSettings
+     */
+    const getAllTables = () => {
+        return [
+            {
+                id: 'project_grid',
+                name: 'Project Grid (Sitelist)',
+                description: 'Main project list with contract details',
+                category: 'Projects',
+                columnCount: 8,
+                location: 'Main Dashboard',
+            },
+            {
+                id: 'boq_grid',
+                name: 'BoQ Grid',
+                description: 'Bill of Quantities with cost breakdown',
+                category: 'Projects',
+                columnCount: 8,
+                location: 'BoQ Modal',
+            },
+            {
+                id: 'lokasi_grid',
+                name: 'Lokasi Grid',
+                description: 'Location details and area information',
+                category: 'Projects',
+                columnCount: 10,
+                location: 'Project Detail',
+            },
+        ];
+    };
+
+    /**
+     * Get columns for specific table
+     */
+    const getColumnsForTable = (tableId: string) => {
+        const api = getGridApiForTable(tableId);
+        if (!api) {
+            console.warn(`RMJModal: No API available for table ${tableId}`);
+            return [];
+        }
+
+        const columnDefs = api.getColumnDefs();
+        if (!columnDefs) return [];
+
+        return columnDefs.map((col: any) => ({
+            field: col.field || '',
+            headerName: col.headerName || col.field || '',
+            isLocked: col.pinned === 'left' || col.pinned === 'right',
+        }));
+    };
+
+    /**
+     * Get appropriate gridApi based on table selection
+     */
+    const getGridApiForTable = (tableId: string): GridApi | null => {
+        console.log('RMJModal: getGridApiForTable called with tableId:', tableId);
+        
+        switch (tableId) {
+            case 'project_grid':
+                const projApi = projectGridApi();
+                console.log('RMJModal: Returning project_grid API:', projApi ? 'Available' : 'NULL');
+                return projApi;
+            case 'boq_grid':
+                const boqApi = boqGridApi();
+                console.log('RMJModal: Returning boq_grid API:', boqApi ? 'Available' : 'NULL');
+                return boqApi;
+            case 'lokasi_grid':
+                const lokasiApi = lokasiGridApi();
+                console.log('RMJModal: Returning lokasi_grid API:', lokasiApi ? 'Available' : 'NULL');
+                return lokasiApi;
+            default:
+                console.log('RMJModal: Unknown tableId, returning null');
+                return null;
+        }
+    };
+
     // Initialize data immediately when component is created
     const [users, setUsers] = createSignal<RMJUser[]>(sampleUsers);
     const [rowData, setRowData] = createSignal<RMJSitelistRow[]>(getProjectData());
@@ -1172,11 +1259,7 @@ export function RMJModal(props: RMJModalProps) {
                                 <div class="h-6 w-px bg-gray-300 mx-2"></div>
                                 <button
                                     class="px-4 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors font-medium text-sm shadow-sm flex items-center gap-2"
-                                    onClick={() => {
-                                        // Trigger Column Settings
-                                        const event = new CustomEvent('open-column-settings');
-                                        window.dispatchEvent(event);
-                                    }}
+                                    onClick={() => setShowColumnSettings(true)}
                                 >
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
@@ -1324,7 +1407,20 @@ export function RMJModal(props: RMJModalProps) {
 
                             {/* Project grid with hierarchical detail */}
                             <div class="flex-1 px-6 py-4 overflow-auto">
-                                <ProjectGrid />
+                                <ProjectGrid 
+                                    onProjectGridReady={(api) => {
+                                        console.log('RMJModal: Received Project GridAPI');
+                                        setProjectGridApi(api);
+                                    }}
+                                    onBoqGridReady={(api) => {
+                                        console.log('RMJModal: Received BoQ GridAPI');
+                                        setBoqGridApi(api);
+                                    }}
+                                    onLokasiGridReady={(api) => {
+                                        console.log('RMJModal: Received Lokasi GridAPI');
+                                        setLokasiGridApi(api);
+                                    }}
+                                />
                             </div>
                         </div>
 
@@ -1645,6 +1741,18 @@ export function RMJModal(props: RMJModalProps) {
                     </div>
                 </div>
             </div>
+        </Show>
+
+        {/* Column Settings Modal - Centralized for all grids */}
+        <Show when={showColumnSettings()}>
+            <GlobalColumnSettings
+                gridApi={projectGridApi()}
+                onClose={() => setShowColumnSettings(false)}
+                tables={getAllTables()}
+                getColumnsForTable={getColumnsForTable}
+                getGridApiForTable={getGridApiForTable}
+                userEmail={props.userEmail}
+            />
         </Show>
 
         {/* Report RMJ Modal - Now using separate component */}

@@ -279,21 +279,14 @@ export default function ProjectGrid(props: ProjectGridProps) {
     setSelectedBoQProjectId(e.detail);
   };
 
-  // Listen for column settings event from RMJModal
-  const handleOpenColumnSettings = () => {
-    setShowColumnSettings(true);
-  };
-
   onMount(() => {
     window.addEventListener('project-view-detail', handleViewDetail);
     window.addEventListener('project-view-boq', handleViewBoQ);
-    window.addEventListener('open-column-settings', handleOpenColumnSettings);
   });
 
   onCleanup(() => {
     window.removeEventListener('project-view-detail', handleViewDetail);
     window.removeEventListener('project-view-boq', handleViewBoQ);
-    window.removeEventListener('open-column-settings', handleOpenColumnSettings);
   });
 
   const selectedProject = () => projects().find(p => p.id === selectedProjectId());
