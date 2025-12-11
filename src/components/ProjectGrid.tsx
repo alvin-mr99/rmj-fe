@@ -1,4 +1,4 @@
-import { createSignal,  Show, onMount, onCleanup } from 'solid-js';
+import { createSignal, Show, onMount, onCleanup } from 'solid-js';
 import AgGridSolid from 'ag-grid-solid';
 import type { ColDef, GridApi } from 'ag-grid-community';
 import mockProjects from '../data/mockProjects';
@@ -84,6 +84,7 @@ export default function ProjectGrid(props: ProjectGridProps) {
 
   const [gridApi, setGridApi] = createSignal<GridApi | null>(null);
   const [boqGridApi, setBoqGridApi] = createSignal<GridApi | null>(null);
+  const [lokasiGridApi, setLokasiGridApi] = createSignal<GridApi | null>(null);
   const [selectedProjectId, setSelectedProjectId] = createSignal<string | null>(null);
   const [selectedBoQProjectId, setSelectedBoQProjectId] = createSignal<string | null>(null);
   const [showColumnSettings, setShowColumnSettings] = createSignal(false);
@@ -241,7 +242,7 @@ export default function ProjectGrid(props: ProjectGridProps) {
   const onGridReady = (params: any) => {
     setGridApi(params.api);
     
-    // Notify parent component (RMJModal) about gridApi
+    // Forward to parent (RMJModal)
     if (props.onProjectGridReady) {
       props.onProjectGridReady(params.api);
     }
@@ -408,7 +409,7 @@ export default function ProjectGrid(props: ProjectGridProps) {
 
   return (
     <div class="w-full">
-      <div class="ag-theme-alpine h-96 w-full">
+      <div class="ag-theme-alpine h-[calc(100vh-250px)] w-full">
         <AgGridSolid
           columnDefs={columnDefs()}
           rowData={projects()}
@@ -424,26 +425,42 @@ export default function ProjectGrid(props: ProjectGridProps) {
         />
       </div>
 
+      {/* Project Detail Modal */}
       <Show when={selectedProjectId()}>
-        <div class="mt-4">
-          <ProjectDetail 
-            project={selectedProject()!} 
-            onClose={() => {
-              setSelectedProjectId(null);
-              // Force grid to redraw rows to remove styling
-              const api = gridApi();
-              if (api) {
-                api.redrawRows();
-              }
-            }}
-            onLokasiGridReady={(api) => {
-              console.log('ProjectGrid: Received Lokasi GridAPI from ProjectDetail');
-              // Forward to parent (RMJModal)
-              if (props.onLokasiGridReady) {
-                props.onLokasiGridReady(api);
-              }
-            }}
-          />
+        <div 
+          class="fixed inset-0 bg-black/40 z-[2000] flex items-center justify-center p-4"
+          onClick={() => {
+            setSelectedProjectId(null);
+            const api = gridApi();
+            if (api) {
+              api.redrawRows();
+            }
+          }}
+        >
+          <div 
+            class="bg-white rounded-2xl w-[95vw] h-[90vh] flex flex-col overflow-hidden shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ProjectDetail 
+              project={selectedProject()!} 
+              onClose={() => {
+                setSelectedProjectId(null);
+                // Force grid to redraw rows to remove styling
+                const api = gridApi();
+                if (api) {
+                  api.redrawRows();
+                }
+              }}
+              onLokasiGridReady={(api) => {
+                console.log('ProjectGrid: Received Lokasi GridAPI from ProjectDetail');
+                setLokasiGridApi(api);
+                // Forward to parent (RMJModal)
+                if (props.onLokasiGridReady) {
+                  props.onLokasiGridReady(api);
+                }
+              }}
+            />
+          </div>
         </div>
       </Show>
 
@@ -461,7 +478,7 @@ export default function ProjectGrid(props: ProjectGridProps) {
       {/* BoQ Modal */}
       <Show when={selectedBoQProjectId()}>
         <div 
-          class="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4"
+          class="fixed inset-0 bg-black/50 z-[2100] flex items-center justify-center p-4"
           onClick={() => setSelectedBoQProjectId(null)}
         >
           <div 

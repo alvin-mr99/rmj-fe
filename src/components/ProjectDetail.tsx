@@ -1,8 +1,11 @@
-import { createSignal, For, Show } from 'solid-js';
+import { createSignal, For, Show, createEffect } from 'solid-js';
 import AgGridSolid from 'ag-grid-solid';
 import type { ColDef, GridApi } from 'ag-grid-community';
-import type { ProjectHierarchyProject, Lokasi } from '../types';
+import type { ProjectHierarchyProject,  Lokasi, BoQItem } from '../types';
 import LokasiDetailModal from '../components/LokasiDetailModal';
+import BOQTree from '../components/BOQTree';
+import 'ag-grid-community/styles/ag-grid.css';
+import 'ag-grid-community/styles/ag-theme-alpine.css';
 
 interface Props {
   project: ProjectHierarchyProject;
@@ -11,8 +14,10 @@ interface Props {
 }
 
 export default function ProjectDetail(props: Props) {
-  const [activeTab, setActiveTab] = createSignal<'detail' | 'milestone'>('detail');
+  const [activeTab, setActiveTab] = createSignal<'detail' | 'milestone' | 'boq'>('detail');
   const [expandedAreaIds, setExpandedAreaIds] = createSignal<string[]>([]);
+  const [expandedLokasiIds, setExpandedLokasiIds] = createSignal<string[]>([]);
+  const [expandedRuasIds, setExpandedRuasIds] = createSignal<string[]>([]);
   const [showLokasiModal, setShowLokasiModal] = createSignal(false);
   const [selectedLokasi, setSelectedLokasi] = createSignal<Lokasi | any>(null);
 
@@ -24,55 +29,146 @@ export default function ProjectDetail(props: Props) {
     }
   }
 
-  function openLokasi(l: Lokasi) {
-    setSelectedLokasi(l);
-    setShowLokasiModal(true);
+  function toggleLokasi(lokasiId: string) {
+    if (expandedLokasiIds().includes(lokasiId)) {
+      setExpandedLokasiIds(expandedLokasiIds().filter(id => id !== lokasiId));
+    } else {
+      setExpandedLokasiIds([...expandedLokasiIds(), lokasiId]);
+    }
   }
 
-  // Column definitions untuk lokasi table
-  const lokasiColumnDefs: ColDef[] = [
-    { field: 'kode', headerName: 'Kode', width: 120, filter: true, floatingFilter: true },
-    { field: 'mitra', headerName: 'Mitra', flex: 1, minWidth: 180, filter: true, floatingFilter: true },
-    { field: 'witel', headerName: 'Witel', width: 130, filter: true, floatingFilter: true },
-    { field: 'siteName', headerName: 'Site Name', flex: 1, minWidth: 180, filter: true, floatingFilter: true },
+  function openLokasi(l: Lokasi) {
+    console.log('Opening lokasi modal with data:', l);
+    setSelectedLokasi(l);
+    setShowLokasiModal(true);
+    console.log('Modal state set to:', showLokasiModal());
+  }
+
+  // Column definitions untuk ruas kontrak table
+  const ruasColumnDefs: ColDef[] = [
+    { field: 'noRuas', headerName: 'No Ruas', width: 90, filter: true },
+    { field: 'namaRuas', headerName: 'Nama Ruas', flex: 1, minWidth: 200, filter: true },
+    { field: 'panjangKM', headerName: 'Panjang (KM)', width: 110 },
+    { field: 'volumeMeter', headerName: 'Volume (M)', width: 110 },
     { 
-      field: 'ruasCount', 
-      headerName: 'Jumlah Ruas', 
-      width: 130,
-      valueGetter: (params: any) => params.data.ruasKontraks?.length || 0,
+      field: 'progressGalian', 
+      headerName: 'Progress Galian', 
+      width: 150,
       cellRenderer: (params: any) => {
-        const count = params.value || 0;
-        const el = document.createElement('span');
-        el.className = 'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800';
-        el.textContent = `${count} Ruas`;
+        const progress = params.value || 0;
+        const el = document.createElement('div');
+        el.className = 'flex items-center gap-2 w-full px-2';
+        el.innerHTML = `
+          <div class="flex-1 bg-gray-200 rounded-full h-2 overflow-hidden">
+            <div class="bg-green-500 h-2 rounded-full" style="width: ${progress}%"></div>
+          </div>
+          <span class="text-xs font-semibold text-gray-700 whitespace-nowrap">${progress}%</span>
+        `;
         return el;
       }
+    },
+    { 
+      field: 'progressHDPE', 
+      headerName: 'Progress HDPE', 
+      width: 150,
+      cellRenderer: (params: any) => {
+        const progress = params.value || 0;
+        const el = document.createElement('div');
+        el.className = 'flex items-center gap-2 w-full px-2';
+        el.innerHTML = `
+          <div class="flex-1 bg-gray-200 rounded-full h-2 overflow-hidden">
+            <div class="bg-blue-500 h-2 rounded-full" style="width: ${progress}%"></div>
+          </div>
+          <span class="text-xs font-semibold text-gray-700 whitespace-nowrap">${progress}%</span>
+        `;
+        return el;
+      }
+    },
+    { 
+      field: 'nilaiDRM', 
+      headerName: 'Nilai DRM', 
+      width: 130,
+      valueFormatter: (params: any) => `Rp ${params.value?.toLocaleString() || 0}`
+    },
+    { 
+      field: 'nilaiRekon', 
+      headerName: 'Nilai Rekon', 
+      width: 130,
+      valueFormatter: (params: any) => `Rp ${params.value?.toLocaleString() || 0}`
     },
     {
       field: 'action',
       headerName: 'Action',
-      width: 120,
+      width: 100,
       pinned: 'right',
       filter: false,
+      sortable: false,
+      editable: false,
       cellRenderer: (params: any) => {
         const el = document.createElement('div');
-        el.className = 'flex justify-center';
+        el.style.cssText = 'display: flex; justify-content: center; align-items: center; height: 100%;';
+        
+        const isExpanded = expandedRuasIds().includes(params.data.id);
+        
         const btn = document.createElement('button');
-        btn.className = 'px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs rounded-lg transition-colors shadow-sm font-medium';
-        btn.textContent = 'View Detail';
-        btn.onclick = () => {
-          const ev = new CustomEvent('lokasi-view-detail', { detail: params.data });
-          window.dispatchEvent(ev);
-        };
+        btn.type = 'button';
+        btn.style.cssText = `
+          padding: 4px 10px;
+          background: ${isExpanded 
+            ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' 
+            : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)'};
+          color: white;
+          border: none;
+          border-radius: 6px;
+          font-size: 11px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s;
+          box-shadow: ${isExpanded 
+            ? '0 2px 4px rgba(239, 68, 68, 0.3)' 
+            : '0 2px 4px rgba(59, 130, 246, 0.3)'};
+          white-space: nowrap;
+          pointer-events: auto;
+        `;
+        btn.textContent = isExpanded ? '− Hide' : '+ View';
+        
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          console.log('Button clicked, ruas id:', params.data.id);
+          const currentExpanded = expandedRuasIds();
+          if (currentExpanded.includes(params.data.id)) {
+            setExpandedRuasIds(currentExpanded.filter(id => id !== params.data.id));
+          } else {
+            setExpandedRuasIds([...currentExpanded, params.data.id]);
+          }
+          // Force grid refresh to update button state
+          params.api.refreshCells({ force: true });
+        });
+        
+        btn.addEventListener('mouseenter', () => {
+          btn.style.transform = 'translateY(-1px)';
+          btn.style.boxShadow = isExpanded 
+            ? '0 4px 8px rgba(239, 68, 68, 0.4)' 
+            : '0 4px 8px rgba(59, 130, 246, 0.4)';
+        });
+        
+        btn.addEventListener('mouseleave', () => {
+          btn.style.transform = 'translateY(0)';
+          btn.style.boxShadow = isExpanded 
+            ? '0 2px 4px rgba(239, 68, 68, 0.3)' 
+            : '0 2px 4px rgba(59, 130, 246, 0.3)';
+        });
+        
         el.appendChild(btn);
         return el;
       }
     }
   ];
 
-  // Listen for lokasi detail event
-  window.addEventListener('lokasi-view-detail', (e: any) => {
-    openLokasi(e.detail);
+  // Monitor modal state changes
+  createEffect(() => {
+    console.log('Modal state changed - showLokasiModal:', showLokasiModal(), 'selectedLokasi:', selectedLokasi());
   });
 
   // Milestone data sample - expanded based on PDF
@@ -137,20 +233,193 @@ export default function ProjectDetail(props: Props) {
     { field: 'eventPoint', headerName: 'Event Point', width: 130, filter: true }
   ];
 
+  // Sample BoQ Data
+  const sampleBoQData: BoQItem[] = [
+    {
+      no: 1,
+      description: 'Galian Tanah Manual',
+      unit: 'M3',
+      quantity: 150.5,
+      unitPrice: 85000,
+      totalPrice: 12792500,
+      category: 'Pekerjaan Tanah',
+      notes: 'Termasuk pembersihan lahan'
+    },
+    {
+      no: 2,
+      description: 'Pemasangan Kabel FO',
+      unit: 'Km',
+      quantity: 2.5,
+      unitPrice: 15000000,
+      totalPrice: 37500000,
+      category: 'Pekerjaan Kabel',
+      notes: 'Kabel fiber optic 48 core'
+    },
+    {
+      no: 3,
+      description: 'Pemasangan HDPE Pipe',
+      unit: 'M',
+      quantity: 2500,
+      unitPrice: 45000,
+      totalPrice: 112500000,
+      category: 'Pekerjaan Pipa',
+      notes: 'HDPE diameter 50mm'
+    },
+    {
+      no: 4,
+      description: 'Handhole Beton',
+      unit: 'Unit',
+      quantity: 25,
+      unitPrice: 1500000,
+      totalPrice: 37500000,
+      category: 'Pekerjaan Sipil',
+      notes: 'Ukuran 60x60x80 cm'
+    },
+    {
+      no: 5,
+      description: 'Jointing & Terminasi',
+      unit: 'Titik',
+      quantity: 12,
+      unitPrice: 2500000,
+      totalPrice: 30000000,
+      category: 'Pekerjaan Kabel',
+      notes: 'Termasuk testing'
+    },
+    {
+      no: 6,
+      description: 'Pengaspalan',
+      unit: 'M2',
+      quantity: 120,
+      unitPrice: 350000,
+      totalPrice: 42000000,
+      category: 'Pekerjaan Finishing',
+      notes: 'Hotmix tebal 5cm'
+    },
+    {
+      no: 7,
+      description: 'Manhole',
+      unit: 'Unit',
+      quantity: 8,
+      unitPrice: 3500000,
+      totalPrice: 28000000,
+      category: 'Pekerjaan Sipil',
+      notes: 'Ukuran 120x120x150 cm'
+    },
+    {
+      no: 8,
+      description: 'Boring Horizontal',
+      unit: 'M',
+      quantity: 80,
+      unitPrice: 450000,
+      totalPrice: 36000000,
+      category: 'Pekerjaan Tanah',
+      notes: 'Untuk crossing jalan'
+    },
+    {
+      no: 9,
+      description: 'ODP (Optical Distribution Point)',
+      unit: 'Unit',
+      quantity: 15,
+      unitPrice: 2800000,
+      totalPrice: 42000000,
+      category: 'Pekerjaan Perangkat',
+      notes: 'Kapasitas 16 core'
+    },
+    {
+      no: 10,
+      description: 'Testing & Commissioning',
+      unit: 'LS',
+      quantity: 1,
+      unitPrice: 25000000,
+      totalPrice: 25000000,
+      category: 'Pekerjaan Testing',
+      notes: 'OTDR dan power meter'
+    },
+  ];
+
+  // BoQ Column Definitions
+  const boqColumnDefs: ColDef[] = [
+    { 
+      field: 'no', 
+      headerName: 'No', 
+      width: 70, 
+      pinned: 'left',
+      filter: 'agNumberColumnFilter'
+    },
+    { 
+      field: 'description', 
+      headerName: 'Description', 
+      width: 300,
+      filter: 'agTextColumnFilter'
+    },
+    { 
+      field: 'category', 
+      headerName: 'Category', 
+      width: 180,
+      filter: 'agTextColumnFilter'
+    },
+    { 
+      field: 'unit', 
+      headerName: 'Unit', 
+      width: 100,
+      filter: 'agTextColumnFilter'
+    },
+    { 
+      field: 'quantity', 
+      headerName: 'Quantity', 
+      width: 120,
+      filter: 'agNumberColumnFilter',
+      valueFormatter: (params: any) => params.value?.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    },
+    { 
+      field: 'unitPrice', 
+      headerName: 'Unit Price (Rp)', 
+      width: 150,
+      filter: 'agNumberColumnFilter',
+      valueFormatter: (params: any) => 'Rp ' + params.value?.toLocaleString('id-ID')
+    },
+    { 
+      field: 'totalPrice', 
+      headerName: 'Total Price (Rp)', 
+      width: 180,
+      pinned: 'right',
+      filter: 'agNumberColumnFilter',
+      valueFormatter: (params: any) => 'Rp ' + params.value?.toLocaleString('id-ID'),
+      cellStyle: { fontWeight: 'bold', color: '#2563eb' }
+    },
+    { 
+      field: 'notes', 
+      headerName: 'Notes', 
+      width: 250,
+      filter: 'agTextColumnFilter'
+    },
+  ];
+
+  const boqSummary = {
+    totalItems: sampleBoQData.length,
+    totalCost: sampleBoQData.reduce((sum, item) => sum + item.totalPrice, 0),
+    materialCost: sampleBoQData.filter(item => 
+      item.category?.includes('Kabel') || item.category?.includes('Perangkat') || item.category?.includes('Pipa')
+    ).reduce((sum, item) => sum + item.totalPrice, 0),
+    laborCost: sampleBoQData.filter(item => 
+      item.category?.includes('Tanah') || item.category?.includes('Sipil') || item.category?.includes('Testing')
+    ).reduce((sum, item) => sum + item.totalPrice, 0),
+  };
+
   return (
-    <div class="bg-white rounded-xl border border-gray-200 shadow-sm">
+    <div class="bg-white h-full flex flex-col overflow-hidden">
       {/* Header */}
-      <div class="flex items-start justify-between px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200">
+      <div class="flex items-start justify-between px-6 py-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200 flex-shrink-0">
         <div>
-          <h4 class="text-lg font-bold text-gray-800">Detail Kontrak: {props.project.namaKontrak}</h4>
-          <p class="text-xs text-gray-600 mt-0.5">
+          <h4 class="text-xl font-bold text-gray-800">Detail Kontrak: {props.project.namaKontrak}</h4>
+          <p class="text-sm text-gray-600 mt-1">
             <span class="font-medium">No Kontrak:</span> {props.project.noKontrak} • 
             <span class="font-medium ml-2">TREG:</span> {props.project.treg} • 
             <span class="font-medium ml-2">Area:</span> {props.project.area}
           </p>
         </div>
         <button 
-          class="px-3 py-1.5 text-sm bg-white hover:bg-gray-100 text-gray-700 rounded-lg transition-colors shadow-sm border border-gray-200 font-medium"
+          class="px-4 py-2 bg-white hover:bg-gray-100 text-gray-700 rounded-lg transition-colors shadow-sm border border-gray-200 font-medium"
           onClick={props.onClose}
         >
           Close
@@ -158,10 +427,10 @@ export default function ProjectDetail(props: Props) {
       </div>
 
       {/* Tabs */}
-      <div class="px-4 pt-3">
+      <div class="px-6 pt-3 flex-shrink-0">
         <div class="flex gap-2 border-b border-gray-200">
           <button 
-            class={`px-3 py-1.5 text-xs font-medium rounded-t-lg transition-all ${
+            class={`px-4 py-2 text-sm font-medium rounded-t-lg transition-all ${
               activeTab() === 'detail' 
                 ? 'bg-blue-500 text-white shadow-sm' 
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -171,7 +440,7 @@ export default function ProjectDetail(props: Props) {
             📋 Detail Kontrak
           </button>
           <button 
-            class={`px-3 py-1.5 text-xs font-medium rounded-t-lg transition-all ${
+            class={`px-4 py-2 text-sm font-medium rounded-t-lg transition-all ${
               activeTab() === 'milestone' 
                 ? 'bg-blue-500 text-white shadow-sm' 
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -180,11 +449,21 @@ export default function ProjectDetail(props: Props) {
           >
             🎯 Milestone
           </button>
+          <button 
+            class={`px-4 py-2 text-sm font-medium rounded-t-lg transition-all ${
+              activeTab() === 'boq' 
+                ? 'bg-blue-500 text-white shadow-sm' 
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`} 
+            onClick={() => setActiveTab('boq')}
+          >
+            💰 Bill of Quantities
+          </button>
         </div>
       </div>
 
       {/* Content */}
-      <div class="px-4 py-3">
+      <div class="flex-1 overflow-auto px-6 py-4">
         <Show when={activeTab() === 'detail'}>
           <div>
             <div class="grid grid-cols-3 gap-3 mb-4">
@@ -209,45 +488,137 @@ export default function ProjectDetail(props: Props) {
                 </svg>
                 Paket Area
               </h5>
-              <div class="space-y-4">
+              <div class="space-y-3">
                 <For each={props.project.paketAreas}>
                   {(pa) => (
-                    <div class="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow">
-                      <div class="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-gray-100">
-                        <div>
-                          <div class="font-bold text-gray-800">{pa.namaArea}</div>
-                          <div class="text-sm text-gray-600 mt-1">Area ID: <span class="font-medium">{pa.areaId}</span></div>
+                    <div class="border border-gray-300 rounded-lg overflow-hidden bg-white shadow-sm">
+                      {/* Area Header */}
+                      <div 
+                        class="p-3 cursor-pointer hover:bg-gray-50 transition-colors border-l-4 border-blue-500"
+                        onClick={() => toggleArea(pa.id)}
+                      >
+                        <div class="flex items-start justify-between gap-3">
+                          <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 mb-1">
+                              <span class="text-sm font-bold text-blue-700">{pa.namaArea}</span>
+                              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-blue-100 text-blue-800">
+                                Area ID: {pa.areaId}
+                              </span>
+                              <span class="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-semibold rounded-full">
+                                {pa.lokasis?.length || 0} Lokasi
+                              </span>
+                            </div>
+                          </div>
+                          <button 
+                            class="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded hover:bg-gray-200 transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleArea(pa.id);
+                            }}
+                          >
+                            <span class="text-gray-600 font-bold text-sm">
+                              {expandedAreaIds().includes(pa.id) ? '−' : '+'}
+                            </span>
+                          </button>
                         </div>
-                        <button 
-                          class={`px-4 py-2 rounded-lg font-medium transition-all ${
-                            expandedAreaIds().includes(pa.id)
-                              ? 'bg-blue-500 text-white shadow-sm'
-                              : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-                          }`}
-                          onClick={() => toggleArea(pa.id)}
-                        >
-                          {expandedAreaIds().includes(pa.id) ? '− Collapse' : '+ Expand'}
-                        </button>
                       </div>
 
+                      {/* Lokasi List */}
                       <Show when={expandedAreaIds().includes(pa.id)}>
-                        <div class="p-4">
-                          <div class="ag-theme-alpine" style="height: 300px; width: 100%;">
-                            <AgGridSolid
-                              columnDefs={lokasiColumnDefs}
-                              rowData={pa.lokasis}
-                              onGridReady={(params: any) => {
-                                if (props.onLokasiGridReady) {
-                                  props.onLokasiGridReady(params.api);
-                                }
-                              }}
-                              defaultColDef={{
-                                sortable: true,
-                                resizable: true,
-                              }}
-                              pagination={true}
-                              paginationPageSize={10}
-                            />
+                        <div class="border-t border-gray-200 bg-gray-50 p-3">
+                          <div class="space-y-2">
+                            <For each={pa.lokasis || []}>
+                              {(lokasi) => (
+                                <div class="bg-white border border-gray-200 rounded-md overflow-hidden">
+                                  <div 
+                                    class="p-2 cursor-pointer hover:bg-gray-50 transition-colors"
+                                    onClick={() => toggleLokasi(lokasi.id)}
+                                  >
+                                    <div class="flex items-center justify-between gap-2">
+                                      <div class="flex-1">
+                                        <div class="flex items-center gap-2 mb-1">
+                                          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-purple-500 text-white">
+                                            {lokasi.kode}
+                                          </span>
+                                          <span class="text-xs font-bold text-gray-900">{lokasi.siteName}</span>
+                                        </div>
+                                        <div class="text-xs text-gray-600 flex items-center gap-3">
+                                          <span>Mitra: <span class="font-semibold text-gray-900">{lokasi.mitra}</span></span>
+                                          <span class="text-gray-400">•</span>
+                                          <span>Witel: <span class="font-semibold text-gray-900">{lokasi.witel}</span></span>
+                                          <Show when={lokasi.ruasKontraks && lokasi.ruasKontraks.length > 0}>
+                                            <span class="text-gray-400">•</span>
+                                            <span>Ruas: <span class="font-semibold text-gray-900">{lokasi.ruasKontraks.length}</span></span>
+                                          </Show>
+                                        </div>
+                                      </div>
+                                      <div class="flex items-center gap-2">
+                                        <button 
+                                          class="flex-shrink-0 w-4 h-4 flex items-center justify-center rounded hover:bg-gray-200 transition-colors"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            toggleLokasi(lokasi.id);
+                                          }}
+                                        >
+                                          <span class="text-gray-600 text-xs font-bold">
+                                            {expandedLokasiIds().includes(lokasi.id) ? '▼' : '▶'}
+                                          </span>
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Ruas Kontrak Details */}
+                                  <Show when={expandedLokasiIds().includes(lokasi.id) && lokasi.ruasKontraks && lokasi.ruasKontraks.length > 0}>
+                                    <div class="border-t border-gray-200 bg-gray-50 p-3">
+                                      <div class="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                                        <svg class="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                        </svg>
+                                        Tabel Ruas Kontrak
+                                        <span class="px-2 py-0.5 bg-orange-100 text-orange-700 text-xs font-semibold rounded-full">
+                                          {lokasi.ruasKontraks.length} Ruas
+                                        </span>
+                                      </div>
+                                      
+                                      <div class="ag-theme-alpine" style="width: 100%;">
+                                        <AgGridSolid
+                                          columnDefs={ruasColumnDefs}
+                                          rowData={lokasi.ruasKontraks}
+                                          defaultColDef={{
+                                            sortable: true,
+                                            resizable: true,
+                                          }}
+                                          domLayout="autoHeight"
+                                        />
+                                      </div>
+
+                                      {/* Show BOQ Tree when ruas is expanded */}
+                                      <For each={lokasi.ruasKontraks}>
+                                        {(ruas) => (
+                                          <Show when={expandedRuasIds().includes(ruas.id)}>
+                                            <div class="mt-3 p-3 bg-white rounded-lg border border-gray-200">
+                                              <div class="mb-2 pb-2 border-b border-gray-200">
+                                                <div class="flex items-center gap-2">
+                                                  <span class="inline-flex items-center px-2 py-1 rounded text-sm font-semibold bg-orange-600 text-white">
+                                                    {ruas.noRuas}
+                                                  </span>
+                                                  <span class="text-sm font-bold text-gray-900">{ruas.namaRuas}</span>
+                                                </div>
+                                              </div>
+                                              <BOQTree 
+                                                boqCustomers={ruas.boqCustomers || []} 
+                                                boqIndikatifs={ruas.boqIndikatifs || []} 
+                                              />
+                                            </div>
+                                          </Show>
+                                        )}
+                                      </For>
+                                    </div>
+                                  </Show>
+                                </div>
+                              )}
+                            </For>
                           </div>
                         </div>
                       </Show>
@@ -278,11 +649,66 @@ export default function ProjectDetail(props: Props) {
             </div>
           </div>
         </Show>
+
+        <Show when={activeTab() === 'boq'}>
+          <div>
+            {/* Summary Cards */}
+            <div class="grid grid-cols-4 gap-4 mb-4">
+              <div class="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200">
+                <div class="text-xs text-blue-600 font-semibold mb-1">Total Items</div>
+                <div class="text-2xl font-bold text-gray-800">{boqSummary.totalItems}</div>
+              </div>
+              <div class="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-lg border border-green-200">
+                <div class="text-xs text-green-600 font-semibold mb-1">Total Cost</div>
+                <div class="text-lg font-bold text-gray-800">
+                  Rp {boqSummary.totalCost.toLocaleString('id-ID')}
+                </div>
+              </div>
+              <div class="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-lg border border-purple-200">
+                <div class="text-xs text-purple-600 font-semibold mb-1">Material Cost</div>
+                <div class="text-lg font-bold text-gray-800">
+                  Rp {boqSummary.materialCost.toLocaleString('id-ID')}
+                </div>
+              </div>
+              <div class="bg-gradient-to-br from-orange-50 to-orange-100 p-4 rounded-lg border border-orange-200">
+                <div class="text-xs text-orange-600 font-semibold mb-1">Labor Cost</div>
+                <div class="text-lg font-bold text-gray-800">
+                  Rp {boqSummary.laborCost.toLocaleString('id-ID')}
+                </div>
+              </div>
+            </div>
+
+            {/* BoQ Grid */}
+            <div class="bg-white rounded-lg border border-gray-200 shadow-sm">
+              <div class="ag-theme-alpine h-[500px] w-full">
+                <AgGridSolid
+                  columnDefs={boqColumnDefs}
+                  rowData={sampleBoQData}
+                  defaultColDef={{
+                    sortable: true,
+                    resizable: true,
+                  }}
+                  pagination={true}
+                  paginationPageSize={20}
+                  paginationPageSizeSelector={[10, 20, 50]}
+                  rowHeight={48}
+                  headerHeight={56}
+                />
+              </div>
+            </div>
+          </div>
+        </Show>
       </div>
       
       {/* Modals */}
       <Show when={showLokasiModal()}>
-        <LokasiDetailModal lokasi={selectedLokasi()} onClose={() => setShowLokasiModal(false)} />
+        <LokasiDetailModal 
+          lokasi={selectedLokasi()} 
+          onClose={() => {
+            console.log('Closing lokasi modal');
+            setShowLokasiModal(false);
+          }} 
+        />
       </Show>
     </div>
   );
