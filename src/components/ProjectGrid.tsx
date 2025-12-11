@@ -84,7 +84,6 @@ export default function ProjectGrid(props: ProjectGridProps) {
 
   const [gridApi, setGridApi] = createSignal<GridApi | null>(null);
   const [boqGridApi, setBoqGridApi] = createSignal<GridApi | null>(null);
-  const [lokasiGridApi, setLokasiGridApi] = createSignal<GridApi | null>(null);
   const [selectedProjectId, setSelectedProjectId] = createSignal<string | null>(null);
   const [selectedBoQProjectId, setSelectedBoQProjectId] = createSignal<string | null>(null);
   const [showColumnSettings, setShowColumnSettings] = createSignal(false);
@@ -449,14 +448,6 @@ export default function ProjectGrid(props: ProjectGridProps) {
                 const api = gridApi();
                 if (api) {
                   api.redrawRows();
-                }
-              }}
-              onLokasiGridReady={(api) => {
-                console.log('ProjectGrid: Received Lokasi GridAPI from ProjectDetail');
-                setLokasiGridApi(api);
-                // Forward to parent (RMJModal)
-                if (props.onLokasiGridReady) {
-                  props.onLokasiGridReady(api);
                 }
               }}
             />

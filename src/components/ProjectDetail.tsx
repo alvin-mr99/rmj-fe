@@ -1,8 +1,7 @@
-import { createSignal, For, Show, createEffect } from 'solid-js';
+import { createSignal, For, Show } from 'solid-js';
 import AgGridSolid from 'ag-grid-solid';
-import type { ColDef, GridApi } from 'ag-grid-community';
-import type { ProjectHierarchyProject,  Lokasi, BoQItem } from '../types';
-import LokasiDetailModal from '../components/LokasiDetailModal';
+import type { ColDef } from 'ag-grid-community';
+import type { ProjectHierarchyProject, BoQItem } from '../types';
 import BOQTree from '../components/BOQTree';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
@@ -10,7 +9,6 @@ import 'ag-grid-community/styles/ag-theme-alpine.css';
 interface Props {
   project: ProjectHierarchyProject;
   onClose: () => void;
-  onLokasiGridReady?: (api: GridApi) => void;
 }
 
 export default function ProjectDetail(props: Props) {
@@ -18,8 +16,6 @@ export default function ProjectDetail(props: Props) {
   const [expandedAreaIds, setExpandedAreaIds] = createSignal<string[]>([]);
   const [expandedLokasiIds, setExpandedLokasiIds] = createSignal<string[]>([]);
   const [expandedRuasIds, setExpandedRuasIds] = createSignal<string[]>([]);
-  const [showLokasiModal, setShowLokasiModal] = createSignal(false);
-  const [selectedLokasi, setSelectedLokasi] = createSignal<Lokasi | any>(null);
 
   function toggleArea(areaId: string) {
     if (expandedAreaIds().includes(areaId)) {
@@ -35,13 +31,6 @@ export default function ProjectDetail(props: Props) {
     } else {
       setExpandedLokasiIds([...expandedLokasiIds(), lokasiId]);
     }
-  }
-
-  function openLokasi(l: Lokasi) {
-    console.log('Opening lokasi modal with data:', l);
-    setSelectedLokasi(l);
-    setShowLokasiModal(true);
-    console.log('Modal state set to:', showLokasiModal());
   }
 
   // Column definitions untuk ruas kontrak table
@@ -165,11 +154,6 @@ export default function ProjectDetail(props: Props) {
       }
     }
   ];
-
-  // Monitor modal state changes
-  createEffect(() => {
-    console.log('Modal state changed - showLokasiModal:', showLokasiModal(), 'selectedLokasi:', selectedLokasi());
-  });
 
   // Milestone data sample - expanded based on PDF
   const milestoneData = [
@@ -699,17 +683,6 @@ export default function ProjectDetail(props: Props) {
           </div>
         </Show>
       </div>
-      
-      {/* Modals */}
-      <Show when={showLokasiModal()}>
-        <LokasiDetailModal 
-          lokasi={selectedLokasi()} 
-          onClose={() => {
-            console.log('Closing lokasi modal');
-            setShowLokasiModal(false);
-          }} 
-        />
-      </Show>
     </div>
   );
 }
