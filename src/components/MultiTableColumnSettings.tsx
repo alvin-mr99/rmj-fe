@@ -1,6 +1,6 @@
 import { createSignal, Show } from 'solid-js';
 import type { GridApi } from 'ag-grid-community';
-import { GlobalColumnSettings } from './GlobalColumnSettings';
+import { ColumnTemplateManager } from './ColumnTemplateManager';
 
 interface MultiTableColumnSettingsProps {
   projectGridApi: GridApi | null;
