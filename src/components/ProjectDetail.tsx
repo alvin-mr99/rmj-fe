@@ -3,8 +3,20 @@ import AgGridSolid from 'ag-grid-solid';
 import type { ColDef } from 'ag-grid-community';
 import type { ProjectHierarchyProject, BoQItem } from '../types';
 import BOQTree from '../components/BOQTree';
+import MilestoneFormModal from './MilestoneFormModal';
+import BoQFormModal from './BoQFormModal';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
+
+interface MilestoneData {
+  id: number;
+  no: number;
+  milestone: string;
+  level: 'High' | 'Medium' | 'Low';
+  activity: string;
+  remark: string;
+  eventPoint: string;
+}
 
 interface Props {
   project: ProjectHierarchyProject;
@@ -16,6 +28,12 @@ export default function ProjectDetail(props: Props) {
   const [expandedAreaIds, setExpandedAreaIds] = createSignal<string[]>([]);
   const [expandedLokasiIds, setExpandedLokasiIds] = createSignal<string[]>([]);
   const [expandedRuasIds, setExpandedRuasIds] = createSignal<string[]>([]);
+  
+  // Modal states
+  const [showMilestoneModal, setShowMilestoneModal] = createSignal(false);
+  const [showBoQModal, setShowBoQModal] = createSignal(false);
+  const [editingMilestone, setEditingMilestone] = createSignal<MilestoneData | null>(null);
+  const [editingBoQ, setEditingBoQ] = createSignal<BoQItem | null>(null);
 
   function toggleArea(areaId: string) {
     if (expandedAreaIds().includes(areaId)) {
@@ -156,7 +174,7 @@ export default function ProjectDetail(props: Props) {
   ];
 
   // Milestone data sample - expanded based on PDF
-  const milestoneData = [
+  const [milestoneData, setMilestoneData] = createSignal<MilestoneData[]>([
     { id: 1, no: 1, milestone: 'Approval Kontrak', level: 'High', activity: 'Contract Signing', remark: 'OK', eventPoint: '2024-01-15' },
     { id: 2, no: 2, milestone: 'Mobilisasi', level: 'High', activity: 'Site Mobilization', remark: 'OK', eventPoint: '2024-02-01' },
     { id: 3, no: 3, milestone: 'Survey & Design', level: 'Medium', activity: 'Site Survey', remark: 'OK', eventPoint: '2024-02-15' },
@@ -169,7 +187,177 @@ export default function ProjectDetail(props: Props) {
     { id: 10, no: 10, milestone: 'Handover', level: 'High', activity: 'Project Handover', remark: 'Pending', eventPoint: '2024-08-01' },
     { id: 11, no: 11, milestone: 'As Built Drawing', level: 'Medium', activity: 'Documentation', remark: 'Pending', eventPoint: '2024-08-15' },
     { id: 12, no: 12, milestone: 'BAP 100%', level: 'High', activity: 'Final Acceptance', remark: 'Pending', eventPoint: '2024-09-01' }
-  ];
+  ]);
+
+  // BoQ data with state
+  const [boqData, setBoqData] = createSignal<BoQItem[]>([
+    {
+      id: 1,
+      no: 1,
+      description: 'Galian Tanah Manual',
+      unit: 'M3',
+      quantity: 150.5,
+      unitPrice: 85000,
+      totalPrice: 12792500,
+      category: 'Pekerjaan Tanah',
+      notes: 'Termasuk pembersihan lahan'
+    },
+    {
+      id: 2,
+      no: 2,
+      description: 'Pemasangan Kabel FO',
+      unit: 'Km',
+      quantity: 2.5,
+      unitPrice: 15000000,
+      totalPrice: 37500000,
+      category: 'Pekerjaan Kabel',
+      notes: 'Kabel fiber optic 48 core'
+    },
+    {
+      id: 3,
+      no: 3,
+      description: 'Pemasangan HDPE Pipe',
+      unit: 'M',
+      quantity: 2500,
+      unitPrice: 45000,
+      totalPrice: 112500000,
+      category: 'Pekerjaan Pipa',
+      notes: 'HDPE diameter 50mm'
+    },
+    {
+      id: 4,
+      no: 4,
+      description: 'Handhole Beton',
+      unit: 'Unit',
+      quantity: 25,
+      unitPrice: 1500000,
+      totalPrice: 37500000,
+      category: 'Pekerjaan Sipil',
+      notes: 'Ukuran 60x60x80 cm'
+    },
+    {
+      id: 5,
+      no: 5,
+      description: 'Jointing & Terminasi',
+      unit: 'Titik',
+      quantity: 12,
+      unitPrice: 2500000,
+      totalPrice: 30000000,
+      category: 'Pekerjaan Kabel',
+      notes: 'Termasuk testing'
+    },
+    {
+      id: 6,
+      no: 6,
+      description: 'Pengaspalan',
+      unit: 'M2',
+      quantity: 120,
+      unitPrice: 350000,
+      totalPrice: 42000000,
+      category: 'Pekerjaan Finishing',
+      notes: 'Hotmix tebal 5cm'
+    },
+    {
+      id: 7,
+      no: 7,
+      description: 'Manhole',
+      unit: 'Unit',
+      quantity: 8,
+      unitPrice: 3500000,
+      totalPrice: 28000000,
+      category: 'Pekerjaan Sipil',
+      notes: 'Ukuran 120x120x150 cm'
+    },
+    {
+      id: 8,
+      no: 8,
+      description: 'Boring Horizontal',
+      unit: 'M',
+      quantity: 80,
+      unitPrice: 450000,
+      totalPrice: 36000000,
+      category: 'Pekerjaan Tanah',
+      notes: 'Untuk crossing jalan'
+    },
+    {
+      id: 9,
+      no: 9,
+      description: 'ODP (Optical Distribution Point)',
+      unit: 'Unit',
+      quantity: 15,
+      unitPrice: 2800000,
+      totalPrice: 42000000,
+      category: 'Pekerjaan Perangkat',
+      notes: 'Kapasitas 16 core'
+    },
+    {
+      id: 10,
+      no: 10,
+      description: 'Testing & Commissioning',
+      unit: 'LS',
+      quantity: 1,
+      unitPrice: 25000000,
+      totalPrice: 25000000,
+      category: 'Pekerjaan Testing',
+      notes: 'OTDR dan power meter'
+    },
+  ]);
+
+  // CRUD Functions for Milestone
+  const handleSaveMilestone = (data: Partial<MilestoneData>) => {
+    if (editingMilestone()) {
+      // Edit existing
+      setMilestoneData(milestoneData().map(item => 
+        item.id === editingMilestone()!.id ? { ...item, ...data } : item
+      ));
+    } else {
+      // Add new
+      const newId = Math.max(...milestoneData().map(m => m.id), 0) + 1;
+      const newNo = Math.max(...milestoneData().map(m => m.no), 0) + 1;
+      setMilestoneData([...milestoneData(), { id: newId, no: newNo, ...data } as MilestoneData]);
+    }
+    setEditingMilestone(null);
+  };
+
+  const handleDeleteMilestone = (id: number) => {
+    if (confirm('Are you sure you want to delete this milestone?')) {
+      setMilestoneData(milestoneData().filter(item => item.id !== id));
+    }
+  };
+
+  const handleEditMilestone = (milestone: MilestoneData) => {
+    setEditingMilestone(milestone);
+    setShowMilestoneModal(true);
+  };
+
+  // CRUD Functions for BoQ
+  const handleSaveBoQ = (data: Partial<BoQItem>) => {
+    if (editingBoQ()) {
+      // Edit existing
+      setBoqData(boqData().map(item => 
+        item.id === editingBoQ()!.id ? { ...item, ...data } : item
+      ));
+    } else {
+      // Add new
+      const newId = Math.max(...boqData().map(b => b.id || 0), 0) + 1;
+      const newNo = Math.max(...boqData().map(b => b.no || 0), 0) + 1;
+      setBoqData([...boqData(), { id: newId, no: newNo, ...data } as BoQItem]);
+    }
+    setEditingBoQ(null);
+  };
+
+  const handleDeleteBoQ = (id: number) => {
+    if (confirm('Are you sure you want to delete this BoQ item?')) {
+      setBoqData(boqData().filter(item => item.id !== id));
+    }
+  };
+
+  const handleEditBoQ = (boq: BoQItem) => {
+    setEditingBoQ(boq);
+    setShowBoQModal(true);
+  };
+
+  // Milestone data sample - expanded based on PDF
 
   // Column definitions untuk milestone table
   const milestoneColumnDefs: ColDef[] = [
@@ -214,111 +402,38 @@ export default function ProjectDetail(props: Props) {
         return el;
       }
     },
-    { field: 'eventPoint', headerName: 'Event Point', width: 130, filter: true }
-  ];
-
-  // Sample BoQ Data
-  const sampleBoQData: BoQItem[] = [
+    { field: 'eventPoint', headerName: 'Event Point', width: 130, filter: true },
     {
-      no: 1,
-      description: 'Galian Tanah Manual',
-      unit: 'M3',
-      quantity: 150.5,
-      unitPrice: 85000,
-      totalPrice: 12792500,
-      category: 'Pekerjaan Tanah',
-      notes: 'Termasuk pembersihan lahan'
-    },
-    {
-      no: 2,
-      description: 'Pemasangan Kabel FO',
-      unit: 'Km',
-      quantity: 2.5,
-      unitPrice: 15000000,
-      totalPrice: 37500000,
-      category: 'Pekerjaan Kabel',
-      notes: 'Kabel fiber optic 48 core'
-    },
-    {
-      no: 3,
-      description: 'Pemasangan HDPE Pipe',
-      unit: 'M',
-      quantity: 2500,
-      unitPrice: 45000,
-      totalPrice: 112500000,
-      category: 'Pekerjaan Pipa',
-      notes: 'HDPE diameter 50mm'
-    },
-    {
-      no: 4,
-      description: 'Handhole Beton',
-      unit: 'Unit',
-      quantity: 25,
-      unitPrice: 1500000,
-      totalPrice: 37500000,
-      category: 'Pekerjaan Sipil',
-      notes: 'Ukuran 60x60x80 cm'
-    },
-    {
-      no: 5,
-      description: 'Jointing & Terminasi',
-      unit: 'Titik',
-      quantity: 12,
-      unitPrice: 2500000,
-      totalPrice: 30000000,
-      category: 'Pekerjaan Kabel',
-      notes: 'Termasuk testing'
-    },
-    {
-      no: 6,
-      description: 'Pengaspalan',
-      unit: 'M2',
-      quantity: 120,
-      unitPrice: 350000,
-      totalPrice: 42000000,
-      category: 'Pekerjaan Finishing',
-      notes: 'Hotmix tebal 5cm'
-    },
-    {
-      no: 7,
-      description: 'Manhole',
-      unit: 'Unit',
-      quantity: 8,
-      unitPrice: 3500000,
-      totalPrice: 28000000,
-      category: 'Pekerjaan Sipil',
-      notes: 'Ukuran 120x120x150 cm'
-    },
-    {
-      no: 8,
-      description: 'Boring Horizontal',
-      unit: 'M',
-      quantity: 80,
-      unitPrice: 450000,
-      totalPrice: 36000000,
-      category: 'Pekerjaan Tanah',
-      notes: 'Untuk crossing jalan'
-    },
-    {
-      no: 9,
-      description: 'ODP (Optical Distribution Point)',
-      unit: 'Unit',
-      quantity: 15,
-      unitPrice: 2800000,
-      totalPrice: 42000000,
-      category: 'Pekerjaan Perangkat',
-      notes: 'Kapasitas 16 core'
-    },
-    {
-      no: 10,
-      description: 'Testing & Commissioning',
-      unit: 'LS',
-      quantity: 1,
-      unitPrice: 25000000,
-      totalPrice: 25000000,
-      category: 'Pekerjaan Testing',
-      notes: 'OTDR dan power meter'
-    },
+      field: 'action',
+      headerName: 'Action',
+      width: 150,
+      pinned: 'right',
+      filter: false,
+      sortable: false,
+      editable: false,
+      cellRenderer: (params: any) => {
+        const el = document.createElement('div');
+        el.className = 'flex items-center justify-center gap-2 h-full';
+        
+        // Edit Button
+        const editBtn = document.createElement('button');
+        editBtn.textContent = 'Edit';
+        editBtn.title = 'Edit';
+        editBtn.className = 'px-2 py-1 bg-orange-500 hover:bg-orange-600 text-white rounded text-xs font-medium transition-colors';
+        editBtn.onclick = () => handleEditMilestone(params.data);
+        
+        // Delete Button
+        const deleteBtn = document.createElement('button');
+        deleteBtn.textContent = 'Delete';
+        deleteBtn.title = 'Delete';
+        deleteBtn.className = 'px-2 py-1 bg-red-500 hover:bg-red-600 text-white rounded text-xs font-medium transition-colors';
+        deleteBtn.onclick = () => handleDeleteMilestone(params.data.id);
+        
+        el.appendChild(editBtn);
+        el.appendChild(deleteBtn);
+        return el;
+      }
+    }
   ];
 
   // BoQ Column Definitions
@@ -366,7 +481,6 @@ export default function ProjectDetail(props: Props) {
       field: 'totalPrice', 
       headerName: 'Total Price (Rp)', 
       width: 180,
-      pinned: 'right',
       filter: 'agNumberColumnFilter',
       valueFormatter: (params: any) => 'Rp ' + params.value?.toLocaleString('id-ID'),
       cellStyle: { fontWeight: 'bold', color: '#2563eb' }
@@ -377,17 +491,51 @@ export default function ProjectDetail(props: Props) {
       width: 250,
       filter: 'agTextColumnFilter'
     },
+    {
+      field: 'action',
+      headerName: 'Action',
+      width: 150,
+      pinned: 'right',
+      filter: false,
+      sortable: false,
+      editable: false,
+      cellRenderer: (params: any) => {
+        const el = document.createElement('div');
+        el.className = 'flex items-center justify-center gap-2 h-full';
+        
+        // Edit Button
+        const editBtn = document.createElement('button');
+        editBtn.textContent = 'Edit';
+        editBtn.title = 'Edit';
+        editBtn.className = 'px-2 py-1 bg-orange-500 hover:bg-orange-600 text-white rounded text-xs font-medium transition-colors';
+        editBtn.onclick = () => handleEditBoQ(params.data);
+        
+        // Delete Button
+        const deleteBtn = document.createElement('button');
+        deleteBtn.textContent = 'Delete';
+        deleteBtn.title = 'Delete';
+        deleteBtn.className = 'px-2 py-1 bg-red-500 hover:bg-red-600 text-white rounded text-xs font-medium transition-colors';
+        deleteBtn.onclick = () => handleDeleteBoQ(params.data.id);
+        
+        el.appendChild(editBtn);
+        el.appendChild(deleteBtn);
+        return el;
+      }
+    }
   ];
 
-  const boqSummary = {
-    totalItems: sampleBoQData.length,
-    totalCost: sampleBoQData.reduce((sum, item) => sum + item.totalPrice, 0),
-    materialCost: sampleBoQData.filter(item => 
-      item.category?.includes('Kabel') || item.category?.includes('Perangkat') || item.category?.includes('Pipa')
-    ).reduce((sum, item) => sum + item.totalPrice, 0),
-    laborCost: sampleBoQData.filter(item => 
-      item.category?.includes('Tanah') || item.category?.includes('Sipil') || item.category?.includes('Testing')
-    ).reduce((sum, item) => sum + item.totalPrice, 0),
+  const boqSummary = () => {
+    const data = boqData();
+    return {
+      totalItems: data.length,
+      totalCost: data.reduce((sum, item) => sum + item.totalPrice, 0),
+      materialCost: data.filter(item => 
+        item.category?.includes('Kabel') || item.category?.includes('Perangkat') || item.category?.includes('Pipa')
+      ).reduce((sum, item) => sum + item.totalPrice, 0),
+      laborCost: data.filter(item => 
+        item.category?.includes('Tanah') || item.category?.includes('Sipil') || item.category?.includes('Testing')
+      ).reduce((sum, item) => sum + item.totalPrice, 0),
+    };
   };
 
   return (
@@ -615,49 +763,80 @@ export default function ProjectDetail(props: Props) {
         </Show>
 
         <Show when={activeTab() === 'milestone'}>
-          <div class="bg-white rounded-lg border border-gray-200 shadow-sm">
-            <div class="ag-theme-alpine h-[500px] w-full">
-              <AgGridSolid
-                columnDefs={milestoneColumnDefs}
-                rowData={milestoneData}
-                defaultColDef={{
-                  sortable: true,
-                  resizable: true,
+          <div>
+            {/* Create Button */}
+            <div class="mb-4 flex justify-between items-center">
+              <h3 class="text-lg font-semibold text-gray-800">Milestone Management</h3>
+              <button
+                onClick={() => {
+                  setEditingMilestone(null);
+                  setShowMilestoneModal(true);
                 }}
-                pagination={true}
-                paginationPageSize={20}
-                paginationPageSizeSelector={[10, 20, 50]}
-                rowHeight={48}
-                headerHeight={56}
-              />
+                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-sm flex items-center gap-2"
+              >
+                Add New Milestone
+              </button>
+            </div>
+
+            {/* Milestone Grid */}
+            <div class="bg-white rounded-lg border border-gray-200 shadow-sm">
+              <div class="ag-theme-alpine h-[500px] w-full">
+                <AgGridSolid
+                  columnDefs={milestoneColumnDefs}
+                  rowData={milestoneData()}
+                  defaultColDef={{
+                    sortable: true,
+                    resizable: true,
+                  }}
+                  pagination={true}
+                  paginationPageSize={20}
+                  paginationPageSizeSelector={[10, 20, 50]}
+                  rowHeight={48}
+                  headerHeight={56}
+                />
+              </div>
             </div>
           </div>
         </Show>
 
         <Show when={activeTab() === 'boq'}>
           <div>
+            {/* Create Button */}
+            <div class="mb-4 flex justify-between items-center">
+              <h3 class="text-lg font-semibold text-gray-800">Bill of Quantities Management</h3>
+              <button
+                onClick={() => {
+                  setEditingBoQ(null);
+                  setShowBoQModal(true);
+                }}
+                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-sm flex items-center gap-2"
+              >
+                Add New BoQ Item
+              </button>
+            </div>
+
             {/* Summary Cards */}
             <div class="grid grid-cols-4 gap-4 mb-4">
               <div class="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200">
                 <div class="text-xs text-blue-600 font-semibold mb-1">Total Items</div>
-                <div class="text-2xl font-bold text-gray-800">{boqSummary.totalItems}</div>
+                <div class="text-2xl font-bold text-gray-800">{boqSummary().totalItems}</div>
               </div>
               <div class="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-lg border border-green-200">
                 <div class="text-xs text-green-600 font-semibold mb-1">Total Cost</div>
                 <div class="text-lg font-bold text-gray-800">
-                  Rp {boqSummary.totalCost.toLocaleString('id-ID')}
+                  Rp {boqSummary().totalCost.toLocaleString('id-ID')}
                 </div>
               </div>
               <div class="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-lg border border-purple-200">
                 <div class="text-xs text-purple-600 font-semibold mb-1">Material Cost</div>
                 <div class="text-lg font-bold text-gray-800">
-                  Rp {boqSummary.materialCost.toLocaleString('id-ID')}
+                  Rp {boqSummary().materialCost.toLocaleString('id-ID')}
                 </div>
               </div>
               <div class="bg-gradient-to-br from-orange-50 to-orange-100 p-4 rounded-lg border border-orange-200">
                 <div class="text-xs text-orange-600 font-semibold mb-1">Labor Cost</div>
                 <div class="text-lg font-bold text-gray-800">
-                  Rp {boqSummary.laborCost.toLocaleString('id-ID')}
+                  Rp {boqSummary().laborCost.toLocaleString('id-ID')}
                 </div>
               </div>
             </div>
@@ -667,7 +846,7 @@ export default function ProjectDetail(props: Props) {
               <div class="ag-theme-alpine h-[500px] w-full">
                 <AgGridSolid
                   columnDefs={boqColumnDefs}
-                  rowData={sampleBoQData}
+                  rowData={boqData()}
                   defaultColDef={{
                     sortable: true,
                     resizable: true,
@@ -683,6 +862,29 @@ export default function ProjectDetail(props: Props) {
           </div>
         </Show>
       </div>
+
+      {/* Modals */}
+      <MilestoneFormModal
+        isOpen={showMilestoneModal()}
+        onClose={() => {
+          setShowMilestoneModal(false);
+          setEditingMilestone(null);
+        }}
+        onSave={handleSaveMilestone}
+        editData={editingMilestone()}
+        nextNo={Math.max(...milestoneData().map(m => m.no), 0) + 1}
+      />
+
+      <BoQFormModal
+        isOpen={showBoQModal()}
+        onClose={() => {
+          setShowBoQModal(false);
+          setEditingBoQ(null);
+        }}
+        onSave={handleSaveBoQ}
+        editData={editingBoQ()}
+        nextNo={Math.max(...boqData().map(b => b.no || 0), 0) + 1}
+      />
     </div>
   );
 }

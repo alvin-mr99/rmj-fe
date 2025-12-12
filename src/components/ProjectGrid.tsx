@@ -26,7 +26,7 @@ export default function ProjectGrid(props: ProjectGridProps) {
       field: 'action',
       headerName: 'Action',
       pinned: 'right',
-      width: 200,
+      width: 120,
       editable: false,
       filter: false,
       floatingFilter: false,
@@ -46,37 +46,37 @@ export default function ProjectGrid(props: ProjectGridProps) {
           window.dispatchEvent(ev);
         };
         
-        // BoQ Button
-        const boqBtn = document.createElement('button');
-        boqBtn.textContent = '📋 BoQ';
-        boqBtn.className = 'action-btn-boq';
-        boqBtn.style.cssText = `
-          padding: 6px 14px;
-          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-          color: white;
-          border: none;
-          border-radius: 6px;
-          font-size: 12px;
-          font-weight: 500;
-          cursor: pointer;
-          transition: all 0.2s;
-          box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
-        `;
-        boqBtn.onclick = () => {
-          const ev = new CustomEvent('project-view-boq', { detail: params.data.id });
-          window.dispatchEvent(ev);
-        };
-        boqBtn.onmouseenter = () => {
-          boqBtn.style.transform = 'translateY(-1px)';
-          boqBtn.style.boxShadow = '0 4px 8px rgba(16, 185, 129, 0.4)';
-        };
-        boqBtn.onmouseleave = () => {
-          boqBtn.style.transform = 'translateY(0)';
-          boqBtn.style.boxShadow = '0 2px 4px rgba(16, 185, 129, 0.3)';
-        };
+        // BoQ Button - Hidden for now
+        // const boqBtn = document.createElement('button');
+        // boqBtn.textContent = '📋 BoQ';
+        // boqBtn.className = 'action-btn-boq';
+        // boqBtn.style.cssText = `
+        //   padding: 6px 14px;
+        //   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        //   color: white;
+        //   border: none;
+        //   border-radius: 6px;
+        //   font-size: 12px;
+        //   font-weight: 500;
+        //   cursor: pointer;
+        //   transition: all 0.2s;
+        //   box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+        // `;
+        // boqBtn.onclick = () => {
+        //   const ev = new CustomEvent('project-view-boq', { detail: params.data.id });
+        //   window.dispatchEvent(ev);
+        // };
+        // boqBtn.onmouseenter = () => {
+        //   boqBtn.style.transform = 'translateY(-1px)';
+        //   boqBtn.style.boxShadow = '0 4px 8px rgba(16, 185, 129, 0.4)';
+        // };
+        // boqBtn.onmouseleave = () => {
+        //   boqBtn.style.transform = 'translateY(0)';
+        //   boqBtn.style.boxShadow = '0 2px 4px rgba(16, 185, 129, 0.3)';
+        // };
         
         el.appendChild(viewBtn);
-        el.appendChild(boqBtn);
+        // el.appendChild(boqBtn); // Hidden
         return el;
       },
     },
