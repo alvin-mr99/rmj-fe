@@ -5,6 +5,7 @@ import mockProjects from '../data/mockProjects';
 import type { ProjectHierarchyProject, BoQItem } from '../types';
 import ProjectDetail from '../components/ProjectDetail';
 import { GlobalColumnSettings } from './GlobalColumnSettings';
+import ProjectFormModal from './ProjectFormModal';
 
 interface ProjectGridProps {
   onProjectGridReady?: (api: GridApi) => void;
@@ -13,7 +14,7 @@ interface ProjectGridProps {
 }
 
 export default function ProjectGrid(props: ProjectGridProps) {
-  const [projects] = createSignal<ProjectHierarchyProject[]>(mockProjects);
+  const [projects, setProjects] = createSignal<ProjectHierarchyProject[]>(mockProjects);
   const [columnDefs] = createSignal<ColDef[]>([
     { field: 'tahunProject', headerName: 'Tahun Proj...', width: 110 },
     { field: 'program', headerName: 'Program', width: 150 },
@@ -26,7 +27,7 @@ export default function ProjectGrid(props: ProjectGridProps) {
       field: 'action',
       headerName: 'Action',
       pinned: 'right',
-      width: 120,
+      width: 220,
       editable: false,
       filter: false,
       floatingFilter: false,
@@ -35,48 +36,72 @@ export default function ProjectGrid(props: ProjectGridProps) {
         el.style.display = 'flex';
         el.style.justifyContent = 'center';
         el.style.alignItems = 'center';
-        el.style.gap = '8px';
+        el.style.gap = '6px';
         
         // View Detail Button
         const viewBtn = document.createElement('button');
-        viewBtn.textContent = 'View Detail';
+        viewBtn.textContent = 'View';
         viewBtn.className = 'action-btn-edit';
+        viewBtn.style.cssText = `
+          padding: 6px 12px;
+          background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+          color: white;
+          border: none;
+          border-radius: 6px;
+          font-size: 11px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s;
+          box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+        `;
         viewBtn.onclick = () => {
           const ev = new CustomEvent('project-view-detail', { detail: params.data.id });
           window.dispatchEvent(ev);
         };
         
-        // BoQ Button - Hidden for now
-        // const boqBtn = document.createElement('button');
-        // boqBtn.textContent = '📋 BoQ';
-        // boqBtn.className = 'action-btn-boq';
-        // boqBtn.style.cssText = `
-        //   padding: 6px 14px;
-        //   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-        //   color: white;
-        //   border: none;
-        //   border-radius: 6px;
-        //   font-size: 12px;
-        //   font-weight: 500;
-        //   cursor: pointer;
-        //   transition: all 0.2s;
-        //   box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
-        // `;
-        // boqBtn.onclick = () => {
-        //   const ev = new CustomEvent('project-view-boq', { detail: params.data.id });
-        //   window.dispatchEvent(ev);
-        // };
-        // boqBtn.onmouseenter = () => {
-        //   boqBtn.style.transform = 'translateY(-1px)';
-        //   boqBtn.style.boxShadow = '0 4px 8px rgba(16, 185, 129, 0.4)';
-        // };
-        // boqBtn.onmouseleave = () => {
-        //   boqBtn.style.transform = 'translateY(0)';
-        //   boqBtn.style.boxShadow = '0 2px 4px rgba(16, 185, 129, 0.3)';
-        // };
+        // Edit Button
+        const editBtn = document.createElement('button');
+        editBtn.textContent = 'Edit';
+        editBtn.style.cssText = `
+          padding: 6px 12px;
+          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+          color: white;
+          border: none;
+          border-radius: 6px;
+          font-size: 11px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s;
+          box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
+        `;
+        editBtn.onclick = () => {
+          const ev = new CustomEvent('project-edit', { detail: params.data.id });
+          window.dispatchEvent(ev);
+        };
+        
+        // Delete Button
+        const deleteBtn = document.createElement('button');
+        deleteBtn.textContent = 'Delete';
+        deleteBtn.style.cssText = `
+          padding: 6px 12px;
+          background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+          color: white;
+          border: none;
+          border-radius: 6px;
+          font-size: 11px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s;
+          box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+        `;
+        deleteBtn.onclick = () => {
+          const ev = new CustomEvent('project-delete', { detail: params.data.id });
+          window.dispatchEvent(ev);
+        };
         
         el.appendChild(viewBtn);
-        // el.appendChild(boqBtn); // Hidden
+        el.appendChild(editBtn);
+        el.appendChild(deleteBtn);
         return el;
       },
     },
@@ -87,6 +112,10 @@ export default function ProjectGrid(props: ProjectGridProps) {
   const [selectedProjectId, setSelectedProjectId] = createSignal<string | null>(null);
   const [selectedBoQProjectId, setSelectedBoQProjectId] = createSignal<string | null>(null);
   const [showColumnSettings, setShowColumnSettings] = createSignal(false);
+  
+  // Project CRUD states
+  const [showProjectModal, setShowProjectModal] = createSignal(false);
+  const [editingProject, setEditingProject] = createSignal<ProjectHierarchyProject | null>(null);
 
   // BoQ Column Definitions
   const [boqColumnDefs] = createSignal<ColDef[]>([
@@ -279,14 +308,76 @@ export default function ProjectGrid(props: ProjectGridProps) {
     setSelectedBoQProjectId(e.detail);
   };
 
+  // Project CRUD Handlers
+  const handleEditProject = (e: any) => {
+    const projectId = e.detail;
+    const project = projects().find(p => p.id === projectId);
+    if (project) {
+      setEditingProject(project);
+      setShowProjectModal(true);
+    }
+  };
+
+  const handleDeleteProject = (e: any) => {
+    const projectId = e.detail;
+    const project = projects().find(p => p.id === projectId);
+    if (project && confirm(`Are you sure you want to delete project "${project.noKontrak}"?`)) {
+      setProjects(projects().filter(p => p.id !== projectId));
+      const api = gridApi();
+      if (api) {
+        api.setGridOption('rowData', projects());
+      }
+    }
+  };
+
+  const handleSaveProject = (data: Partial<ProjectHierarchyProject>) => {
+    if (editingProject()) {
+      // Update existing project
+      const updatedProjects = projects().map(p => 
+        p.id === editingProject()!.id 
+          ? { ...p, ...data }
+          : p
+      );
+      setProjects(updatedProjects);
+    } else {
+      // Create new project
+      const newProject: ProjectHierarchyProject = {
+        id: `proj-${Date.now()}`,
+        namaKontrak: '',
+        tahunProject: data.tahunProject || '',
+        program: data.program || '',
+        noKontrak: data.noKontrak || '',
+        regional: data.regional || '',
+        treg: data.treg || '',
+        planRFS: data.planRFS || '',
+        currentMilestone: data.currentMilestone || '',
+        paketAreas: [],
+      };
+      setProjects([...projects(), newProject]);
+    }
+    
+    // Update grid
+    const api = gridApi();
+    if (api) {
+      api.setGridOption('rowData', projects());
+    }
+    
+    setEditingProject(null);
+    setShowProjectModal(false);
+  };
+
   onMount(() => {
     window.addEventListener('project-view-detail', handleViewDetail);
     window.addEventListener('project-view-boq', handleViewBoQ);
+    window.addEventListener('project-edit', handleEditProject);
+    window.addEventListener('project-delete', handleDeleteProject);
   });
 
   onCleanup(() => {
     window.removeEventListener('project-view-detail', handleViewDetail);
     window.removeEventListener('project-view-boq', handleViewBoQ);
+    window.removeEventListener('project-edit', handleEditProject);
+    window.removeEventListener('project-delete', handleDeleteProject);
   });
 
   const selectedProject = () => projects().find(p => p.id === selectedProjectId());
@@ -408,6 +499,25 @@ export default function ProjectGrid(props: ProjectGridProps) {
 
   return (
     <div class="w-full">
+      {/* Toolbar with Create Button */}
+      <div class="mb-4 flex items-center justify-between">
+        <div class="text-sm text-gray-600">
+          Total Projects: <span class="font-semibold text-gray-800">{projects().length}</span>
+        </div>
+        <button
+          class="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 font-medium transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
+          onClick={() => {
+            setEditingProject(null);
+            setShowProjectModal(true);
+          }}
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+          Create New Project
+        </button>
+      </div>
+
       <div class="ag-theme-alpine h-[calc(100vh-250px)] w-full">
         <AgGridSolid
           columnDefs={columnDefs()}
@@ -587,6 +697,18 @@ export default function ProjectGrid(props: ProjectGridProps) {
             </div>
           </div>
         </div>
+      </Show>
+
+      {/* Project Form Modal */}
+      <Show when={showProjectModal()}>
+        <ProjectFormModal
+          project={editingProject()}
+          onClose={() => {
+            setShowProjectModal(false);
+            setEditingProject(null);
+          }}
+          onSave={handleSaveProject}
+        />
       </Show>
     </div>
   );
