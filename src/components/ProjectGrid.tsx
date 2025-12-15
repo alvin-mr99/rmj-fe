@@ -6,6 +6,7 @@ import type { ProjectHierarchyProject, BoQItem } from '../types';
 import ProjectDetail from '../components/ProjectDetail';
 import { GlobalColumnSettings } from './GlobalColumnSettings';
 import ProjectFormModal from './ProjectFormModal';
+import ConfirmDeleteModal from './ConfirmDeleteModal';
 
 interface ProjectGridProps {
   onProjectGridReady?: (api: GridApi) => void;
@@ -116,6 +117,13 @@ export default function ProjectGrid(props: ProjectGridProps) {
   // Project CRUD states
   const [showProjectModal, setShowProjectModal] = createSignal(false);
   const [editingProject, setEditingProject] = createSignal<ProjectHierarchyProject | null>(null);
+
+  // Delete confirmation states
+  const [showDeleteConfirm, setShowDeleteConfirm] = createSignal(false);
+  const [projectToDelete, setProjectToDelete] = createSignal<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   // BoQ Column Definitions
   const [boqColumnDefs] = createSignal<ColDef[]>([
@@ -321,13 +329,31 @@ export default function ProjectGrid(props: ProjectGridProps) {
   const handleDeleteProject = (e: any) => {
     const projectId = e.detail;
     const project = projects().find(p => p.id === projectId);
-    if (project && confirm(`Are you sure you want to delete project "${project.noKontrak}"?`)) {
-      setProjects(projects().filter(p => p.id !== projectId));
+    if (project) {
+      setProjectToDelete({
+        id: projectId,
+        name: project.noKontrak
+      });
+      setShowDeleteConfirm(true);
+    }
+  };
+
+  const confirmDeleteProject = () => {
+    const toDelete = projectToDelete();
+    if (toDelete) {
+      setProjects(projects().filter(p => p.id !== toDelete.id));
       const api = gridApi();
       if (api) {
         api.setGridOption('rowData', projects());
       }
     }
+    setShowDeleteConfirm(false);
+    setProjectToDelete(null);
+  };
+
+  const cancelDeleteProject = () => {
+    setShowDeleteConfirm(false);
+    setProjectToDelete(null);
   };
 
   const handleSaveProject = (data: Partial<ProjectHierarchyProject>) => {
@@ -710,6 +736,16 @@ export default function ProjectGrid(props: ProjectGridProps) {
           onSave={handleSaveProject}
         />
       </Show>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmDeleteModal
+        isOpen={showDeleteConfirm()}
+        title="⚠️ Hapus Project?"
+        message="Apakah Anda yakin ingin menghapus project ini? Semua data terkait (Area, Lokasi, Ruas, BoQ) akan ikut terhapus dan tidak dapat dikembalikan."
+        itemName={projectToDelete()?.name || ''}
+        onConfirm={confirmDeleteProject}
+        onCancel={cancelDeleteProject}
+      />
     </div>
   );
 }

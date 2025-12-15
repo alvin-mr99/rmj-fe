@@ -1,10 +1,13 @@
 import { createSignal, For, Show } from 'solid-js';
+import { createStore } from 'solid-js/store';
 import AgGridSolid from 'ag-grid-solid';
 import type { ColDef } from 'ag-grid-community';
 import type { ProjectHierarchyProject, BoQItem } from '../types';
 import BOQTree from '../components/BOQTree';
 import MilestoneFormModal from './MilestoneFormModal';
 import BoQFormModal from './BoQFormModal';
+import ConfirmDeleteModal from './ConfirmDeleteModal';
+import PaketAreaUnifiedModal from './PaketAreaUnifiedModal';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 
@@ -29,11 +32,26 @@ export default function ProjectDetail(props: Props) {
   const [expandedLokasiIds, setExpandedLokasiIds] = createSignal<string[]>([]);
   const [expandedRuasIds, setExpandedRuasIds] = createSignal<string[]>([]);
   
+  // Create reactive store for paketAreas
+  const [paketAreas, setPaketAreas] = createStore(props.project.paketAreas || []);
+  
   // Modal states
   const [showMilestoneModal, setShowMilestoneModal] = createSignal(false);
   const [showBoQModal, setShowBoQModal] = createSignal(false);
   const [editingMilestone, setEditingMilestone] = createSignal<MilestoneData | null>(null);
   const [editingBoQ, setEditingBoQ] = createSignal<BoQItem | null>(null);
+
+  // Paket Area CRUD states
+  const [showUnifiedModal, setShowUnifiedModal] = createSignal(false);
+  const [editingPaketArea, setEditingPaketArea] = createSignal<any>(null);
+
+  // Delete confirmation states
+  const [showDeleteConfirm, setShowDeleteConfirm] = createSignal(false);
+  const [deleteConfig, setDeleteConfig] = createSignal<{
+    type: 'milestone' | 'boq' | 'area' | 'lokasi' | 'ruas';
+    id: number | string;
+    name: string;
+  } | null>(null);
 
   function toggleArea(areaId: string) {
     if (expandedAreaIds().includes(areaId)) {
@@ -106,27 +124,28 @@ export default function ProjectDetail(props: Props) {
     {
       field: 'action',
       headerName: 'Action',
-      width: 100,
+      width: 120,
       pinned: 'right',
       filter: false,
       sortable: false,
       editable: false,
       cellRenderer: (params: any) => {
         const el = document.createElement('div');
-        el.style.cssText = 'display: flex; justify-content: center; align-items: center; height: 100%;';
+        el.style.cssText = 'display: flex; justify-content: center; align-items: center; gap: 4px; height: 100%; padding: 0 4px;';
         
         const isExpanded = expandedRuasIds().includes(params.data.id);
         
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.style.cssText = `
-          padding: 4px 10px;
+        // View Button
+        const viewBtn = document.createElement('button');
+        viewBtn.type = 'button';
+        viewBtn.style.cssText = `
+          padding: 4px 12px;
           background: ${isExpanded 
             ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' 
             : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)'};
           color: white;
           border: none;
-          border-radius: 6px;
+          border-radius: 4px;
           font-size: 11px;
           font-weight: 500;
           cursor: pointer;
@@ -137,37 +156,21 @@ export default function ProjectDetail(props: Props) {
           white-space: nowrap;
           pointer-events: auto;
         `;
-        btn.textContent = isExpanded ? '− Hide' : '+ View';
+        viewBtn.textContent = isExpanded ? '− Hide Detail' : 'View Detail';
         
-        btn.addEventListener('click', (e) => {
+        viewBtn.addEventListener('click', (e) => {
           e.preventDefault();
           e.stopPropagation();
-          console.log('Button clicked, ruas id:', params.data.id);
           const currentExpanded = expandedRuasIds();
           if (currentExpanded.includes(params.data.id)) {
             setExpandedRuasIds(currentExpanded.filter(id => id !== params.data.id));
           } else {
             setExpandedRuasIds([...currentExpanded, params.data.id]);
           }
-          // Force grid refresh to update button state
           params.api.refreshCells({ force: true });
         });
         
-        btn.addEventListener('mouseenter', () => {
-          btn.style.transform = 'translateY(-1px)';
-          btn.style.boxShadow = isExpanded 
-            ? '0 4px 8px rgba(239, 68, 68, 0.4)' 
-            : '0 4px 8px rgba(59, 130, 246, 0.4)';
-        });
-        
-        btn.addEventListener('mouseleave', () => {
-          btn.style.transform = 'translateY(0)';
-          btn.style.boxShadow = isExpanded 
-            ? '0 2px 4px rgba(239, 68, 68, 0.3)' 
-            : '0 2px 4px rgba(59, 130, 246, 0.3)';
-        });
-        
-        el.appendChild(btn);
+        el.appendChild(viewBtn);
         return el;
       }
     }
@@ -320,8 +323,14 @@ export default function ProjectDetail(props: Props) {
   };
 
   const handleDeleteMilestone = (id: number) => {
-    if (confirm('Are you sure you want to delete this milestone?')) {
-      setMilestoneData(milestoneData().filter(item => item.id !== id));
+    const milestone = milestoneData().find(m => m.id === id);
+    if (milestone) {
+      setDeleteConfig({
+        type: 'milestone',
+        id: id,
+        name: milestone.milestone
+      });
+      setShowDeleteConfirm(true);
     }
   };
 
@@ -347,14 +356,129 @@ export default function ProjectDetail(props: Props) {
   };
 
   const handleDeleteBoQ = (id: number) => {
-    if (confirm('Are you sure you want to delete this BoQ item?')) {
-      setBoqData(boqData().filter(item => item.id !== id));
+    const boq = boqData().find(b => b.id === id);
+    if (boq) {
+      setDeleteConfig({
+        type: 'boq',
+        id: id,
+        name: boq.description || 'Unnamed Item'
+      });
+      setShowDeleteConfirm(true);
     }
+  };
+
+  const confirmDelete = () => {
+    const config = deleteConfig();
+    if (config) {
+      if (config.type === 'milestone') {
+        setMilestoneData(milestoneData().filter(item => item.id !== config.id));
+      } else if (config.type === 'boq') {
+        setBoqData(boqData().filter(item => item.id !== config.id));
+      } else if (config.type === 'area') {
+        // Delete Area from paketAreas
+        setPaketAreas(areas => areas.filter(area => area.id !== config.id));
+      } else if (config.type === 'lokasi') {
+        // Delete Lokasi from Area
+        setPaketAreas(areas => 
+          areas.map(area => ({
+            ...area,
+            lokasis: area.lokasis?.filter(lokasi => lokasi.id !== config.id) || []
+          }))
+        );
+      } else if (config.type === 'ruas') {
+        // Delete Ruas from Lokasi
+        setPaketAreas(areas =>
+          areas.map(area => ({
+            ...area,
+            lokasis: area.lokasis?.map(lokasi => ({
+              ...lokasi,
+              ruasKontraks: lokasi.ruasKontraks?.filter(ruas => ruas.id !== config.id) || []
+            })) || []
+          }))
+        );
+      }
+    }
+    setShowDeleteConfirm(false);
+    setDeleteConfig(null);
+  };
+
+  const cancelDelete = () => {
+    setShowDeleteConfirm(false);
+    setDeleteConfig(null);
   };
 
   const handleEditBoQ = (boq: BoQItem) => {
     setEditingBoQ(boq);
     setShowBoQModal(true);
+  };
+
+  // CRUD Functions for Paket Area (Unified)
+  const handleSavePaketArea = (data: {
+    areaId: string;
+    namaArea: string;
+    lokasis: any[];
+  }) => {
+    if (editingPaketArea()) {
+      // Edit existing area
+      const editId = editingPaketArea().id;
+      setPaketAreas(
+        area => area.id === editId,
+        {
+          areaId: data.areaId,
+          namaArea: data.namaArea,
+          lokasis: data.lokasis.map(lok => ({
+            id: lok.id || `lokasi-${Date.now()}-${Math.random()}`,
+            kode: lok.kode,
+            mitra: lok.mitra,
+            witel: lok.witel,
+            siteName: lok.siteName,
+            ruasKontraks: lok.ruasKontraks.map((ruas: any) => ({
+              id: ruas.id || `ruas-${Date.now()}-${Math.random()}`,
+              noRuas: ruas.noRuas,
+              namaRuas: ruas.namaRuas,
+              panjangKM: ruas.panjangKM,
+              volumeMeter: ruas.volumeMeter,
+              progressGalian: ruas.progressGalian,
+              progressHDPE: ruas.progressHDPE,
+              nilaiDRM: ruas.nilaiDRM,
+              nilaiRekon: ruas.nilaiRekon,
+              boqCustomers: ruas.boqCustomers || [],
+              boqIndikatifs: ruas.boqIndikatifs || []
+            }))
+          }))
+        }
+      );
+    } else {
+      // Add new area
+      const newArea = {
+        id: `area-${Date.now()}`,
+        areaId: data.areaId,
+        namaArea: data.namaArea,
+        lokasis: data.lokasis.map(lok => ({
+          id: lok.id || `lokasi-${Date.now()}-${Math.random()}`,
+          kode: lok.kode,
+          mitra: lok.mitra,
+          witel: lok.witel,
+          siteName: lok.siteName,
+          ruasKontraks: lok.ruasKontraks.map((ruas: any) => ({
+            id: ruas.id || `ruas-${Date.now()}-${Math.random()}`,
+            noRuas: ruas.noRuas,
+            namaRuas: ruas.namaRuas,
+            panjangKM: ruas.panjangKM,
+            volumeMeter: ruas.volumeMeter,
+            progressGalian: ruas.progressGalian,
+            progressHDPE: ruas.progressHDPE,
+            nilaiDRM: ruas.nilaiDRM,
+            nilaiRekon: ruas.nilaiRekon,
+            boqCustomers: [],
+            boqIndikatifs: []
+          }))
+        }))
+      };
+      setPaketAreas(paketAreas.length, newArea);
+    }
+    setEditingPaketArea(null);
+    setShowUnifiedModal(false);
   };
 
   // Milestone data sample - expanded based on PDF
@@ -614,14 +738,28 @@ export default function ProjectDetail(props: Props) {
             </div>
 
             <div>
-              <h5 class="text-sm font-semibold text-gray-800 mb-2 flex items-center gap-2">
-                <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                </svg>
-                Paket Area
-              </h5>
+              <div class="flex items-center justify-between mb-3">
+                <h5 class="text-sm font-semibold text-gray-800 flex items-center gap-2">
+                  <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                  </svg>
+                  Paket Area
+                </h5>
+                <button
+                  onClick={() => {
+                    setEditingPaketArea(null);
+                    setShowUnifiedModal(true);
+                  }}
+                  class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-medium transition-colors shadow-sm flex items-center gap-1"
+                >
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add Area
+                </button>
+              </div>
               <div class="space-y-3">
-                <For each={props.project.paketAreas}>
+                <For each={paketAreas}>
                   {(pa) => (
                     <div class="border border-gray-300 rounded-lg overflow-hidden bg-white shadow-sm">
                       {/* Area Header */}
@@ -641,17 +779,45 @@ export default function ProjectDetail(props: Props) {
                               </span>
                             </div>
                           </div>
-                          <button 
-                            class="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded hover:bg-gray-200 transition-colors"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleArea(pa.id);
-                            }}
-                          >
-                            <span class="text-gray-600 font-bold text-sm">
-                              {expandedAreaIds().includes(pa.id) ? '−' : '+'}
-                            </span>
-                          </button>
+                          <div class="flex items-center gap-2">
+                            <button 
+                              class="flex-shrink-0 px-2 py-1 bg-yellow-500 hover:bg-yellow-600 text-white text-xs rounded transition-colors"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingPaketArea(pa);
+                                setShowUnifiedModal(true);
+                              }}
+                              title="Edit Area"
+                            >
+                              Edit
+                            </button>
+                            <button 
+                              class="flex-shrink-0 px-2 py-1 bg-red-500 hover:bg-red-600 text-white text-xs rounded transition-colors"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteConfig({
+                                  type: 'area',
+                                  id: pa.id,
+                                  name: pa.namaArea
+                                });
+                                setShowDeleteConfirm(true);
+                              }}
+                              title="Delete Area"
+                            >
+                              Delete
+                            </button>
+                            <button 
+                              class="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded hover:bg-gray-200 transition-colors"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleArea(pa.id);
+                              }}
+                            >
+                              <span class="text-gray-600 font-bold text-sm">
+                                {expandedAreaIds().includes(pa.id) ? '−' : '+'}
+                              </span>
+                            </button>
+                          </div>
                         </div>
                       </div>
 
@@ -686,6 +852,21 @@ export default function ProjectDetail(props: Props) {
                                       </div>
                                       <div class="flex items-center gap-2">
                                         <button 
+                                          class="flex-shrink-0 px-2 py-1 bg-red-500 hover:bg-red-600 text-white text-xs rounded transition-colors"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setDeleteConfig({
+                                              type: 'lokasi',
+                                              id: lokasi.id,
+                                              name: lokasi.siteName
+                                            });
+                                            setShowDeleteConfirm(true);
+                                          }}
+                                          title="Delete Lokasi"
+                                        >
+                                          Delete
+                                        </button>
+                                        <button 
                                           class="flex-shrink-0 w-4 h-4 flex items-center justify-center rounded hover:bg-gray-200 transition-colors"
                                           onClick={(e) => {
                                             e.stopPropagation();
@@ -703,14 +884,16 @@ export default function ProjectDetail(props: Props) {
                                   {/* Ruas Kontrak Details */}
                                   <Show when={expandedLokasiIds().includes(lokasi.id) && lokasi.ruasKontraks && lokasi.ruasKontraks.length > 0}>
                                     <div class="border-t border-gray-200 bg-gray-50 p-3">
-                                      <div class="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                                        <svg class="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                                        </svg>
-                                        Tabel Ruas Kontrak
-                                        <span class="px-2 py-0.5 bg-orange-100 text-orange-700 text-xs font-semibold rounded-full">
-                                          {lokasi.ruasKontraks.length} Ruas
-                                        </span>
+                                      <div class="flex items-center justify-between mb-3">
+                                        <div class="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                                          <svg class="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                          </svg>
+                                          Tabel Ruas Kontrak
+                                          <span class="px-2 py-0.5 bg-orange-100 text-orange-700 text-xs font-semibold rounded-full">
+                                            {lokasi.ruasKontraks.length} Ruas
+                                          </span>
+                                        </div>
                                       </div>
                                       
                                       <div class="ag-theme-alpine" style="width: 100%;">
@@ -884,6 +1067,43 @@ export default function ProjectDetail(props: Props) {
         onSave={handleSaveBoQ}
         editData={editingBoQ()}
         nextNo={Math.max(...boqData().map(b => b.no || 0), 0) + 1}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmDeleteModal
+        isOpen={showDeleteConfirm()}
+        title={
+          deleteConfig()?.type === 'milestone' ? '⚠️ Hapus Milestone?' :
+          deleteConfig()?.type === 'boq' ? '⚠️ Hapus Item BoQ?' :
+          deleteConfig()?.type === 'area' ? '⚠️ Hapus Area?' :
+          deleteConfig()?.type === 'lokasi' ? '⚠️ Hapus Lokasi?' :
+          '⚠️ Hapus Ruas Kontrak?'
+        }
+        message={
+          deleteConfig()?.type === 'milestone' 
+            ? 'Apakah Anda yakin ingin menghapus milestone ini? Data yang sudah dihapus tidak dapat dikembalikan.'
+            : deleteConfig()?.type === 'boq'
+            ? 'Apakah Anda yakin ingin menghapus item BoQ ini? Data yang sudah dihapus tidak dapat dikembalikan.'
+            : deleteConfig()?.type === 'area'
+            ? 'Apakah Anda yakin ingin menghapus area ini? Semua lokasi dan ruas kontrak di dalamnya juga akan dihapus.'
+            : deleteConfig()?.type === 'lokasi'
+            ? 'Apakah Anda yakin ingin menghapus lokasi ini? Semua ruas kontrak di dalamnya juga akan dihapus.'
+            : 'Apakah Anda yakin ingin menghapus ruas kontrak ini? Data yang sudah dihapus tidak dapat dikembalikan.'
+        }
+        itemName={deleteConfig()?.name || ''}
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
+      />
+
+      {/* Paket Area Unified Modal */}
+      <PaketAreaUnifiedModal
+        show={showUnifiedModal()}
+        onClose={() => {
+          setShowUnifiedModal(false);
+          setEditingPaketArea(null);
+        }}
+        onSave={handleSavePaketArea}
+        editingData={editingPaketArea()}
       />
     </div>
   );
