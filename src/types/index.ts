@@ -9,6 +9,7 @@ export type SoilType = 'Pasir' | 'Tanah Liat' | 'Batuan';
  * BOQ (Bill of Quantity) Types
  */
 export interface BoQItem {
+  id?: number;
   no: number;
   description: string;
   unit: string;
